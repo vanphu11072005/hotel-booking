@@ -1,166 +1,350 @@
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Hotel, Menu, X, User, LogOut } from 'lucide-react';
-import { useState } from 'react';
-import { useAuthStore } from '@/store/useAuthStore';
-import { ROUTES, ROLES } from '@/constants';
+import { 
+  Hotel, 
+  User, 
+  LogOut, 
+  Menu, 
+  X, 
+  LogIn, 
+  UserPlus 
+} from 'lucide-react';
 
-export const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, isAuthenticated, logout } = useAuthStore();
+interface HeaderProps {
+  isAuthenticated?: boolean;
+  userInfo?: {
+    name: string;
+    email: string;
+    avatar?: string;
+    role: string;
+  } | null;
+  onLogout?: () => void;
+}
 
-  const handleLogout = async () => {
-    await logout();
+const Header: React.FC<HeaderProps> = ({ 
+  isAuthenticated = false, 
+  userInfo = null,
+  onLogout 
+}) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = 
+    useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const toggleUserMenu = () => {
+    setIsUserMenuOpen(!isUserMenuOpen);
+  };
+
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    }
+    setIsUserMenuOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to={ROUTES.HOME} 
-            className="flex items-center space-x-2">
-            <Hotel className="h-8 w-8 text-primary-600" />
-            <span className="text-xl font-bold text-gray-900">
+          <Link 
+            to="/" 
+            className="flex items-center space-x-2 
+              hover:opacity-80 transition-opacity"
+          >
+            <Hotel className="w-8 h-8 text-blue-600" />
+            <span className="text-2xl font-bold text-gray-800">
               Hotel Booking
             </span>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center 
-            space-x-6">
-            <Link to={ROUTES.HOME} 
-              className="text-gray-700 hover:text-primary-600 
-                transition-colors">
+            space-x-6"
+          >
+            <Link 
+              to="/" 
+              className="text-gray-700 hover:text-blue-600 
+                transition-colors font-medium"
+            >
               Trang chủ
             </Link>
-            <Link to={ROUTES.ROOMS} 
-              className="text-gray-700 hover:text-primary-600 
-                transition-colors">
+            <Link 
+              to="/rooms" 
+              className="text-gray-700 hover:text-blue-600 
+                transition-colors font-medium"
+            >
               Phòng
             </Link>
-            
-            {isAuthenticated ? (
-              <>
-                <Link to={ROUTES.BOOKINGS} 
-                  className="text-gray-700 hover:text-primary-600 
-                    transition-colors">
-                  Đặt phòng
-                </Link>
-                
-                {user?.role.name === ROLES.ADMIN && (
-                  <Link to={ROUTES.ADMIN_DASHBOARD} 
-                    className="text-gray-700 
-                      hover:text-primary-600 transition-colors">
-                    Quản trị
-                  </Link>
-                )}
-                
-                {user?.role.name === ROLES.STAFF && (
-                  <Link to={ROUTES.STAFF_CHECKIN} 
-                    className="text-gray-700 
-                      hover:text-primary-600 transition-colors">
-                    Vận hành
-                  </Link>
-                )}
-                
-                <div className="flex items-center space-x-4">
-                  <Link to={ROUTES.PROFILE} 
-                    className="flex items-center space-x-2 
-                      text-gray-700 hover:text-primary-600 
-                      transition-colors">
-                    <User className="h-5 w-5" />
-                    <span>{user?.full_name}</span>
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center space-x-2 
-                      text-gray-700 hover:text-red-600 
-                      transition-colors"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    <span>Đăng xuất</span>
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center space-x-4">
-                <Link to={ROUTES.LOGIN} 
-                  className="text-gray-700 hover:text-primary-600 
-                    transition-colors">
-                  Đăng nhập
-                </Link>
-                <Link to={ROUTES.REGISTER} 
-                  className="btn-primary">
-                  Đăng ký
-                </Link>
-              </div>
-            )}
+            <Link 
+              to="/bookings" 
+              className="text-gray-700 hover:text-blue-600 
+                transition-colors font-medium"
+            >
+              Đặt phòng
+            </Link>
+            <Link 
+              to="/about" 
+              className="text-gray-700 hover:text-blue-600 
+                transition-colors font-medium"
+            >
+              Giới thiệu
+            </Link>
           </nav>
 
-          {/* Mobile menu button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2"
+          {/* Desktop Auth Section */}
+          <div className="hidden md:flex items-center 
+            space-x-4"
           >
-            {isMenuOpen ? (
-              <X className="h-6 w-6" />
+            {!isAuthenticated ? (
+              <>
+                <Link 
+                  to="/login"
+                  className="flex items-center space-x-2 
+                    px-4 py-2 text-blue-600 
+                    hover:text-blue-700 transition-colors 
+                    font-medium"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Đăng nhập</span>
+                </Link>
+                <Link 
+                  to="/register"
+                  className="flex items-center space-x-2 
+                    px-4 py-2 bg-blue-600 text-white 
+                    rounded-lg hover:bg-blue-700 
+                    transition-colors font-medium"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Đăng ký</span>
+                </Link>
+              </>
             ) : (
-              <Menu className="h-6 w-6" />
+              <div className="relative">
+                <button
+                  onClick={toggleUserMenu}
+                  className="flex items-center space-x-3 
+                    px-3 py-2 rounded-lg hover:bg-gray-100 
+                    transition-colors"
+                >
+                  {userInfo?.avatar ? (
+                    <img 
+                      src={userInfo.avatar} 
+                      alt={userInfo.name}
+                      className="w-8 h-8 rounded-full 
+                        object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-blue-500 
+                      rounded-full flex items-center 
+                      justify-center"
+                    >
+                      <span className="text-white 
+                        font-semibold text-sm"
+                      >
+                        {userInfo?.name?.charAt(0)
+                          .toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <span className="font-medium text-gray-700">
+                    {userInfo?.name}
+                  </span>
+                </button>
+
+                {/* User Dropdown Menu */}
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 
+                    w-48 bg-white rounded-lg shadow-lg 
+                    py-2 border border-gray-200 z-50"
+                  >
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center space-x-2 
+                        px-4 py-2 text-gray-700 
+                        hover:bg-gray-100 transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>Hồ sơ</span>
+                    </Link>
+                    {userInfo?.role === 'admin' && (
+                      <Link
+                        to="/admin"
+                        onClick={() => 
+                          setIsUserMenuOpen(false)
+                        }
+                        className="flex items-center 
+                          space-x-2 px-4 py-2 text-gray-700 
+                          hover:bg-gray-100 transition-colors"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Quản trị</span>
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center 
+                        space-x-2 px-4 py-2 text-red-600 
+                        hover:bg-gray-100 transition-colors 
+                        text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Đăng xuất</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden p-2 rounded-lg 
+              hover:bg-gray-100 transition-colors"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
             )}
           </button>
         </div>
 
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <nav className="md:hidden py-4 space-y-2 border-t">
-            <Link to={ROUTES.HOME} 
-              className="block py-2 text-gray-700 
-                hover:text-primary-600">
-              Trang chủ
-            </Link>
-            <Link to={ROUTES.ROOMS} 
-              className="block py-2 text-gray-700 
-                hover:text-primary-600">
-              Phòng
-            </Link>
-            
-            {isAuthenticated ? (
-              <>
-                <Link to={ROUTES.BOOKINGS} 
-                  className="block py-2 text-gray-700 
-                    hover:text-primary-600">
-                  Đặt phòng
-                </Link>
-                <Link to={ROUTES.PROFILE} 
-                  className="block py-2 text-gray-700 
-                    hover:text-primary-600">
-                  {user?.full_name}
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="block w-full text-left py-2 
-                    text-gray-700 hover:text-red-600"
-                >
-                  Đăng xuất
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to={ROUTES.LOGIN} 
-                  className="block py-2 text-gray-700 
-                    hover:text-primary-600">
-                  Đăng nhập
-                </Link>
-                <Link to={ROUTES.REGISTER} 
-                  className="block py-2 text-gray-700 
-                    hover:text-primary-600">
-                  Đăng ký
-                </Link>
-              </>
-            )}
-          </nav>
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden py-4 border-t 
+            border-gray-200 mt-4"
+          >
+            <div className="flex flex-col space-y-2">
+              <Link 
+                to="/"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="px-4 py-2 text-gray-700 
+                  hover:bg-gray-100 rounded-lg 
+                  transition-colors"
+              >
+                Trang chủ
+              </Link>
+              <Link 
+                to="/rooms"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="px-4 py-2 text-gray-700 
+                  hover:bg-gray-100 rounded-lg 
+                  transition-colors"
+              >
+                Phòng
+              </Link>
+              <Link 
+                to="/bookings"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="px-4 py-2 text-gray-700 
+                  hover:bg-gray-100 rounded-lg 
+                  transition-colors"
+              >
+                Đặt phòng
+              </Link>
+              <Link 
+                to="/about"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="px-4 py-2 text-gray-700 
+                  hover:bg-gray-100 rounded-lg 
+                  transition-colors"
+              >
+                Giới thiệu
+              </Link>
+              
+              <div className="border-t border-gray-200 
+                pt-2 mt-2"
+              >
+                {!isAuthenticated ? (
+                  <>
+                    <Link 
+                      to="/login"
+                      onClick={() => 
+                        setIsMobileMenuOpen(false)
+                      }
+                      className="flex items-center 
+                        space-x-2 px-4 py-2 text-blue-600 
+                        hover:bg-gray-100 rounded-lg 
+                        transition-colors"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      <span>Đăng nhập</span>
+                    </Link>
+                    <Link 
+                      to="/register"
+                      onClick={() => 
+                        setIsMobileMenuOpen(false)
+                      }
+                      className="flex items-center 
+                        space-x-2 px-4 py-2 text-blue-600 
+                        hover:bg-gray-100 rounded-lg 
+                        transition-colors"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Đăng ký</span>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <div className="px-4 py-2 text-sm 
+                      text-gray-500"
+                    >
+                      Xin chào, {userInfo?.name}
+                    </div>
+                    <Link
+                      to="/profile"
+                      onClick={() => 
+                        setIsMobileMenuOpen(false)
+                      }
+                      className="flex items-center 
+                        space-x-2 px-4 py-2 text-gray-700 
+                        hover:bg-gray-100 rounded-lg 
+                        transition-colors"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>Hồ sơ</span>
+                    </Link>
+                    {userInfo?.role === 'admin' && (
+                      <Link
+                        to="/admin"
+                        onClick={() => 
+                          setIsMobileMenuOpen(false)
+                        }
+                        className="flex items-center 
+                          space-x-2 px-4 py-2 
+                          text-gray-700 hover:bg-gray-100 
+                          rounded-lg transition-colors"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Quản trị</span>
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center 
+                        space-x-2 px-4 py-2 text-red-600 
+                        hover:bg-gray-100 rounded-lg 
+                        transition-colors text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Đăng xuất</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </header>
   );
 };
+
+export default Header;

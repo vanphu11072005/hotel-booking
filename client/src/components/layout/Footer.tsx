@@ -1,100 +1,190 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Hotel, Mail, Phone, MapPin } from 'lucide-react';
-import { ROUTES } from '@/constants';
+import { 
+  Hotel, 
+  Facebook, 
+  Twitter, 
+  Instagram, 
+  Mail, 
+  Phone, 
+  MapPin 
+} from 'lucide-react';
 
-export const Footer = () => {
+const Footer: React.FC = () => {
   return (
-    <footer className="bg-gray-900 text-white mt-auto">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* About */}
+    <footer className="bg-gray-900 text-gray-300">
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 
+          lg:grid-cols-4 gap-8">
+          {/* Company Info */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <Hotel className="h-6 w-6 text-primary-400" />
-              <span className="text-lg font-bold">
+              <Hotel className="w-8 h-8 text-blue-500" />
+              <span className="text-xl font-bold text-white">
                 Hotel Booking
               </span>
             </div>
-            <p className="text-gray-400 text-sm">
+            <p className="text-sm text-gray-400 mb-4">
               Hệ thống quản lý và đặt phòng khách sạn 
-              trực tuyến. Trải nghiệm dịch vụ tốt nhất.
+              trực tuyến hàng đầu Việt Nam.
             </p>
+            <div className="flex space-x-4">
+              <a 
+                href="#" 
+                className="hover:text-blue-500 
+                  transition-colors"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-5 h-5" />
+              </a>
+              <a 
+                href="#" 
+                className="hover:text-blue-500 
+                  transition-colors"
+                aria-label="Twitter"
+              >
+                <Twitter className="w-5 h-5" />
+              </a>
+              <a 
+                href="#" 
+                className="hover:text-blue-500 
+                  transition-colors"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-5 h-5" />
+              </a>
+            </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">
-              Liên kết
+            <h3 className="text-white font-semibold mb-4">
+              Liên kết nhanh
             </h3>
             <ul className="space-y-2">
               <li>
-                <Link to={ROUTES.HOME} 
-                  className="text-gray-400 hover:text-white 
-                    text-sm transition-colors">
+                <Link 
+                  to="/" 
+                  className="hover:text-blue-500 
+                    transition-colors text-sm"
+                >
                   Trang chủ
                 </Link>
               </li>
               <li>
-                <Link to={ROUTES.ROOMS} 
-                  className="text-gray-400 hover:text-white 
-                    text-sm transition-colors">
+                <Link 
+                  to="/rooms" 
+                  className="hover:text-blue-500 
+                    transition-colors text-sm"
+                >
                   Phòng
                 </Link>
               </li>
               <li>
-                <Link to={ROUTES.BOOKINGS} 
-                  className="text-gray-400 hover:text-white 
-                    text-sm transition-colors">
+                <Link 
+                  to="/bookings" 
+                  className="hover:text-blue-500 
+                    transition-colors text-sm"
+                >
                   Đặt phòng
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/about" 
+                  className="hover:text-blue-500 
+                    transition-colors text-sm"
+                >
+                  Giới thiệu
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Support */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">
-              Liên hệ
+            <h3 className="text-white font-semibold mb-4">
+              Hỗ trợ
             </h3>
             <ul className="space-y-2">
-              <li className="flex items-center space-x-2 
-                text-gray-400 text-sm">
-                <Phone className="h-4 w-4" />
-                <span>0901234567</span>
+              <li>
+                <Link 
+                  to="/faq" 
+                  className="hover:text-blue-500 
+                    transition-colors text-sm"
+                >
+                  Câu hỏi thường gặp
+                </Link>
               </li>
-              <li className="flex items-center space-x-2 
-                text-gray-400 text-sm">
-                <Mail className="h-4 w-4" />
-                <span>info@hotel.com</span>
+              <li>
+                <Link 
+                  to="/terms" 
+                  className="hover:text-blue-500 
+                    transition-colors text-sm"
+                >
+                  Điều khoản sử dụng
+                </Link>
               </li>
-              <li className="flex items-start space-x-2 
-                text-gray-400 text-sm">
-                <MapPin className="h-4 w-4 mt-1" />
-                <span>
-                  123 Hotel Street, District 1, HCMC
-                </span>
+              <li>
+                <Link 
+                  to="/privacy" 
+                  className="hover:text-blue-500 
+                    transition-colors text-sm"
+                >
+                  Chính sách bảo mật
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/contact" 
+                  className="hover:text-blue-500 
+                    transition-colors text-sm"
+                >
+                  Liên hệ
+                </Link>
               </li>
             </ul>
           </div>
 
-          {/* Business Hours */}
+          {/* Contact Info */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">
-              Giờ làm việc
+            <h3 className="text-white font-semibold mb-4">
+              Liên hệ
             </h3>
-            <ul className="space-y-2 text-gray-400 text-sm">
-              <li>Thứ 2 - Thứ 6: 24/7</li>
-              <li>Thứ 7 - Chủ nhật: 24/7</li>
-              <li className="text-primary-400">
-                Hotline: 0901234567
+            <ul className="space-y-3">
+              <li className="flex items-start space-x-3">
+                <MapPin className="w-5 h-5 text-blue-500 
+                  flex-shrink-0 mt-0.5" 
+                />
+                <span className="text-sm">
+                  123 Đường ABC, Quận 1, TP.HCM
+                </span>
+              </li>
+              <li className="flex items-center space-x-3">
+                <Phone className="w-5 h-5 text-blue-500 
+                  flex-shrink-0" 
+                />
+                <span className="text-sm">
+                  (028) 1234 5678
+                </span>
+              </li>
+              <li className="flex items-center space-x-3">
+                <Mail className="w-5 h-5 text-blue-500 
+                  flex-shrink-0" 
+                />
+                <span className="text-sm">
+                  info@hotelbooking.com
+                </span>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-8 pt-8 
-          text-center text-gray-400 text-sm">
-          <p>
+        {/* Copyright */}
+        <div className="border-t border-gray-800 mt-8 
+          pt-8 text-center"
+        >
+          <p className="text-sm text-gray-400">
             &copy; {new Date().getFullYear()} Hotel Booking. 
             All rights reserved.
           </p>
@@ -103,3 +193,5 @@ export const Footer = () => {
     </footer>
   );
 };
+
+export default Footer;

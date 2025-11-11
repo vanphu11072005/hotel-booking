@@ -1,176 +1,243 @@
-import { useAuthStore } from '@/store/useAuthStore';
-import { MainLayout } from '@/components/layout/MainLayout';
-import { User, Mail, Phone, MapPin, Shield } from 'lucide-react';
-import { ROLES } from '@/constants';
+import React from 'react';
+import { 
+  TrendingUp, 
+  Hotel, 
+  DollarSign,
+  Calendar,
+  Activity
+} from 'lucide-react';
 
-export const DashboardPage = () => {
-  const { user } = useAuthStore();
-
-  const getRoleBadge = (roleName: string) => {
-    const styles = {
-      admin: 'bg-red-100 text-red-800',
-      staff: 'bg-blue-100 text-blue-800',
-      customer: 'bg-green-100 text-green-800',
-    };
-    
-    const labels = {
-      admin: 'Quản trị viên',
-      staff: 'Nhân viên',
-      customer: 'Khách hàng',
-    };
-
-    return (
-      <span className={`px-3 py-1 rounded-full text-sm 
-        font-medium ${styles[roleName as keyof typeof styles]}`}>
-        {labels[roleName as keyof typeof labels]}
-      </span>
-    );
-  };
-
+const DashboardPage: React.FC = () => {
   return (
-    <MainLayout>
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Dashboard
         </h1>
+        <p className="text-gray-600">
+          Tổng quan hoạt động của bạn
+        </p>
+      </div>
 
-        {/* User Info Card */}
-        <div className="card mb-8">
-          <div className="flex items-start space-x-6">
-            <div className="h-20 w-20 rounded-full bg-primary-100 
-              flex items-center justify-center">
-              <User className="h-10 w-10 text-primary-600" />
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 
+        lg:grid-cols-4 gap-6 mb-8"
+      >
+        <div className="bg-white rounded-lg shadow-md 
+          p-6"
+        >
+          <div className="flex items-center 
+            justify-between mb-4"
+          >
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <Calendar className="w-6 h-6 
+                text-blue-600" 
+              />
             </div>
-            
-            <div className="flex-1">
-              <div className="flex items-center justify-between 
-                mb-2">
-                <h2 className="text-2xl font-bold">
-                  {user?.full_name}
-                </h2>
-                {user && getRoleBadge(user.role.name)}
-              </div>
-              
-              <div className="space-y-2 text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <Mail className="h-4 w-4" />
-                  <span>{user?.email}</span>
-                </div>
-                
-                {user?.phone && (
-                  <div className="flex items-center space-x-2">
-                    <Phone className="h-4 w-4" />
-                    <span>{user.phone}</span>
-                  </div>
-                )}
-                
-                {user?.address && (
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>{user.address}</span>
-                  </div>
-                )}
-                
-                <div className="flex items-center space-x-2">
-                  <Shield className="h-4 w-4" />
-                  <span>
-                    Trạng thái: {' '}
-                    <span className={user?.is_active 
-                      ? 'text-green-600' : 'text-red-600'}>
-                      {user?.is_active ? 'Hoạt động' : 'Tạm khóa'}
-                    </span>
-                  </span>
-                </div>
-              </div>
+            <span className="text-sm text-green-600 
+              font-medium"
+            >
+              +12%
+            </span>
+          </div>
+          <h3 className="text-gray-500 text-sm 
+            font-medium mb-1"
+          >
+            Tổng đặt phòng
+          </h3>
+          <p className="text-3xl font-bold text-gray-800">
+            45
+          </p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md 
+          p-6"
+        >
+          <div className="flex items-center 
+            justify-between mb-4"
+          >
+            <div className="p-3 bg-green-100 rounded-lg">
+              <DollarSign className="w-6 h-6 
+                text-green-600" 
+              />
             </div>
+            <span className="text-sm text-green-600 
+              font-medium"
+            >
+              +8%
+            </span>
+          </div>
+          <h3 className="text-gray-500 text-sm 
+            font-medium mb-1"
+          >
+            Tổng chi tiêu
+          </h3>
+          <p className="text-3xl font-bold text-gray-800">
+            $12,450
+          </p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md 
+          p-6"
+        >
+          <div className="flex items-center 
+            justify-between mb-4"
+          >
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <Hotel className="w-6 h-6 text-purple-600" />
+            </div>
+            <span className="text-sm text-green-600 
+              font-medium"
+            >
+              Active
+            </span>
+          </div>
+          <h3 className="text-gray-500 text-sm 
+            font-medium mb-1"
+          >
+            Đang ở
+          </h3>
+          <p className="text-3xl font-bold text-gray-800">
+            2
+          </p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md 
+          p-6"
+        >
+          <div className="flex items-center 
+            justify-between mb-4"
+          >
+            <div className="p-3 bg-orange-100 rounded-lg">
+              <TrendingUp className="w-6 h-6 
+                text-orange-600" 
+              />
+            </div>
+            <span className="text-sm text-green-600 
+              font-medium"
+            >
+              +15%
+            </span>
+          </div>
+          <h3 className="text-gray-500 text-sm 
+            font-medium mb-1"
+          >
+            Điểm thưởng
+          </h3>
+          <p className="text-3xl font-bold text-gray-800">
+            1,250
+          </p>
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 
+        gap-6"
+      >
+        <div className="bg-white rounded-lg shadow-md 
+          p-6"
+        >
+          <h2 className="text-xl font-semibold 
+            text-gray-800 mb-4"
+          >
+            Hoạt động gần đây
+          </h2>
+          <div className="space-y-4">
+            {[
+              { 
+                action: 'Đặt phòng', 
+                room: 'Phòng 201', 
+                time: '2 giờ trước' 
+              },
+              { 
+                action: 'Check-in', 
+                room: 'Phòng 105', 
+                time: '1 ngày trước' 
+              },
+              { 
+                action: 'Check-out', 
+                room: 'Phòng 302', 
+                time: '3 ngày trước' 
+              },
+            ].map((activity, index) => (
+              <div key={index} 
+                className="flex items-center space-x-4 
+                  pb-4 border-b border-gray-200 
+                  last:border-0"
+              >
+                <div className="p-2 bg-blue-100 
+                  rounded-lg"
+                >
+                  <Activity className="w-5 h-5 
+                    text-blue-600" 
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-800">
+                    {activity.action}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {activity.room}
+                  </p>
+                </div>
+                <span className="text-sm text-gray-400">
+                  {activity.time}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-6">
-          {user?.role.name === ROLES.CUSTOMER && (
-            <>
-              <div className="card hover:shadow-lg 
-                transition-shadow cursor-pointer">
-                <h3 className="text-lg font-semibold mb-2">
-                  Đặt phòng mới
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Tìm và đặt phòng phù hợp với nhu cầu của bạn
-                </p>
+        <div className="bg-white rounded-lg shadow-md 
+          p-6"
+        >
+          <h2 className="text-xl font-semibold 
+            text-gray-800 mb-4"
+          >
+            Đặt phòng sắp tới
+          </h2>
+          <div className="space-y-4">
+            {[
+              { 
+                room: 'Phòng 401', 
+                date: '20/11/2025', 
+                status: 'Đã xác nhận' 
+              },
+              { 
+                room: 'Phòng 203', 
+                date: '25/11/2025', 
+                status: 'Chờ xác nhận' 
+              },
+            ].map((booking, index) => (
+              <div key={index} 
+                className="flex items-center 
+                  justify-between pb-4 border-b 
+                  border-gray-200 last:border-0"
+              >
+                <div>
+                  <p className="font-medium text-gray-800">
+                    {booking.room}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {booking.date}
+                  </p>
+                </div>
+                <span className={`px-3 py-1 rounded-full 
+                  text-xs font-medium 
+                  ${booking.status === 'Đã xác nhận' 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-yellow-100 text-yellow-800'
+                  }`}
+                >
+                  {booking.status}
+                </span>
               </div>
-              
-              <div className="card hover:shadow-lg 
-                transition-shadow cursor-pointer">
-                <h3 className="text-lg font-semibold mb-2">
-                  Lịch sử đặt phòng
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Xem danh sách các lần đặt phòng trước đây
-                </p>
-              </div>
-            </>
-          )}
-          
-          {user?.role.name === ROLES.ADMIN && (
-            <>
-              <div className="card hover:shadow-lg 
-                transition-shadow cursor-pointer">
-                <h3 className="text-lg font-semibold mb-2">
-                  Quản lý phòng
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Thêm, sửa, xóa thông tin phòng
-                </p>
-              </div>
-              
-              <div className="card hover:shadow-lg 
-                transition-shadow cursor-pointer">
-                <h3 className="text-lg font-semibold mb-2">
-                  Quản lý người dùng
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Quản lý tài khoản và phân quyền
-                </p>
-              </div>
-              
-              <div className="card hover:shadow-lg 
-                transition-shadow cursor-pointer">
-                <h3 className="text-lg font-semibold mb-2">
-                  Báo cáo thống kê
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Xem báo cáo doanh thu và hoạt động
-                </p>
-              </div>
-            </>
-          )}
-          
-          {user?.role.name === ROLES.STAFF && (
-            <>
-              <div className="card hover:shadow-lg 
-                transition-shadow cursor-pointer">
-                <h3 className="text-lg font-semibold mb-2">
-                  Check-in
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Xử lý check-in cho khách hàng
-                </p>
-              </div>
-              
-              <div className="card hover:shadow-lg 
-                transition-shadow cursor-pointer">
-                <h3 className="text-lg font-semibold mb-2">
-                  Check-out
-                </h3>
-                <p className="text-gray-600 text-sm">
-                  Xử lý check-out và thanh toán
-                </p>
-              </div>
-            </>
-          )}
+            ))}
+          </div>
         </div>
       </div>
-    </MainLayout>
+    </div>
   );
 };
+
+export default DashboardPage;
