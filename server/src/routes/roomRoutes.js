@@ -1,19 +1,35 @@
 const express = require('express');
 const router = express.Router();
+const roomController = require('../controllers/roomController');
+const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
 
 /**
- * @route   GET /api/rooms
- * @desc    Get all rooms
- * @access  Public
+ * Room Routes
  */
-router.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    message: 'Room routes - Coming soon',
-    data: {
-      rooms: []
-    }
-  });
-});
+
+// Public routes
+router.get('/', roomController.getRooms);
+router.get('/available', roomController.searchAvailableRooms);
+router.get('/:id', roomController.getRoomById);
+
+// Admin routes
+router.post(
+	'/',
+	authenticateToken,
+	authorizeRoles('admin'),
+	roomController.createRoom
+);
+router.put(
+	'/:id',
+	authenticateToken,
+	authorizeRoles('admin'),
+	roomController.updateRoom
+);
+router.delete(
+	'/:id',
+	authenticateToken,
+	authorizeRoles('admin'),
+	roomController.deleteRoom
+);
 
 module.exports = router;

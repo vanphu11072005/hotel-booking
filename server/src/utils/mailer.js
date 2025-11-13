@@ -1,41 +1,41 @@
 const nodemailer = require('nodemailer');
 
 /**
- * sendEmail helper
- * - If SMTP env vars are provided, use them.
- * - Otherwise use Ethereal test account and log preview URL.
+ * sendEmail helper - production-only SMTP sender
+ * Requires MAIL_HOST, MAIL_USER and MAIL_PASS to be set in env.
+ * This helper intentionally does NOT fallback to Ethereal or
+ * log preview URLs. Raw tokens or reset URLs must never be
+ * printed to logs in production.
  */
 async function sendEmail({ to, subject, html, text }) {
-  let transporter;
+  // Require SMTP credentials to be present
+  const hasSmtpConfig = !!(
+    process.env.MAIL_HOST &&
+    process.env.MAIL_USER &&
+    process.env.MAIL_PASS
+  );
 
-  if (process.env.MAIL_HOST && process.env.MAIL_USER) {
-    // Use real SMTP transport from env
-    transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
-      port: Number(process.env.MAIL_PORT) || 587,
-      secure: process.env.MAIL_SECURE === 'true',
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-      }
-    });
-  } else {
-    // Fallback: create ethereal test account for dev
-    const testAccount = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: testAccount.smtp.host,
-      port: testAccount.smtp.port,
-      secure: testAccount.smtp.secure,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass
-      }
-    });
+  if (!hasSmtpConfig) {
+    throw new Error(
+      'SMTP mailer not configured. Set MAIL_HOST, MAIL_USER and MAIL_PASS in env.'
+    );
   }
 
-  const fromAddress = process.env.MAIL_FROM ||
-    `no-reply@${process.env.CLIENT_URL?.replace(/^https?:\/\//, '') || 'example.com'}`;
+  const transporter = nodemailer.createTransport({
+    host: process.env.MAIL_HOST,
+    port: Number(process.env.MAIL_PORT) || 587,
+    secure: process.env.MAIL_SECURE === 'true',
+    auth: {
+      user: process.env.MAIL_USER,
+      pass: process.env.MAIL_PASS
+    }
+  });
 
+  const fromAddress = process.env.MAIL_FROM ||
+    `no-reply@${(process.env.CLIENT_URL || 'example.com')
+      .replace(/^https?:\/\//, '')}`;
+
+  // Send and let errors bubble up to caller for handling/logging
   const info = await transporter.sendMail({
     from: fromAddress,
     to,
@@ -43,16 +43,6 @@ async function sendEmail({ to, subject, html, text }) {
     text,
     html
   });
-
-  // If ethereal, log preview URL
-  try {
-    const preview = nodemailer.getTestMessageUrl(info);
-    if (preview) {
-      console.log('Preview email URL:', preview);
-    }
-  } catch (err) {
-    // ignore
-  }
 
   return info;
 }

@@ -21,7 +21,6 @@ interface UserInfo {
 interface AuthState {
   // State
   token: string | null;
-  refreshToken: string | null;
   userInfo: UserInfo | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -50,7 +49,6 @@ interface AuthState {
 const useAuthStore = create<AuthState>((set, get) => ({
   // Initial State
   token: localStorage.getItem('token') || null,
-  refreshToken: localStorage.getItem('refreshToken') || null,
   userInfo: localStorage.getItem('userInfo')
     ? JSON.parse(localStorage.getItem('userInfo')!)
     : null,
@@ -69,7 +67,6 @@ const useAuthStore = create<AuthState>((set, get) => ({
       // Accept either boolean `success` (client) or `status: 'success'` (server)
       if (response.success || response.status === 'success') {
         const token = response.data?.token;
-        const refreshToken = response.data?.refreshToken;
         const user = response.data?.user ?? null;
 
         // If we didn't receive a token or user, treat as failure
@@ -77,17 +74,13 @@ const useAuthStore = create<AuthState>((set, get) => ({
           throw new Error(response.message || 'Đăng nhập thất bại.');
         }
 
-        // Lưu vào localStorage
+        // Lưu vào localStorage (chỉ access token)
         localStorage.setItem('token', token);
-        if (refreshToken) {
-          localStorage.setItem('refreshToken', refreshToken);
-        }
         localStorage.setItem('userInfo', JSON.stringify(user));
 
         // Cập nhật state
         set({
           token,
-          refreshToken: refreshToken || null,
           userInfo: user,
           isAuthenticated: true,
           isLoading: false,
@@ -149,13 +142,11 @@ const useAuthStore = create<AuthState>((set, get) => ({
     } finally {
       // Xóa localStorage
       localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('userInfo');
 
       // Reset state
       set({
         token: null,
-        refreshToken: null,
         userInfo: null,
         isAuthenticated: false,
         isLoading: false,
@@ -178,31 +169,20 @@ const useAuthStore = create<AuthState>((set, get) => ({
    * Refresh Token - Làm mới token
    */
   refreshAuthToken: async () => {
-    const { refreshToken } = get();
-    
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
     try {
-      const response = await authService.refreshToken(refreshToken);
+      const response = await authService.refreshToken();
 
       if (response.success || response.status === 'success') {
         const token = response.data?.token;
-        const newRefreshToken = response.data?.refreshToken;
 
         if (!token) {
           throw new Error(response.message || 'Không thể làm mới token');
         }
 
         localStorage.setItem('token', token);
-        if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
-        }
 
         set({
           token,
-          refreshToken: newRefreshToken || refreshToken,
         });
       }
     } catch (error) {
@@ -273,14 +253,11 @@ const useAuthStore = create<AuthState>((set, get) => ({
    */
   initializeAuth: () => {
     const token = localStorage.getItem('token');
-    const refreshToken = 
-      localStorage.getItem('refreshToken');
     const userInfo = localStorage.getItem('userInfo');
 
     if (token && userInfo) {
       set({
         token,
-        refreshToken,
         userInfo: JSON.parse(userInfo),
         isAuthenticated: true,
       });

@@ -99,12 +99,10 @@ const authService = {
   /**
    * Refresh token
    */
-  refreshToken: async (
-    refreshToken: string
-  ): Promise<AuthResponse> => {
+  refreshToken: async (): Promise<AuthResponse> => {
+    // No need to send refreshToken in body - it's in cookie
     const response = await apiClient.post<AuthResponse>(
-      '/api/auth/refresh-token',
-      { refreshToken }
+      '/api/auth/refresh-token'
     );
     return response.data;
   },

@@ -10,9 +10,10 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Store
 import useAuthStore from './store/useAuthStore';
+import useFavoritesStore from './store/useFavoritesStore';
 
 // Layout Components
-import LayoutMain from './components/layout/LayoutMain';
+import { LayoutMain } from './components/layout';
 import AdminLayout from './pages/AdminLayout';
 
 // Auth Components
@@ -27,8 +28,22 @@ import DashboardPage from
   './pages/customer/DashboardPage';
 import RoomListPage from 
   './pages/customer/RoomListPage';
-import BookingListPage from 
-  './pages/customer/BookingListPage';
+import RoomDetailPage from 
+  './pages/customer/RoomDetailPage';
+import SearchResultsPage from 
+  './pages/customer/SearchResultsPage';
+import FavoritesPage from 
+  './pages/customer/FavoritesPage';
+import MyBookingsPage from 
+  './pages/customer/MyBookingsPage';
+import BookingPage from 
+  './pages/customer/BookingPage';
+import BookingSuccessPage from 
+  './pages/customer/BookingSuccessPage';
+import BookingDetailPage from 
+  './pages/customer/BookingDetailPage';
+import PaymentConfirmationPage from 
+  './pages/customer/PaymentConfirmationPage';
 import { 
   LoginPage, 
   RegisterPage,
@@ -100,11 +115,35 @@ function App() {
     logout, 
     initializeAuth 
   } = useAuthStore();
+  
+  const { 
+    fetchFavorites, 
+    syncGuestFavorites,
+    loadGuestFavorites,
+  } = useFavoritesStore();
 
   // Khởi tạo auth state khi app load
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
+
+  // Load favorites when authenticated or load guest favorites
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Sync guest favorites first, then fetch
+      syncGuestFavorites().then(() => {
+        fetchFavorites();
+      });
+    } else {
+      // Load guest favorites from localStorage
+      loadGuestFavorites();
+    }
+  }, [
+    isAuthenticated, 
+    fetchFavorites, 
+    syncGuestFavorites,
+    loadGuestFavorites,
+  ]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -131,6 +170,18 @@ function App() {
             element={<RoomListPage />} 
           />
           <Route 
+            path="rooms/search" 
+            element={<SearchResultsPage />} 
+          />
+          <Route 
+            path="rooms/:id" 
+            element={<RoomDetailPage />} 
+          />
+          <Route 
+            path="favorites" 
+            element={<FavoritesPage />} 
+          />
+          <Route 
             path="about" 
             element={<DemoPage title="Giới thiệu" />} 
           />
@@ -145,10 +196,42 @@ function App() {
             } 
           />
           <Route 
+            path="booking/:id" 
+            element={
+              <ProtectedRoute>
+                <BookingPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="booking-success/:id" 
+            element={
+              <ProtectedRoute>
+                <BookingSuccessPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
             path="bookings" 
             element={
               <ProtectedRoute>
-                <BookingListPage />
+                <MyBookingsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="bookings/:id" 
+            element={
+              <ProtectedRoute>
+                <BookingDetailPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="payment/:id" 
+            element={
+              <ProtectedRoute>
+                <PaymentConfirmationPage />
               </ProtectedRoute>
             } 
           />

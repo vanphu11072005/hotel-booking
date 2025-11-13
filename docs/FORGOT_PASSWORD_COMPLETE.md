@@ -422,50 +422,30 @@ Expected response:
 }
 ```
 
-Check server console for:
-```
-Reset token: abc123...
-Reset URL: http://localhost:5173/reset-password/abc123...
-```
+Ensure SMTP is configured in `server/.env` and that the server
+is able to send emails. The application must never log raw reset
+tokens or reset URLs in production.
 
 ## ⚠️ TODO: Email Service
 
-Currently, the backend **logs** the reset token to console instead of sending email. To implement:
+The project must send real emails via SMTP in production and must
+never expose raw reset tokens in logs. To enable email sending:
 
-### 1. Install email package
-```bash
-cd server
-npm install nodemailer
-```
+1. Install `nodemailer` in the `server` package and configure
+   SMTP credentials in `server/.env` (`MAIL_HOST`, `MAIL_PORT`,
+   `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM`). Do not commit these
+   credentials to source control.
 
-### 2. Create email service
-```javascript
-// server/src/utils/emailService.js
-const nodemailer = require('nodemailer');
+2. Implement a mail helper (e.g. `server/src/utils/mailer.js`) that
+   uses the SMTP settings. Ensure it throws or fails when SMTP
+   credentials are missing so that emails are not silently dropped.
 
-const sendResetEmail = async (email, resetUrl) => {
-  const transporter = nodemailer.createTransport({
-    // Configure SMTP
-  });
+3. Use the mail helper to send the reset email with a link built as
+   `${process.env.CLIENT_URL}/reset-password/${resetToken}`.
 
-  await transporter.sendMail({
-    from: 'Hotel Booking <noreply@hotel.com>',
-    to: email,
-    subject: 'Reset Password',
-    html: `
-      <p>Click link to reset password:</p>
-      <a href="${resetUrl}">${resetUrl}</a>
-      <p>Expires in 1 hour.</p>
-    `
-  });
-};
-```
-
-### 3. Use in controller
-```javascript
-const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-await sendResetEmail(user.email, resetUrl);
-```
+4. Important: never log the raw `resetToken` or the reset URL. If
+   email sending fails, log a generic error and surface a safe
+   message to the user.
 
 ## ✅ Checklist
 
