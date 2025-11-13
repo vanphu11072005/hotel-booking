@@ -38,6 +38,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'user_id',
         as: 'reviews'
       });
+
+      // User has many Favorites
+      User.hasMany(models.Favorite, {
+        foreignKey: 'user_id',
+        as: 'favorites'
+      });
     }
 
     toJSON() {

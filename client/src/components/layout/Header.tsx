@@ -7,7 +7,8 @@ import {
   Menu, 
   X, 
   LogIn, 
-  UserPlus 
+  UserPlus,
+  Heart,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -86,6 +87,15 @@ const Header: React.FC<HeaderProps> = ({
                 transition-colors font-medium"
             >
               Đặt phòng
+            </Link>
+            <Link 
+              to="/favorites" 
+              className="text-gray-700 hover:text-blue-600 
+                transition-colors font-medium flex 
+                items-center gap-1"
+            >
+              <Heart className="w-4 h-4" />
+              Yêu thích
             </Link>
             <Link 
               to="/about" 
@@ -248,6 +258,16 @@ const Header: React.FC<HeaderProps> = ({
                   transition-colors"
               >
                 Đặt phòng
+              </Link>
+              <Link 
+                to="/favorites"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="px-4 py-2 text-gray-700 
+                  hover:bg-gray-100 rounded-lg 
+                  transition-colors flex items-center gap-2"
+              >
+                <Heart className="w-4 h-4" />
+                Yêu thích
               </Link>
               <Link 
                 to="/about"

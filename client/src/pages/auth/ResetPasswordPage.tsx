@@ -109,6 +109,11 @@ const ResetPasswordPage: React.FC = () => {
   const isTokenError =
     error?.includes('token') || error?.includes('expired');
 
+  // New password reuse error check
+  const isReuseError =
+    error?.toLowerCase().includes('must be different') ||
+    error?.toLowerCase().includes('different from old');
+
   return (
     <div
       className="min-h-screen bg-gradient-to-br 
@@ -217,7 +222,11 @@ const ResetPasswordPage: React.FC = () => {
                 >
                   <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-medium">{error}</p>
+                    <p className="font-medium">
+                      {isReuseError
+                        ? 'Mật khẩu mới phải khác mật khẩu cũ'
+                        : error}
+                    </p>
                     {isTokenError && (
                       <Link
                         to="/forgot-password"

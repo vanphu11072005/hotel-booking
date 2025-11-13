@@ -13,6 +13,7 @@ module.exports = {
           room_number: `${floor}0${room}`,
           floor: floor,
           status: 'available',
+          featured: false,
           price: 500000,
           images: JSON.stringify([
             '/uploads/rooms/standard-single-1.jpg',
@@ -34,6 +35,7 @@ module.exports = {
           room_number: `${floor}0${room}`,
           floor: floor,
           status: 'available',
+          featured: false,
           price: 800000,
           images: JSON.stringify([
             '/uploads/rooms/standard-double-1.jpg',
@@ -56,6 +58,7 @@ module.exports = {
           room_number: `${floor}0${room}`,
           floor: floor,
           status: 'available',
+          featured: false,
           price: 1200000,
           images: JSON.stringify([
             '/uploads/rooms/deluxe-1.jpg',
@@ -79,6 +82,7 @@ module.exports = {
           room_number: `${floor}0${room}`,
           floor: floor,
           status: 'available',
+          featured: false,
           price: 2000000,
           images: JSON.stringify([
             '/uploads/rooms/family-suite-1.jpg',
@@ -102,6 +106,7 @@ module.exports = {
         room_number: `100${room}`,
         floor: 10,
         status: 'available',
+  featured: false,
         price: 5000000,
         images: JSON.stringify([
           '/uploads/rooms/presidential-1.jpg',
@@ -123,6 +128,41 @@ module.exports = {
     rooms[5].status = 'occupied';
     rooms[12].status = 'cleaning';
     rooms[20].status = 'maintenance';
+
+    // Ensure there are always 10 featured rooms in the seed data.
+    // Strategy: prefer higher-tier room types first (presidential ->
+    // family -> deluxe -> double -> single) and mark rooms until
+    // we reach `desiredFeaturedCount`.
+    const desiredFeaturedCount = 10;
+    let featuredMarked = 0;
+
+    // Helper: mark room at index if exists and not already featured
+    const markIf = (idx) => {
+      if (idx >= 0 && idx < rooms.length && !rooms[idx].featured) {
+        rooms[idx].featured = true;
+        featuredMarked += 1;
+      }
+    };
+
+    // Priority order by room_type_id (higher-tier first)
+    const priority = [5, 4, 3, 2, 1];
+
+    for (const typeId of priority) {
+      if (featuredMarked >= desiredFeaturedCount) break;
+
+      // iterate rooms and pick the first ones of this type
+      for (let i = 0; i < rooms.length; i++) {
+        if (rooms[i].room_type_id === typeId) {
+          markIf(i);
+          if (featuredMarked >= desiredFeaturedCount) break;
+        }
+      }
+    }
+
+    // If still not enough, mark remaining rooms starting from end
+    for (let i = rooms.length - 1; i >= 0 && featuredMarked < desiredFeaturedCount; i--) {
+      markIf(i);
+    }
 
     await queryInterface.bulkInsert('rooms', rooms);
   },

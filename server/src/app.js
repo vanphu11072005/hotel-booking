@@ -5,12 +5,16 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const roomRoutes = require('./routes/roomRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const bannerRoutes = require('./routes/bannerRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const favoriteRoutes = require('./routes/favoriteRoutes');
 
 // Import middleware
 const errorHandler = require('./middlewares/errorHandler');
@@ -34,6 +38,9 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Cookie parser middleware
+app.use(cookieParser());
+
 // Logging middleware
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
@@ -48,6 +55,17 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP'
 });
 app.use('/api/', limiter);
+
+// Disable client-side caching for API responses to avoid 304
+// responses for dynamic endpoints. This forces fresh data for
+// API calls and prevents stale cached responses in browsers.
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
+  next();
+});
 
 // Static files
 app.use('/uploads', express.static('uploads'));
@@ -66,6 +84,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/banners', bannerRoutes);
+app.use('/api/favorites', favoriteRoutes);
+app.use('/api', reviewRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

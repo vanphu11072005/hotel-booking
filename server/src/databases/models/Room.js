@@ -21,6 +21,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'room_id',
         as: 'reviews'
       });
+
+      // Room has many Favorites
+      Room.hasMany(models.Favorite, {
+        foreignKey: 'room_id',
+        as: 'favorites'
+      });
     }
   }
 

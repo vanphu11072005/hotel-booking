@@ -75,12 +75,20 @@ morgan, nodemon
 - `POST /api/bookings`
 - `PUT /api/bookings/:id`
 - `DELETE /api/bookings/:id`
+- `GET /api/bookings/me`
+- `PATCH /api/bookings/:id/cancel`
 - `GET /api/bookings/check/:bookingNumber`
-- `GET /api/bookings/number/:bookingNumber`
 
 ### Payments
 - `POST /api/payments`
 - `GET /api/payments/:bookingId`
+
+### Reviews
+- `GET /api/reviews`
+- `GET /api/reviews?roomId={id}`
+- `POST /api/reviews`
+- `PATCH /api/reviews/:id/approve`
+- `PATCH /api/reviews/:id/reject`
 
 ### Services
 - `GET /api/services`
@@ -121,6 +129,7 @@ morgan, nodemon
 - `promotions`: Promotion and discount information
 - `checkin_checkout`: Check-in and check-out details
 - `banners`: Banner images displayed on the frontend
+- `reviews`: Stores user reviews for rooms (linked to users, rooms)
 
 ### Roles
 - **Admin**: Manage rooms, users, services, promotions, and reports
