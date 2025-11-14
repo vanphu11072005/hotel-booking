@@ -12,6 +12,7 @@ export interface Room {
   status: 'available' | 'occupied' | 'maintenance';
   featured: boolean;
   images?: string[];
+  amenities?: string[];
   created_at: string;
   updated_at: string;
   room_type?: {
@@ -116,6 +117,15 @@ export const searchAvailableRooms = async (
 };
 
 /**
+ * Get available amenities list (unique)
+ */
+export const getAmenities = async (): Promise<{
+  success?: boolean;
+  status?: string;
+  data: { amenities: string[] };
+}> => {
+  const response = await apiClient.get('/rooms/amenities');
+=======
  * Create new room
  */
 export interface CreateRoomData {

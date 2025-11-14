@@ -207,7 +207,11 @@ const RoomDetailPage: React.FC = () => {
                 Tiện ích
               </h2>
               <RoomAmenities
-                amenities={roomType?.amenities || []}
+                amenities={
+                  (room.amenities && room.amenities.length > 0)
+                    ? room.amenities
+                    : (roomType?.amenities || [])
+                }
               />
             </div>
           </div>

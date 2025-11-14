@@ -71,9 +71,6 @@ const RoomListPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">
             Danh sách phòng
           </h1>
-          <p className="text-gray-600 mt-2">
-            Khám phá các loại phòng của chúng tôi
-          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -161,11 +158,6 @@ const RoomListPage: React.FC = () => {
 
             {!loading && !error && rooms.length > 0 && (
               <>
-                <div className="mb-4 text-sm text-gray-600">
-                  Hiển thị {rooms.length} trên tổng số{' '}
-                  {pagination.total} phòng
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 
                   xl:grid-cols-3 gap-6"
                 >

@@ -100,6 +100,16 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: 'pending'
       },
+      deposit_paid: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+      },
+      requires_deposit: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+      },
       special_requests: {
         type: DataTypes.TEXT,
         allowNull: true

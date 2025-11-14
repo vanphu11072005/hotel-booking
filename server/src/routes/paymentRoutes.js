@@ -1,26 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
-const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
+const { authenticateToken } = require('../middlewares/auth');
 
 /**
- * GET /api/payments - Get all payments (Admin/Staff)
+ * Payment Routes
+ * All routes require authentication
  */
+
+// Get payments for a booking
 router.get(
-  '/',
-  authenticateToken,
-  authorizeRoles('admin', 'staff'),
-  paymentController.getPayments
+	'/booking/:bookingId',
+	authenticateToken,
+	paymentController.getPaymentByBookingId
 );
 
-/**
- * GET /api/payments/:id - Get payment by ID (Admin/Staff)
- */
+// Get bank transfer info (QR code)
 router.get(
-  '/:id',
-  authenticateToken,
-  authorizeRoles('admin', 'staff'),
-  paymentController.getPaymentById
+	'/:paymentId/bank-info',
+	authenticateToken,
+	paymentController.getBankTransferInfo
 );
+
+// Confirm deposit payment
+router.post(
+	'/confirm-deposit',
+	authenticateToken,
+	paymentController.confirmDepositPayment
+);
+
+// Notify payment completion
+router.post(
+	'/notify',
+	authenticateToken,
+	paymentController.notifyPayment
+);
+
 
 module.exports = router;

@@ -33,10 +33,33 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
     currency: 'VND',
   }).format(roomType.base_price);
 
+  // Prefer room-level amenities when available, otherwise use room type
+  const normalizeAmenities = (input: any): string[] => {
+    if (Array.isArray(input)) return input;
+    if (!input) return [];
+    if (typeof input === 'string') {
+      try {
+        const parsed = JSON.parse(input);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {}
+      return input.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (typeof input === 'object') {
+      try {
+        const vals = Object.values(input);
+        if (Array.isArray(vals) && vals.length > 0) return vals.flat().map((v: any) => String(v).trim());
+      } catch {}
+    }
+    return [];
+  };
+
+  const amenitiesSource =
+    (room.amenities && normalizeAmenities(room.amenities).length > 0)
+      ? normalizeAmenities(room.amenities)
+      : normalizeAmenities(roomType.amenities);
+
   // Get amenities (limit to 3 for display)
-  const amenities = Array.isArray(roomType.amenities)
-    ? roomType.amenities.slice(0, 3)
-    : [];
+  const amenities = amenitiesSource.slice(0, 3);
 
   // Amenity icons mapping
   const amenityIcons: Record<string, React.ReactNode> = {

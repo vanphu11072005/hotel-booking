@@ -1,158 +1,239 @@
-const { Payment, Booking, User, Room } = require('../databases/models');
-const { Op } = require('sequelize');
+const { Payment, Booking, Room, RoomType } = require('../databases/models');
+
+// VNPay integration removed
 
 /**
- * Get all payments with filters and pagination
- * GET /api/payments
+ * Get payment details for a booking
+ * GET /api/payments/booking/:bookingId
  */
-const getPayments = async (req, res, next) => {
-  try {
-    const {
-      search,
-      method,
-      status,
-      from, // Changed from startDate
-      to,   // Changed from endDate
-      page = 1,
-      limit = 10,
-    } = req.query;
+const getPaymentByBookingId = async (req, res, next) => {
+	try {
+		const { bookingId } = req.params;
+		const user = req.user;
 
-    const whereClause = {};
-    const bookingWhere = {};
+		const booking = await Booking.findByPk(bookingId, {
+			include: [{ model: Payment, as: 'payments' }],
+		});
 
-    // Filter by search (booking number)
-    if (search) {
-      bookingWhere.booking_number = { [Op.like]: `%${search}%` };
-    }
+		if (!booking) {
+			return res.status(404).json({
+				status: 'error',
+				message: 'Booking not found',
+			});
+		}
 
-    // Filter by payment method
-    if (method) {
-      whereClause.payment_method = method;
-    }
+		// Check if user owns this booking
+		if (booking.user_id !== user.id) {
+			return res.status(403).json({
+				status: 'error',
+				message: 'Forbidden',
+			});
+		}
 
-    // Filter by status
-    if (status) {
-      whereClause.payment_status = status; // Changed from 'status' to 'payment_status'
-    }
-
-    // Filter by date range
-    if (from || to) {
-      whereClause.payment_date = {};
-      if (from) {
-        whereClause.payment_date[Op.gte] = new Date(from);
-      }
-      if (to) {
-        whereClause.payment_date[Op.lte] = new Date(to);
-      }
-    }
-
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-
-    const { count, rows: payments } = await Payment.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: Booking,
-          as: 'booking',
-          where: Object.keys(bookingWhere).length > 0 ? bookingWhere : undefined,
-          required: false,
-          attributes: ['id', 'booking_number', 'check_in_date', 'check_out_date'],
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['id', 'full_name', 'email'],
-            },
-            {
-              model: Room,
-              as: 'room',
-              attributes: ['id', 'room_number'],
-            },
-          ],
-        },
-      ],
-      limit: parseInt(limit),
-      offset: offset,
-      order: [['payment_date', 'DESC']],
-    });
-
-    // Calculate total revenue - use simpler where clause
-    const revenueWhere = { payment_status: 'completed' }; // Changed from 'status'
-    if (method) revenueWhere.payment_method = method;
-    
-    const totalRevenue = await Payment.sum('amount', {
-      where: revenueWhere,
-    });
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        payments,
-        summary: {
-          totalRevenue: totalRevenue || 0,
-        },
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / parseInt(limit)),
-        },
-      },
-    });
-  } catch (error) {
-    console.error('Error in getPayments:', error);
-    next(error);
-  }
+		res.status(200).json({
+			success: true,
+			data: {
+				payments: booking.payments,
+			},
+		});
+	} catch (error) {
+		next(error);
+	}
 };
 
 /**
- * Get payment by ID
- * GET /api/payments/:id
+ * Confirm deposit payment (after customer pays via bank transfer/online gateway)
+ * POST /api/payments/confirm-deposit
  */
-const getPaymentById = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+const confirmDepositPayment = async (req, res, next) => {
+	try {
+		const { payment_id, transaction_id } = req.body;
+		const user = req.user;
 
-    const payment = await Payment.findByPk(id, {
-      include: [
-        {
-          model: Booking,
-          as: 'booking',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['id', 'full_name', 'email', 'phone'],
-            },
-            {
-              model: Room,
-              as: 'room',
-              attributes: ['id', 'room_number'],
-            },
-          ],
-        },
-      ],
-    });
+		if (!payment_id) {
+			return res.status(400).json({
+				status: 'error',
+				message: 'Payment ID is required',
+			});
+		}
 
-    if (!payment) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Payment not found',
-      });
-    }
+		const payment = await Payment.findByPk(payment_id, {
+			include: [
+				{
+					model: Booking,
+					as: 'booking',
+					include: [{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type' }] }],
+				},
+			],
+		});
 
-    res.status(200).json({
-      status: 'success',
-      data: {
-        payment,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
+		if (!payment) {
+			return res.status(404).json({
+				status: 'error',
+				message: 'Payment not found',
+			});
+		}
+
+		const booking = payment.booking;
+
+		// Check ownership
+		if (booking.user_id !== user.id) {
+			return res.status(403).json({
+				status: 'error',
+				message: 'Forbidden',
+			});
+		}
+
+		// Check if payment is already completed
+		if (payment.payment_status === 'completed') {
+			return res.status(400).json({
+				status: 'error',
+				message: 'Payment already completed',
+			});
+		}
+
+		// Update payment status
+		payment.payment_status = 'completed';
+		payment.payment_date = new Date();
+		if (transaction_id) {
+			payment.transaction_id = transaction_id;
+		}
+		await payment.save();
+
+		// Update booking if this is a deposit
+		if (payment.payment_type === 'deposit') {
+			booking.deposit_paid = true;
+			booking.status = 'confirmed';
+			await booking.save();
+		}
+
+		res.status(200).json({
+			success: true,
+			data: {
+				payment,
+				booking,
+			},
+			message: 'Deposit payment confirmed successfully',
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+/**
+ * Generate payment info for bank transfer (QR code data)
+ * GET /api/payments/:paymentId/bank-info
+ */
+const getBankTransferInfo = async (req, res, next) => {
+	try {
+		const { paymentId } = req.params;
+		const user = req.user;
+
+		const payment = await Payment.findByPk(paymentId, {
+			include: [{ model: Booking, as: 'booking' }],
+		});
+
+		if (!payment) {
+			return res.status(404).json({
+				status: 'error',
+				message: 'Payment not found',
+			});
+		}
+
+		// Check ownership
+		if (payment.booking.user_id !== user.id) {
+			return res.status(403).json({
+				status: 'error',
+				message: 'Forbidden',
+			});
+		}
+
+		// Bank information (replace with actual bank details)
+		const bankInfo = {
+			bank_name: 'Vietcombank',
+			bank_code: 'VCB',
+			account_number: '0123456789',
+			account_name: 'KHACH SAN ABC',
+			amount: parseFloat(payment.amount),
+			content: `${payment.booking.booking_number}`,
+			qr_url: generateQRCodeURL(
+				'VCB',
+				'0123456789',
+				'KHACH SAN ABC',
+				payment.booking.booking_number,
+				parseFloat(payment.amount)
+			),
+		};
+
+		res.status(200).json({
+			success: true,
+			data: {
+				payment,
+				bank_info: bankInfo,
+			},
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+/**
+ * Helper function to generate VietQR URL
+ */
+const generateQRCodeURL = (bankCode, accountNumber, accountName, content, amount) => {
+	const baseUrl = 'https://img.vietqr.io/image';
+	const qrUrl =
+		`${baseUrl}/${bankCode}-${accountNumber}-compact2.jpg?` +
+		`amount=${amount}&` +
+		`addInfo=${encodeURIComponent(content)}&` +
+		`accountName=${encodeURIComponent(accountName)}`;
+	return qrUrl;
+};
+
+/**
+ * Notify payment completion (for manual verification by admin)
+ * POST /api/payments/notify
+ */
+const notifyPayment = async (req, res, next) => {
+	try {
+		const { payment_id, notes } = req.body;
+		const user = req.user;
+
+		const payment = await Payment.findByPk(payment_id, {
+			include: [{ model: Booking, as: 'booking' }],
+		});
+
+		if (!payment) {
+			return res.status(404).json({
+				status: 'error',
+				message: 'Payment not found',
+			});
+		}
+
+		// Check ownership
+		if (payment.booking.user_id !== user.id) {
+			return res.status(403).json({
+				status: 'error',
+				message: 'Forbidden',
+			});
+		}
+
+		// Update payment notes (for admin review)
+		payment.notes = notes || 'Customer notified payment completion';
+		await payment.save();
+
+		res.status(200).json({
+			success: true,
+			message: 'Payment notification sent. Please wait for admin verification.',
+		});
+	} catch (error) {
+		next(error);
+	}
 };
 
 module.exports = {
-  getPayments,
-  getPaymentById,
+	getPaymentByBookingId,
+	confirmDepositPayment,
+	getBankTransferInfo,
+	notifyPayment,
 };
