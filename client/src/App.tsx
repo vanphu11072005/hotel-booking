@@ -51,6 +51,17 @@ import {
   ResetPasswordPage 
 } from './pages/auth';
 
+// Admin Pages
+import {
+  DashboardPage as AdminDashboardPage,
+  RoomManagementPage,
+  UserManagementPage,
+  BookingManagementPage,
+  PaymentManagementPage,
+  ServiceManagementPage,
+  ReviewManagementPage,
+} from './pages/admin';
+
 // Demo component cho các page chưa có
 const DemoPage: React.FC<{ title: string }> = ({ title }) => (
   <div className="container mx-auto px-4 py-8">
@@ -60,50 +71,6 @@ const DemoPage: React.FC<{ title: string }> = ({ title }) => (
     <p className="text-gray-600 mt-4">
       Page này đang được phát triển...
     </p>
-  </div>
-);
-
-const AdminDashboard: React.FC = () => (
-  <div>
-    <h1 className="text-3xl font-bold text-gray-800 mb-6">
-      Dashboard
-    </h1>
-    <div className="grid grid-cols-1 md:grid-cols-2 
-      lg:grid-cols-4 gap-6"
-    >
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-gray-500 text-sm font-medium">
-          Tổng đặt phòng
-        </h3>
-        <p className="text-3xl font-bold text-gray-800 mt-2">
-          150
-        </p>
-      </div>
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-gray-500 text-sm font-medium">
-          Doanh thu
-        </h3>
-        <p className="text-3xl font-bold text-gray-800 mt-2">
-          $45,000
-        </p>
-      </div>
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-gray-500 text-sm font-medium">
-          Phòng trống
-        </h3>
-        <p className="text-3xl font-bold text-gray-800 mt-2">
-          23
-        </p>
-      </div>
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-gray-500 text-sm font-medium">
-          Khách hàng
-        </h3>
-        <p className="text-3xl font-bold text-gray-800 mt-2">
-          1,234
-        </p>
-      </div>
-    </div>
   </div>
 );
 
@@ -276,26 +243,30 @@ function App() {
             index 
             element={<Navigate to="dashboard" replace />} 
           />
-          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route 
             path="users" 
-            element={<DemoPage title="Quản lý người dùng" />} 
+            element={<UserManagementPage />} 
           />
           <Route 
             path="rooms" 
-            element={<DemoPage title="Quản lý phòng" />} 
+            element={<RoomManagementPage />} 
           />
           <Route 
             path="bookings" 
-            element={<DemoPage title="Quản lý đặt phòng" />} 
+            element={<BookingManagementPage />} 
           />
           <Route 
             path="payments" 
-            element={<DemoPage title="Quản lý thanh toán" />} 
+            element={<PaymentManagementPage />} 
           />
           <Route 
             path="services" 
-            element={<DemoPage title="Quản lý dịch vụ" />} 
+            element={<ServiceManagementPage />} 
+          />
+          <Route 
+            path="reviews" 
+            element={<ReviewManagementPage />} 
           />
           <Route 
             path="promotions" 

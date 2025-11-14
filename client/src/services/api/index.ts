@@ -19,3 +19,15 @@ export type * from './bookingService';
 
 export { default as paymentService } from './paymentService';
 export type * from './paymentService';
+
+export { default as userService } from './userService';
+export type * from './userService';
+
+export { default as serviceService } from './serviceService';
+export type * from './serviceService';
+
+export { default as promotionService } from './promotionService';
+export type * from './promotionService';
+
+export { default as reportService } from './reportService';
+export type * from './reportService';
