@@ -20,12 +20,33 @@ export interface Payment {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  booking?: {
+    booking_number: string;
+    user?: {
+      name: string;
+      email: string;
+    };
+  };
 }
 
 export interface PaymentResponse {
   success: boolean;
   data: {
     payment: Payment;
+  };
+  message?: string;
+}
+
+export interface PaymentListResponse {
+  success: boolean;
+  data: {
+    payments: Payment[];
+    pagination?: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
   };
   message?: string;
 }
@@ -90,8 +111,27 @@ export const confirmBankTransfer = async (
   return response.data;
 };
 
+/**
+ * Get all payments (admin)
+ * GET /api/payments
+ */
+export const getPayments = async (
+  params?: {
+    search?: string;
+    method?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    limit?: number;
+  }
+): Promise<PaymentListResponse> => {
+  const response = await apiClient.get<PaymentListResponse>('/payments', { params });
+  return response.data;
+};
+
 export default {
   createPayment,
   getPaymentByBookingId,
   confirmBankTransfer,
+  getPayments,
 };

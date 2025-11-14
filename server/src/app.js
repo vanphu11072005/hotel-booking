@@ -6,6 +6,7 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -15,6 +16,10 @@ const bookingRoutes = require('./routes/bookingRoutes');
 const bannerRoutes = require('./routes/bannerRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
+const promotionRoutes = require('./routes/promotionRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 // Import middleware
 const errorHandler = require('./middlewares/errorHandler');
@@ -23,7 +28,9 @@ const errorHandler = require('./middlewares/errorHandler');
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" } // Allow images to be loaded
+}));
 app.use(compression());
 
 // CORS configuration
@@ -33,6 +40,9 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
+
+// Serve static files (uploads)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Body parser middleware
 app.use(express.json({ limit: '10mb' }));
@@ -86,7 +96,11 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/favorites', favoriteRoutes);
-app.use('/api', reviewRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/promotions', promotionRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

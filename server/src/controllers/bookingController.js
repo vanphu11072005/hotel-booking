@@ -1,4 +1,4 @@
-const { Booking, Room, RoomType, Payment, sequelize, Sequelize } = require('../databases/models');
+const { Booking, Room, RoomType, Payment, User, sequelize, Sequelize } = require('../databases/models');
 const { Op } = require('sequelize');
 
 // Helper to generate a simple booking number
@@ -200,10 +200,129 @@ const checkBookingByNumber = async (req, res, next) => {
 	}
 };
 
+/**
+ * Get all bookings (Admin only)
+ * GET /api/bookings
+ */
+const getAllBookings = async (req, res, next) => {
+	try {
+		const {
+			search,
+			status,
+			startDate,
+			endDate,
+			page = 1,
+			limit = 10,
+		} = req.query;
+
+		const whereClause = {};
+
+		// Filter by search (booking_number or user name/email)
+		if (search) {
+			whereClause[Op.or] = [
+				{ booking_number: { [Op.like]: `%${search}%` } },
+			];
+		}
+
+		// Filter by status
+		if (status) {
+			whereClause.status = status;
+		}
+
+		// Filter by date range
+		if (startDate || endDate) {
+			whereClause.check_in_date = {};
+			if (startDate) {
+				whereClause.check_in_date[Op.gte] = new Date(startDate);
+			}
+			if (endDate) {
+				whereClause.check_in_date[Op.lte] = new Date(endDate);
+			}
+		}
+
+		const offset = (parseInt(page) - 1) * parseInt(limit);
+
+		const { count, rows: bookings } = await Booking.findAndCountAll({
+			where: whereClause,
+			include: [
+				{
+					model: User,
+					as: 'user',
+					attributes: ['id', 'full_name', 'email', 'phone'],
+				},
+				{
+					model: Room,
+					as: 'room',
+					attributes: ['id', 'room_number', 'floor'],
+				},
+			],
+			limit: parseInt(limit),
+			offset: offset,
+			order: [['created_at', 'DESC']],
+		});
+
+		res.status(200).json({
+			status: 'success',
+			data: {
+				bookings,
+				pagination: {
+					total: count,
+					page: parseInt(page),
+					limit: parseInt(limit),
+					totalPages: Math.ceil(count / parseInt(limit)),
+				},
+			},
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
+/**
+ * Update booking status (Admin only)
+ * PUT /api/bookings/:id
+ */
+const updateBooking = async (req, res, next) => {
+	try {
+		const { id } = req.params;
+		const { status } = req.body;
+
+		const booking = await Booking.findByPk(id);
+		if (!booking) {
+			return res.status(404).json({
+				status: 'error',
+				message: 'Booking not found',
+			});
+		}
+
+		// Validate status transition
+		const validStatuses = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'completed'];
+		if (!validStatuses.includes(status)) {
+			return res.status(400).json({
+				status: 'error',
+				message: 'Invalid status',
+			});
+		}
+
+		// Update booking
+		await booking.update({ status });
+
+		res.status(200).json({
+			status: 'success',
+			message: 'Booking updated successfully',
+			data: { booking },
+		});
+	} catch (error) {
+		next(error);
+	}
+};
+
 module.exports = {
 	createBooking,
 	getMyBookings,
 	getBookingById,
 	cancelBooking,
 	checkBookingByNumber,
+	getAllBookings,
+	updateBooking,
 };
