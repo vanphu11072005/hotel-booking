@@ -5,3 +5,6 @@ export { default as BookingManagementPage } from './BookingManagementPage';
 export { default as PaymentManagementPage } from './PaymentManagementPage';
 export { default as ServiceManagementPage } from './ServiceManagementPage';
 export { default as ReviewManagementPage } from './ReviewManagementPage';
+export { default as PromotionManagementPage } from './PromotionManagementPage';
+export { default as CheckInPage } from './CheckInPage';
+export { default as CheckOutPage } from './CheckOutPage';

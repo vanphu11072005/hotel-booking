@@ -6,9 +6,9 @@ import apiClient from './apiClient';
 
 export interface User {
   id: number;
-  name: string;
+  full_name: string;
   email: string;
-  phone?: string;
+  phone_number?: string;
   avatar?: string;
   role: string;
   status?: string;
@@ -32,17 +32,18 @@ export interface UserListResponse {
 }
 
 export interface CreateUserData {
-  name: string;
+  full_name: string;
   email: string;
   password: string;
-  phone?: string;
+  phone_number?: string;
   role: string;
+  status?: string;
 }
 
 export interface UpdateUserData {
-  name?: string;
+  full_name?: string;
   email?: string;
-  phone?: string;
+  phone_number?: string;
   role?: string;
   password?: string;
   status?: string;

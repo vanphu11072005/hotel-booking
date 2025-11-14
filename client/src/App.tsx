@@ -60,6 +60,9 @@ import {
   PaymentManagementPage,
   ServiceManagementPage,
   ReviewManagementPage,
+  PromotionManagementPage,
+  CheckInPage,
+  CheckOutPage,
 } from './pages/admin';
 
 // Demo component cho các page chưa có
@@ -270,7 +273,15 @@ function App() {
           />
           <Route 
             path="promotions" 
-            element={<DemoPage title="Quản lý khuyến mãi" />} 
+            element={<PromotionManagementPage />} 
+          />
+          <Route 
+            path="check-in" 
+            element={<CheckInPage />} 
+          />
+          <Route 
+            path="check-out" 
+            element={<CheckOutPage />} 
           />
           <Route 
             path="banners" 

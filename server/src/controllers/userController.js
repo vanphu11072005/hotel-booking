@@ -1,4 +1,4 @@
-const { User, Booking } = require('../databases/models');
+const { User, Booking, Role } = require('../databases/models');
 const { Op } = require('sequelize');
 const bcrypt = require('bcryptjs');
 
@@ -18,23 +18,24 @@ const getUsers = async (req, res, next) => {
 
     const whereClause = {};
 
-    // Filter by search (full_name or email)
+    // Filter by search (full_name or email or phone)
     if (search) {
       whereClause[Op.or] = [
         { full_name: { [Op.like]: `%${search}%` } },
         { email: { [Op.like]: `%${search}%` } },
-        { phone_number: { [Op.like]: `%${search}%` } },
+        { phone: { [Op.like]: `%${search}%` } },
       ];
     }
 
-    // Filter by role
+    // Filter by role - map string to role_id
     if (role) {
-      whereClause.role = role;
+      const roleMap = { admin: 1, staff: 2, customer: 3 };
+      whereClause.role_id = roleMap[role];
     }
 
-    // Filter by status
+    // Filter by status - map to is_active
     if (status) {
-      whereClause.status = status;
+      whereClause.is_active = status === 'active';
     }
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -42,15 +43,33 @@ const getUsers = async (req, res, next) => {
     const { count, rows: users } = await User.findAndCountAll({
       where: whereClause,
       attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: Role,
+          as: 'role',
+          attributes: ['name'],
+        },
+      ],
       limit: parseInt(limit),
       offset: offset,
       order: [['created_at', 'DESC']],
     });
 
+    // Transform users to include role string and status string
+    const transformedUsers = users.map((user) => {
+      const userJson = user.toJSON();
+      return {
+        ...userJson,
+        role: userJson.role?.name || 'customer',
+        status: userJson.is_active ? 'active' : 'inactive',
+        phone_number: userJson.phone, // Map phone to phone_number for frontend
+      };
+    });
+
     res.status(200).json({
       status: 'success',
       data: {
-        users,
+        users: transformedUsers,
         pagination: {
           total: count,
           page: parseInt(page),
@@ -76,6 +95,11 @@ const getUserById = async (req, res, next) => {
       attributes: { exclude: ['password'] },
       include: [
         {
+          model: Role,
+          as: 'role',
+          attributes: ['name'],
+        },
+        {
           model: Booking,
           as: 'bookings',
           limit: 5,
@@ -91,10 +115,19 @@ const getUserById = async (req, res, next) => {
       });
     }
 
+    // Transform user to include role string and status string
+    const userJson = user.toJSON();
+    const transformedUser = {
+      ...userJson,
+      role: userJson.role?.name || 'customer',
+      status: userJson.is_active ? 'active' : 'inactive',
+      phone_number: userJson.phone, // Map phone to phone_number for frontend
+    };
+
     res.status(200).json({
       status: 'success',
       data: {
-        user,
+        user: transformedUser,
       },
     });
   } catch (error) {
@@ -112,10 +145,18 @@ const createUser = async (req, res, next) => {
       email,
       password,
       full_name,
-      phone_number,
+      phone_number, // Accept phone_number from frontend
       role = 'customer',
       status = 'active',
     } = req.body;
+
+    // Map role string to role_id
+    const roleMap = {
+      admin: 1,
+      staff: 2,
+      customer: 3,
+    };
+    const role_id = roleMap[role] || 3; // Default to customer (3)
 
     // Check if email already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -129,14 +170,14 @@ const createUser = async (req, res, next) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
+    // Create user - map phone_number to phone for DB
     const user = await User.create({
       email,
       password: hashedPassword,
       full_name,
-      phone_number,
-      role,
-      status,
+      phone: phone_number, // Map to DB column 'phone'
+      role_id,
+      is_active: status === 'active',
     });
 
     // Remove password from response
@@ -164,7 +205,8 @@ const updateUser = async (req, res, next) => {
     const { id } = req.params;
     const {
       full_name,
-      phone_number,
+      email,
+      phone_number, // Accept phone_number from frontend
       role,
       status,
       password,
@@ -178,12 +220,31 @@ const updateUser = async (req, res, next) => {
       });
     }
 
-    // Prepare update data
+    // Check if email is being changed and if it's already taken
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Email already exists',
+        });
+      }
+    }
+
+    // Map role string to role_id
+    const roleMap = {
+      admin: 1,
+      staff: 2,
+      customer: 3,
+    };
+
+    // Prepare update data - map phone_number to phone
     const updateData = {};
     if (full_name !== undefined) updateData.full_name = full_name;
-    if (phone_number !== undefined) updateData.phone_number = phone_number;
-    if (role !== undefined) updateData.role = role;
-    if (status !== undefined) updateData.status = status;
+    if (email !== undefined) updateData.email = email;
+    if (phone_number !== undefined) updateData.phone = phone_number; // Map to DB column
+    if (role !== undefined) updateData.role_id = roleMap[role] || 3;
+    if (status !== undefined) updateData.is_active = status === 'active';
 
     // Hash password if provided
     if (password) {

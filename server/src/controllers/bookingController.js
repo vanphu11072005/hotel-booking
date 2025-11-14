@@ -1,4 +1,4 @@
-const { Booking, Room, RoomType, Payment, sequelize, Sequelize } = require('../databases/models');
+const { Booking, Room, RoomType, Payment, User, sequelize, Sequelize } = require('../databases/models');
 const { Op } = require('sequelize');
 
 // Helper to generate a simple booking number
@@ -207,6 +207,7 @@ const checkBookingByNumber = async (req, res, next) => {
 const getAllBookings = async (req, res, next) => {
 	try {
 		const {
+			search,
 			status,
 			startDate,
 			endDate,
@@ -215,6 +216,13 @@ const getAllBookings = async (req, res, next) => {
 		} = req.query;
 
 		const whereClause = {};
+
+		// Filter by search (booking_number or user name/email)
+		if (search) {
+			whereClause[Op.or] = [
+				{ booking_number: { [Op.like]: `%${search}%` } },
+			];
+		}
 
 		// Filter by status
 		if (status) {
@@ -240,7 +248,7 @@ const getAllBookings = async (req, res, next) => {
 				{
 					model: User,
 					as: 'user',
-					attributes: ['id', 'full_name', 'email', 'phone_number'],
+					attributes: ['id', 'full_name', 'email', 'phone'],
 				},
 				{
 					model: Room,

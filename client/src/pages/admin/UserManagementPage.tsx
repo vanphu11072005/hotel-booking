@@ -23,9 +23,9 @@ const UserManagementPage: React.FC = () => {
   const itemsPerPage = 5;
 
   const [formData, setFormData] = useState({
-    name: '',
+    full_name: '',
     email: '',
-    phone: '',
+    phone_number: '',
     password: '',
     role: 'customer',
     status: 'active',
@@ -42,17 +42,20 @@ const UserManagementPage: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log('Fetching users with filters:', filters, 'page:', currentPage);
       const response = await userService.getUsers({
         ...filters,
         page: currentPage,
         limit: itemsPerPage,
       });
+      console.log('Users response:', response);
       setUsers(response.data.users);
       if (response.data.pagination) {
         setTotalPages(response.data.pagination.totalPages);
         setTotalItems(response.data.pagination.total);
       }
     } catch (error: any) {
+      console.error('Error fetching users:', error);
       toast.error(error.response?.data?.message || 'Không thể tải danh sách người dùng');
     } finally {
       setLoading(false);
@@ -63,16 +66,46 @@ const UserManagementPage: React.FC = () => {
     e.preventDefault();
     try {
       if (editingUser) {
-        await userService.updateUser(editingUser.id, formData);
+        // Khi update, chỉ gửi password nếu có thay đổi
+        const updateData: any = {
+          full_name: formData.full_name,
+          email: formData.email,
+          phone_number: formData.phone_number,
+          role: formData.role,
+          status: formData.status,
+        };
+        
+        // Chỉ thêm password nếu người dùng nhập mới
+        if (formData.password && formData.password.trim() !== '') {
+          updateData.password = formData.password;
+        }
+        
+        console.log('Updating user:', editingUser.id, 'with data:', updateData);
+        const response = await userService.updateUser(editingUser.id, updateData);
+        console.log('Update response:', response);
         toast.success('Cập nhật người dùng thành công');
       } else {
-        await userService.createUser(formData);
+        // Khi tạo mới, cần đầy đủ thông tin
+        if (!formData.password || formData.password.trim() === '') {
+          toast.error('Vui lòng nhập mật khẩu');
+          return;
+        }
+        console.log('Creating user with data:', formData);
+        const response = await userService.createUser(formData);
+        console.log('Create response:', response);
         toast.success('Thêm người dùng thành công');
       }
+      
+      // Đóng modal và reset form trước
       setShowModal(false);
       resetForm();
-      fetchUsers();
+      
+      // Reload lại danh sách users sau một chút để đảm bảo DB đã cập nhật
+      setTimeout(() => {
+        fetchUsers();
+      }, 300);
     } catch (error: any) {
+      console.error('Error submitting user:', error);
       toast.error(error.response?.data?.message || 'Có lỗi xảy ra');
     }
   };
@@ -80,9 +113,9 @@ const UserManagementPage: React.FC = () => {
   const handleEdit = (user: User) => {
     setEditingUser(user);
     setFormData({
-      name: user.name,
+      full_name: user.full_name,
       email: user.email,
-      phone: user.phone || '',
+      phone_number: user.phone_number || '',
       password: '',
       role: user.role,
       status: user.status || 'active',
@@ -100,10 +133,12 @@ const UserManagementPage: React.FC = () => {
     if (!window.confirm('Bạn có chắc muốn xóa người dùng này?')) return;
     
     try {
+      console.log('Deleting user:', id);
       await userService.deleteUser(id);
       toast.success('Xóa người dùng thành công');
       fetchUsers();
     } catch (error: any) {
+      console.error('Error deleting user:', error);
       toast.error(error.response?.data?.message || 'Không thể xóa người dùng');
     }
   };
@@ -111,9 +146,9 @@ const UserManagementPage: React.FC = () => {
   const resetForm = () => {
     setEditingUser(null);
     setFormData({
-      name: '',
+      full_name: '',
       email: '',
-      phone: '',
+      phone_number: '',
       password: '',
       role: 'customer',
       status: 'active',
@@ -219,13 +254,13 @@ const UserManagementPage: React.FC = () => {
             {users.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                  <div className="text-sm font-medium text-gray-900">{user.full_name}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">{user.email}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{user.phone || 'N/A'}</div>
+                  <div className="text-sm text-gray-900">{user.phone_number || 'N/A'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {getRoleBadge(user.role)}
@@ -281,8 +316,8 @@ const UserManagementPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.full_name}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -305,8 +340,8 @@ const UserManagementPage: React.FC = () => {
                 </label>
                 <input
                   type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  value={formData.phone_number}
+                  onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>

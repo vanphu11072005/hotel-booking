@@ -11,8 +11,8 @@ export interface Promotion {
   description?: string;
   discount_type: 'percentage' | 'fixed';
   discount_value: number;
-  min_booking_value?: number;
-  max_discount?: number;
+  min_booking_amount?: number;
+  max_discount_amount?: number;
   start_date: string;
   end_date: string;
   usage_limit?: number;
@@ -43,12 +43,12 @@ export interface CreatePromotionData {
   description?: string;
   discount_type: 'percentage' | 'fixed';
   discount_value: number;
-  min_booking_value?: number;
-  max_discount?: number;
+  min_booking_amount?: number;
+  max_discount_amount?: number;
   start_date: string;
   end_date: string;
   usage_limit?: number;
-  status?: 'active' | 'inactive';
+  status?: 'active' | 'inactive' | 'expired';
 }
 
 export interface UpdatePromotionData {
@@ -57,8 +57,8 @@ export interface UpdatePromotionData {
   description?: string;
   discount_type?: 'percentage' | 'fixed';
   discount_value?: number;
-  min_booking_value?: number;
-  max_discount?: number;
+  min_booking_amount?: number;
+  max_discount_amount?: number;
   start_date?: string;
   end_date?: string;
   usage_limit?: number;

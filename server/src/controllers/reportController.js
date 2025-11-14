@@ -32,7 +32,7 @@ const getDashboardStats = async (req, res, next) => {
     // Total revenue
     const totalRevenue = await Payment.sum('amount', {
       where: {
-        status: 'completed',
+        payment_status: 'completed',
         ...dateFilter,
       },
     });
@@ -49,7 +49,7 @@ const getDashboardStats = async (req, res, next) => {
 
     // Total customers
     const totalCustomers = await User.count({
-      where: { role: 'customer' },
+      where: { role_id: 3 }, // 3 = customer
     });
 
     // Revenue by date (last 7 days or date range)
@@ -59,7 +59,7 @@ const getDashboardStats = async (req, res, next) => {
         [sequelize.fn('SUM', sequelize.col('amount')), 'revenue'],
       ],
       where: {
-        status: 'completed',
+        payment_status: 'completed',
         ...dateFilter,
       },
       group: [sequelize.fn('DATE', sequelize.col('payment_date'))],
@@ -151,17 +151,22 @@ const getReports = async (req, res, next) => {
       type = 'revenue',
       startDate,
       endDate,
+      from, // Accept 'from' param
+      to,   // Accept 'to' param
       groupBy = 'day',
     } = req.query;
 
     const dateFilter = {};
-    if (startDate || endDate) {
+    const start = startDate || from;
+    const end = endDate || to;
+    
+    if (start || end) {
       dateFilter.created_at = {};
-      if (startDate) {
-        dateFilter.created_at[Op.gte] = new Date(startDate);
+      if (start) {
+        dateFilter.created_at[Op.gte] = new Date(start);
       }
-      if (endDate) {
-        dateFilter.created_at[Op.lte] = new Date(endDate);
+      if (end) {
+        dateFilter.created_at[Op.lte] = new Date(end);
       }
     }
 
@@ -192,6 +197,7 @@ const getReports = async (req, res, next) => {
       data: reportData,
     });
   } catch (error) {
+    console.error('Error in getReports:', error);
     next(error);
   }
 };
@@ -222,7 +228,7 @@ const exportReport = async (req, res, next) => {
       case 'revenue':
         const payments = await Payment.findAll({
           where: {
-            status: 'completed',
+            payment_status: 'completed',
             ...dateFilter,
           },
           include: [
@@ -310,7 +316,7 @@ const generateRevenueReport = async (dateFilter, groupBy) => {
       [sequelize.fn('COUNT', sequelize.col('id')), 'payment_count'],
     ],
     where: {
-      status: 'completed',
+      payment_status: 'completed',
       ...dateFilter,
     },
     group: [sequelize.fn('DATE_FORMAT', sequelize.col('payment_date'), dateFormat)],

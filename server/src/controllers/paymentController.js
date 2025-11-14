@@ -8,15 +8,22 @@ const { Op } = require('sequelize');
 const getPayments = async (req, res, next) => {
   try {
     const {
+      search,
       method,
       status,
-      startDate,
-      endDate,
+      from, // Changed from startDate
+      to,   // Changed from endDate
       page = 1,
       limit = 10,
     } = req.query;
 
     const whereClause = {};
+    const bookingWhere = {};
+
+    // Filter by search (booking number)
+    if (search) {
+      bookingWhere.booking_number = { [Op.like]: `%${search}%` };
+    }
 
     // Filter by payment method
     if (method) {
@@ -25,17 +32,17 @@ const getPayments = async (req, res, next) => {
 
     // Filter by status
     if (status) {
-      whereClause.status = status;
+      whereClause.payment_status = status; // Changed from 'status' to 'payment_status'
     }
 
     // Filter by date range
-    if (startDate || endDate) {
+    if (from || to) {
       whereClause.payment_date = {};
-      if (startDate) {
-        whereClause.payment_date[Op.gte] = new Date(startDate);
+      if (from) {
+        whereClause.payment_date[Op.gte] = new Date(from);
       }
-      if (endDate) {
-        whereClause.payment_date[Op.lte] = new Date(endDate);
+      if (to) {
+        whereClause.payment_date[Op.lte] = new Date(to);
       }
     }
 
@@ -47,6 +54,8 @@ const getPayments = async (req, res, next) => {
         {
           model: Booking,
           as: 'booking',
+          where: Object.keys(bookingWhere).length > 0 ? bookingWhere : undefined,
+          required: false,
           attributes: ['id', 'booking_number', 'check_in_date', 'check_out_date'],
           include: [
             {
@@ -67,9 +76,12 @@ const getPayments = async (req, res, next) => {
       order: [['payment_date', 'DESC']],
     });
 
-    // Calculate total revenue
+    // Calculate total revenue - use simpler where clause
+    const revenueWhere = { payment_status: 'completed' }; // Changed from 'status'
+    if (method) revenueWhere.payment_method = method;
+    
     const totalRevenue = await Payment.sum('amount', {
-      where: { ...whereClause, status: 'completed' },
+      where: revenueWhere,
     });
 
     res.status(200).json({
@@ -88,6 +100,7 @@ const getPayments = async (req, res, next) => {
       },
     });
   } catch (error) {
+    console.error('Error in getPayments:', error);
     next(error);
   }
 };
@@ -109,7 +122,7 @@ const getPaymentById = async (req, res, next) => {
             {
               model: User,
               as: 'user',
-              attributes: ['id', 'full_name', 'email', 'phone_number'],
+              attributes: ['id', 'full_name', 'email', 'phone'],
             },
             {
               model: Room,

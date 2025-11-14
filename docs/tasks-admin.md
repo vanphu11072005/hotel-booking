@@ -1,235 +1,207 @@
-# tasks-admin.md
-# Admin Panel Task Definition
-# Module: Hotel Management & Booking Online
-# Purpose: Define all admin pages, their API, UI logic, and expected behavior
-# Format optimized for GitHub Copilot or AI-assisted code generation
+# 🏨 Hotel Management & Booking System  
+## Bản Phân Tích Dành Cho Admin (SRS Admin Analysis)
 
 ---
 
-## GLOBAL
-role_required: ["admin"]
-auth_method: "JWT"
-ui_stack: ["React", "TypeScript", "TailwindCSS", "React Router", "Zustand", "Axios", "React Hot Toast"]
-backend_stack: ["Node.js", "Express", "Sequelize (MySQL)"]
+## 1. Giới thiệu
+Tài liệu này phân tích các yêu cầu từ SRS của hệ thống **Hotel Management & Booking Online (e-Hotel)**, tập trung hoàn toàn vào phần **Admin / Manager / Staff** (không bao gồm khách hàng).  
+Mục tiêu là nắm rõ các chức năng quản trị, vận hành và bảo mật của hệ thống.
 
 ---
 
-## PAGE: Admin Dashboard
-route: /admin/dashboard
-api:
-  - GET /api/reports?from=&to=
-  - GET /api/rooms
-  - GET /api/bookings
-  - GET /api/payments
-features:
-  - Display total revenue, total bookings, available rooms, new customers
-  - Show revenue and bookings charts (line/bar)
-  - Responsive cards with summary data
-  - Auto refresh data on reload
-ui:
-  - Use Tailwind grid for layout
-  - Use Chart.js or Recharts for visualization
-success_criteria:
-  - Dashboard updates correctly with real data
-  - Charts render without layout shift
+# 2. Phân tích chức năng dành cho Admin
 
 ---
 
-## PAGE: Room Management
-route: /admin/rooms
-api:
-  - GET /api/rooms
-  - POST /api/rooms
-  - PUT /api/rooms/:id
-  - DELETE /api/rooms/:id
-features:
-  - Display list of rooms with columns: name, type, price, status
-  - Add/Edit modal with image upload (Multer)
-  - Validate required fields
-  - Filter by room type and availability
-ui:
-  - Table view + modal form
-  - Tailwind form styling + toast notification
-success_criteria:
-  - CRUD operations work via API
-  - Room list refreshes after update or delete
+## 2.1 Setup Module (Thiết lập hệ thống)
+
+### 2.1.1 Setup Rooms (Quản lý phòng)
+**Vai trò sử dụng:** Manager, Admin  
+
+**Các chức năng:**
+- Thêm mới phòng  
+- Chỉnh sửa thông tin phòng  
+- Xoá phòng *(chỉ khi phòng chưa có booking)*  
+- Upload hình ảnh phòng  
+
+**Thông tin phòng gồm:**
+- RoomID  
+- Description  
+- Type (VIP, DELUX, SUITE, …)  
+- Size (Single, Double, …)  
+- Price  
+- Pictures  
+
+**Quy tắc:**
+- Validate toàn bộ dữ liệu khi thêm/sửa  
+- Không cho xoá phòng đã phát sinh booking  
 
 ---
 
-## PAGE: User Management
-route: /admin/users
-api:
-  - GET /api/users
-  - GET /api/users/:id
-  - POST /api/users
-  - PUT /api/users/:id
-  - DELETE /api/users/:id
-features:
-  - Manage system users (Admin, Staff, Customer)
-  - Create, update, delete users
-  - Role assignment dropdown
-  - Search + filter by role
-ui:
-  - Table list + modal edit
-  - Prevent self-deletion
-success_criteria:
-  - Role filter works
-  - Self-delete protection works
+### 2.1.2 Setup Services (Quản lý dịch vụ)
+**Vai trò:** Manager, Admin  
+
+**Chức năng:**
+- Thêm dịch vụ  
+- Chỉnh sửa  
+- Xoá dịch vụ  
+
+**Thông tin dịch vụ:**
+- Service ID  
+- Service Name  
+- Description  
+- Unit (giờ, suất, lần,…)  
+- Price  
+
+**Quy tắc:**  
+- Validate tất cả dữ liệu nhập  
 
 ---
 
-## PAGE: Booking Management
-route: /admin/bookings
-api:
-  - GET /api/bookings
-  - PUT /api/bookings/:id
-  - PATCH /api/bookings/:id/cancel
-features:
-  - List bookings: customer, room, dates, status
-  - Admin can cancel or confirm booking
-  - View booking detail with payment info
-ui:
-  - Table with expandable row
-  - Status badge color-coded
-success_criteria:
-  - API patch works
-  - Status updates correctly
+### 2.1.3 Promotion Management (Quản lý khuyến mãi)
+**Vai trò:** Manager, Admin  
+
+**Chức năng:**
+- Add promotion  
+- Edit promotion  
+- Delete promotion  
+- Promotion có thể áp dụng bằng code hoặc tự động trong booking  
+
+**Thông tin:**
+- ID  
+- Name  
+- Description  
+- Value (phần trăm hoặc số tiền)  
 
 ---
 
-## PAGE: Payment Management
-route: /admin/payments
-api:
-  - GET /api/payments
-  - GET /api/payments/:bookingId
-features:
-  - List payments with booking info
-  - Filter by date or method
-  - Export CSV/Excel (optional)
-ui:
-  - Table with formatted currency and date
-success_criteria:
-  - Payments match booking records
-  - Date and currency formatted (vi-VN)
+# 2.2 Operation Module (Vận hành khách sạn)
 
 ---
 
-## PAGE: Service Management
-route: /admin/services
-api:
-  - GET /api/services
-  - POST /api/services
-  - PUT /api/services/:id
-  - DELETE /api/services/:id
-features:
-  - CRUD hotel services
-  - Columns: name, price, unit, status
-  - Validate duplicate name
-ui:
-  - Table list + modal add/edit
-success_criteria:
-  - CRUD and validation working
+## 2.2.1 Booking Management
+**Vai trò:** Staff, Manager, Admin  
+
+**Chức năng:**
+- Tìm booking theo tên khách, số booking, ngày đặt  
+- Xem chi tiết booking  
+- Xem bill dịch vụ  
+- Xử lý yêu cầu:
+  - Hủy booking  
+  - Checkout  
 
 ---
 
-## PAGE: Promotion Management
-route: /admin/promotions
-api:
-  - GET /api/promotions
-  - POST /api/promotions
-  - PUT /api/promotions/:id
-  - DELETE /api/promotions/:id
-features:
-  - Manage discount campaigns
-  - Validate start/end date
-  - Filter by active/expired
-ui:
-  - Table + modal form
-success_criteria:
-  - Correctly identify expired vs active promotions
+## 2.2.2 Check-in
+**Vai trò:** Staff, Manager  
+
+**Quy trình check-in:**
+- Khách xuất trình Booking Number  
+- Nhân viên kiểm tra thông tin booking  
+- Nhập thông tin từng khách trong phòng  
+- Gán số phòng thực tế  
+- Thu thêm phí nếu có trẻ em hoặc extra person  
 
 ---
 
-## PAGE: Review Management
-route: /admin/reviews
-api:
-  - GET /api/reviews
-  - PATCH /api/reviews/:id/approve
-  - PATCH /api/reviews/:id/reject
-features:
-  - Admin can approve or reject reviews
-  - Filter by status (pending, approved, rejected)
-  - Staff can view only
-ui:
-  - Table columns: user, room, rating, comment, createdAt, status, actions
-  - Status color-coded: yellow (pending), green (approved), red (rejected)
-  - Confirm modal before action
-success_criteria:
-  - Reviews update immediately after action
-  - Toast notification appears
+## 2.2.3 Use Services (Khách đăng ký sử dụng dịch vụ)
+**Vai trò:** Staff  
+
+**Chức năng:**
+- Đăng ký dịch vụ cho khách dựa trên Room Number  
+- In ticket nếu có yêu cầu  
 
 ---
 
-## PAGE: Report Center
-route: /admin/reports
-api:
-  - GET /api/reports?from=&to=
-features:
-  - Show total bookings, revenue, and usage stats
-  - Date range filter
-  - Export CSV/Excel (optional)
-ui:
-  - Charts and summary cards
-success_criteria:
-  - Data updates dynamically by date range
+## 2.2.4 Check-out
+**Vai trò:** Staff, Manager  
+
+**Chức năng:**
+- Tính toán:
+  - Phí phòng  
+  - Phí dịch vụ  
+  - Phụ phí khác  
+- Tạo hóa đơn (Invoice)  
+- Khấu trừ tiền đã đặt cọc (booking value)  
+- Khách thanh toán phần còn lại  
 
 ---
 
-## PAGE: Banner Management
-route: /admin/banners
-api:
-  - GET /api/banners
-  - POST /api/banners
-  - PUT /api/banners/:id
-  - DELETE /api/banners/:id
-features:
-  - CRUD homepage banners
-  - Upload image with position select
-ui:
-  - Image preview + upload form
-success_criteria:
-  - Banners display correctly after save
+# 2.3 Report Module (Báo cáo)
+
+**Vai trò:** Manager, Admin  
+
+**Chức năng:**
+- Nhập khoảng thời gian From → To  
+- Liệt kê toàn bộ booking trong khoảng thời gian  
+- Tính tổng doanh thu  
+- Xuất báo cáo:
+  - Excel  
+  - PDF  
+
+**Nội dung báo cáo:**
+- Booking ID  
+- Customer Name  
+- Room  
+- Total Amount  
+- Booking Date  
+- Status  
+- Revenue Summary  
 
 ---
 
-## SECURITY AND ACCESS CONTROL
-rules:
-  - Only Admin can access `/admin/*`
-  - Staff can access bookings, payments, and reviews (view only)
-  - JWT token verification required
-  - Redirect to /unauthorized if no permission
-validation:
-  - role = admin or staff required
-  - useProtectedRoute() hook for front-end guard
+# 2.4 System Administration Module (Quản trị hệ thống)
 
 ---
 
-## GLOBAL UX REQUIREMENTS
-- Use React Hot Toast for all API notifications
-- Use loading spinners during API calls
-- Responsive design (mobile/tablet/desktop)
-- Date formatting: `new Date(createdAt).toLocaleDateString('vi-VN')`
-- Consistent color scheme across pages
-- Smooth transitions on modals and table updates
+## 2.4.1 User Management
+**Vai trò:** Admin  
+
+**Chức năng:**
+- Add user  
+- Edit user  
+- Delete user  
+- View user detail  
+- List tất cả user  
+- Gán role (Admin, Manager, Staff)  
 
 ---
 
-## FINAL ACCEPTANCE CRITERIA
-- [ ] All CRUD modules operational
-- [ ] Role-based access verified
-- [ ] Real API integration (MySQL)
-- [ ] Unified UI/UX
-- [ ] No console errors or 404s
-- [ ] Approved reviews only appear on RoomDetailPage (user side)
+## 2.4.2 Security
+**Chức năng bảo mật của hệ thống:**
+
+### Roles được định nghĩa:
+| Role | Quyền |
+|------|-------|
+| **Customer** | Không cần login |
+| **Staff (Sale)** | Truy cập Operation Module |
+| **Manager** | Truy cập Setup Module |
+| **Admin** | Toàn quyền, bao gồm User & Security |
+
+### Quy tắc bảo mật:
+- Nhân viên & admin bắt buộc phải login  
+- Quyền thao tác phụ thuộc vào role  
+- Session timeout sau 30 phút không hoạt động  
 
 ---
+
+# 3. Tóm tắt theo góc nhìn Admin
+
+| Module | Quyền Admin | Nội dung |
+|--------|-------------|----------|
+| Room Setup | Full | CRUD phòng |
+| Service Setup | Full | CRUD dịch vụ |
+| Promotion Setup | Full | CRUD khuyến mãi |
+| Booking Management | Full | Xem, duyệt, hủy booking |
+| Check-in / Check-out | Full | Quản lý vận hành |
+| Service Usage | Full | Ghi log dịch vụ |
+| Reports | Full | Thống kê, xuất file |
+| User Management | Full | Quản lý nhân viên |
+| Security | Full | Role, phân quyền |
+
+---
+
+# 4. Kết luận
+Phân tích trên giúp xác định đầy đủ các chức năng cần triển khai cho **Admin / Manager / Staff** trong hệ thống quản lý khách sạn.  
+Tài liệu có thể được sử dụng để xây dựng database, API, UI/UX, và phân quyền hệ thống.
+

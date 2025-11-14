@@ -58,8 +58,10 @@ export interface Booking {
   user?: {
     id: number;
     name: string;
+    full_name: string;
     email: string;
     phone?: string;
+    phone_number?: string;
   };
   createdAt: string;
   updatedAt: string;

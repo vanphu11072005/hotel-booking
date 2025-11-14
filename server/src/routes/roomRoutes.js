@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const roomController = require('../controllers/roomController');
 const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
+const upload = require('../middlewares/upload');
 
 /**
  * Room Routes
@@ -30,6 +31,21 @@ router.delete(
 	authenticateToken,
 	authorizeRoles('admin'),
 	roomController.deleteRoom
+);
+
+// Image upload routes
+router.post(
+	'/:id/images',
+	authenticateToken,
+	authorizeRoles('admin', 'staff'),
+	upload.array('images', 5), // Max 5 images at once
+	roomController.uploadRoomImages
+);
+router.delete(
+	'/:id/images',
+	authenticateToken,
+	authorizeRoles('admin', 'staff'),
+	roomController.deleteRoomImage
 );
 
 module.exports = router;

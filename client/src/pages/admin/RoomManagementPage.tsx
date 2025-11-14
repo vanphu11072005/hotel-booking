@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Edit, Trash2, X } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Upload, Image as ImageIcon } from 'lucide-react';
 import { roomService, Room } from '../../services/api';
 import { toast } from 'react-toastify';
 import Loading from '../../components/common/Loading';
 import Pagination from '../../components/common/Pagination';
+import apiClient from '../../services/api/apiClient';
 
 const RoomManagementPage: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -27,6 +28,9 @@ const RoomManagementPage: React.FC = () => {
     status: 'available' as 'available' | 'occupied' | 'maintenance',
     featured: false,
   });
+  
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -109,6 +113,64 @@ const RoomManagementPage: React.FC = () => {
       status: 'available',
       featured: false,
     });
+    setSelectedFiles([]);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setSelectedFiles(files);
+    }
+  };
+
+  const handleUploadImages = async () => {
+    if (!editingRoom || selectedFiles.length === 0) return;
+
+    try {
+      setUploadingImages(true);
+      const formData = new FormData();
+      selectedFiles.forEach(file => {
+        formData.append('images', file);
+      });
+
+      await apiClient.post(`/rooms/${editingRoom.id}/images`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      toast.success('Upload ảnh thành công');
+      setSelectedFiles([]);
+      fetchRooms();
+      
+      // Refresh editing room data
+      const response = await roomService.getRoomById(editingRoom.id);
+      setEditingRoom(response.data.room);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Không thể upload ảnh');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageUrl: string) => {
+    if (!editingRoom) return;
+    if (!window.confirm('Bạn có chắc muốn xóa ảnh này?')) return;
+
+    try {
+      await apiClient.delete(`/rooms/${editingRoom.id}/images`, {
+        data: { imageUrl },
+      });
+
+      toast.success('Xóa ảnh thành công');
+      fetchRooms();
+      
+      // Refresh editing room data
+      const response = await roomService.getRoomById(editingRoom.id);
+      setEditingRoom(response.data.room);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Không thể xóa ảnh');
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -274,8 +336,8 @@ const RoomManagementPage: React.FC = () => {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">
                 {editingRoom ? 'Cập nhật phòng' : 'Thêm phòng mới'}
@@ -284,32 +346,36 @@ const RoomManagementPage: React.FC = () => {
                 <X className="w-6 h-6 text-gray-500 hover:text-gray-700" />
               </button>
             </div>
+            
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Số phòng
-                </label>
-                <input
-                  type="text"
-                  value={formData.room_number}
-                  onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Số phòng
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.room_number}
+                    onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tầng
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.floor}
+                    onChange={(e) => setFormData({ ...formData, floor: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                    min="1"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tầng
-                </label>
-                <input
-                  type="number"
-                  value={formData.floor}
-                  onChange={(e) => setFormData({ ...formData, floor: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                  min="1"
-                />
-              </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Loại phòng
@@ -325,6 +391,7 @@ const RoomManagementPage: React.FC = () => {
                   <option value="3">Suite</option>
                 </select>
               </div>
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Trạng thái
@@ -340,6 +407,7 @@ const RoomManagementPage: React.FC = () => {
                   <option value="maintenance">Bảo trì</option>
                 </select>
               </div>
+              
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -352,7 +420,8 @@ const RoomManagementPage: React.FC = () => {
                   Phòng nổi bật
                 </label>
               </div>
-              <div className="flex gap-3 mt-6">
+              
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
@@ -368,6 +437,71 @@ const RoomManagementPage: React.FC = () => {
                 </button>
               </div>
             </form>
+
+            {/* Image Upload Section - Only for editing */}
+            {editingRoom && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5" />
+                  Hình ảnh phòng
+                </h3>
+                
+                {/* Current Images */}
+                {editingRoom.room_type?.images && editingRoom.room_type.images.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600 mb-2">Ảnh hiện tại:</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {editingRoom.room_type.images.map((img, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={`http://localhost:3000${img}`}
+                            alt={`Room ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteImage(img)}
+                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload New Images */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Thêm ảnh mới (tối đa 5 ảnh):
+                  </label>
+                  <div className="flex gap-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleUploadImages}
+                      disabled={selectedFiles.length === 0 || uploadingImages}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      {uploadingImages ? 'Đang tải...' : 'Upload'}
+                    </button>
+                  </div>
+                  {selectedFiles.length > 0 && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      {selectedFiles.length} file đã chọn
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
