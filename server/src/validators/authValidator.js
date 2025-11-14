@@ -55,6 +55,7 @@ const loginValidation = [
 
 /**
  * Validation rules for refresh token
+ * Accept token from request body or HttpOnly cookie
  */
 const refreshTokenValidation = [
   body('refreshToken')

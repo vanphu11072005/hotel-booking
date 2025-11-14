@@ -594,13 +594,28 @@ const BookingPage: React.FC = () => {
                         <span className="font-medium 
                           text-gray-900"
                         >
-                          Thanh toán tại chỗ
+                          Thanh toán khi nhận phòng
+                        </span>
+                        <span className="text-xs bg-orange-100 
+                          text-orange-700 px-2 py-0.5 rounded"
+                        >
+                          Cần đặt cọc 20%
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">
-                        Thanh toán trực tiếp tại khách sạn 
-                        khi nhận phòng
+                      <p className="text-sm text-gray-600 mb-2">
+                        Thanh toán phần còn lại khi nhận phòng
                       </p>
+                      <div className="bg-orange-50 border 
+                        border-orange-200 rounded p-2"
+                      >
+                        <p className="text-xs text-orange-800">
+                          <strong>Lưu ý:</strong> Bạn cần thanh toán 
+                          <strong> 20% tiền cọc</strong> qua 
+                          chuyển khoản ngay sau khi đặt phòng để 
+                          giữ phòng. Phần còn lại thanh toán 
+                          khi nhận phòng.
+                        </p>
+                      </div>
                     </div>
                   </label>
 
@@ -764,18 +779,54 @@ const BookingPage: React.FC = () => {
                       : '---'}
                   </span>
                 </div>
+
+                {/* Deposit amount for cash payment */}
+                {paymentMethod === 'cash' && numberOfNights > 0 && (
+                  <div className="bg-orange-50 border 
+                    border-orange-200 rounded-lg p-3 mt-2"
+                  >
+                    <div className="flex justify-between 
+                      items-center mb-1"
+                    >
+                      <span className="text-sm font-medium 
+                        text-orange-900"
+                      >
+                        Tiền cọc cần thanh toán (20%)
+                      </span>
+                      <span className="text-lg font-bold 
+                        text-orange-700"
+                      >
+                        {formatPrice(totalPrice * 0.2)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-orange-700">
+                      Thanh toán qua chuyển khoản để xác nhận đặt phòng
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Note */}
               <div 
-                className="bg-yellow-50 border 
-                  border-yellow-200 rounded-lg 
-                  p-3 mt-4"
+                className={`border rounded-lg p-3 mt-4 ${
+                  paymentMethod === 'cash'
+                    ? 'bg-orange-50 border-orange-200'
+                    : 'bg-yellow-50 border-yellow-200'
+                }`}
               >
-                <p className="text-xs text-yellow-800">
-                  💡 Bạn sẽ không bị tính phí ngay. 
-                  Thanh toán khi nhận phòng.
-                </p>
+                {paymentMethod === 'cash' ? (
+                  <p className="text-xs text-orange-800">
+                    🔒 <strong>Bắt buộc:</strong> Thanh toán 20% tiền cọc 
+                    qua chuyển khoản sau khi đặt phòng. 
+                    Phần còn lại ({formatPrice(totalPrice * 0.8)}) 
+                    thanh toán khi nhận phòng.
+                  </p>
+                ) : (
+                  <p className="text-xs text-yellow-800">
+                    💡 Quét mã QR hoặc chuyển khoản theo thông tin 
+                    sau khi xác nhận đặt phòng.
+                  </p>
+                )}
               </div>
             </div>
           </div>

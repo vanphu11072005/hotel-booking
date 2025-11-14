@@ -9,6 +9,7 @@ const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
 
 // Public routes
 router.get('/', roomController.getRooms);
+router.get('/amenities', roomController.getAmenities);
 router.get('/available', roomController.searchAvailableRooms);
 router.get('/:id', roomController.getRoomById);
 

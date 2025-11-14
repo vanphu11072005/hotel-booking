@@ -69,7 +69,17 @@ const BookingSuccessPage: React.FC = () => {
         response.success && 
         response.data?.booking
       ) {
-        setBooking(response.data.booking);
+        const bookingData = response.data.booking;
+        setBooking(bookingData);
+
+        // Redirect to deposit payment page if required and not yet paid
+        if (
+          bookingData.requires_deposit && 
+          !bookingData.deposit_paid
+        ) {
+          navigate(`/deposit-payment/${bookingId}`, { replace: true });
+          return;
+        }
       } else {
         throw new Error(
           'Không thể tải thông tin đặt phòng'

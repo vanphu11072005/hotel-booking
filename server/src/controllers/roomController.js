@@ -197,6 +197,60 @@ const getRoomById = async (req, res, next) => {
 };
 
 /**
+ * Get list of unique amenities from room_types and rooms
+ */
+const getAmenities = async (req, res, next) => {
+  try {
+    // Fetch amenities from RoomType and Room
+    const roomTypes = await Room.sequelize.models.RoomType.findAll({
+      attributes: ['amenities'],
+      raw: true,
+    });
+
+    const rooms = await Room.findAll({
+      attributes: ['amenities'],
+      raw: true,
+    });
+
+    const all = [];
+
+    const pushFromValue = (val) => {
+      if (!val) return;
+      if (Array.isArray(val)) {
+        val.forEach((v) => all.push(String(v).trim()));
+      } else if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((v) => all.push(String(v).trim()));
+            return;
+          }
+        } catch (e) {
+          // not JSON
+        }
+        // comma separated
+        val.split(',').forEach((v) => all.push(String(v).trim()));
+      } else if (typeof val === 'object') {
+        Object.values(val).forEach((v) => {
+          if (Array.isArray(v)) v.forEach((x) => all.push(String(x).trim()));
+          else all.push(String(v).trim());
+        });
+      }
+    };
+
+    roomTypes.forEach((rt) => pushFromValue(rt.amenities));
+    rooms.forEach((r) => pushFromValue(r.amenities));
+
+    // unique, filter empty
+    const unique = Array.from(new Set(all.map((s) => s))).filter(Boolean);
+
+    res.status(200).json({ status: 'success', data: { amenities: unique } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Search available rooms
  */
 const searchAvailableRooms = async (req, res, next) => {
@@ -448,6 +502,7 @@ const deleteRoom = async (req, res, next) => {
 module.exports = {
   getRooms,
   getRoomById,
+  getAmenities,
   searchAvailableRooms,
   createRoom,
   updateRoom,
