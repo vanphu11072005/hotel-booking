@@ -1,5 +1,6 @@
 const { Review, User, Room, Booking } = 
   require('../databases/models');
+const { Op } = require('sequelize');
 
 /**
  * Get reviews for a specific room
@@ -165,20 +166,26 @@ const rejectReview = async (req, res, next) => {
  */
 const getAllReviews = async (req, res, next) => {
   try {
-    const { status } = req.query;
+    const {
+      status,
+      page = 1,
+      limit = 10,
+    } = req.query;
 
     const whereClause = {};
     if (status) {
       whereClause.status = status;
     }
 
-    const reviews = await Review.findAll({
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const { count, rows: reviews } = await Review.findAndCountAll({
       where: whereClause,
       include: [
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'full_name', 'email'],
+          attributes: ['id', 'full_name', 'email', 'phone'],
         },
         {
           model: Room,
@@ -186,6 +193,8 @@ const getAllReviews = async (req, res, next) => {
           attributes: ['id', 'room_number'],
         },
       ],
+      limit: parseInt(limit),
+      offset: offset,
       order: [['created_at', 'DESC']],
     });
 
@@ -193,9 +202,16 @@ const getAllReviews = async (req, res, next) => {
       status: 'success',
       data: {
         reviews,
+        pagination: {
+          total: count,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(count / parseInt(limit)),
+        },
       },
     });
   } catch (error) {
+    console.error('Error in getAllReviews:', error);
     next(error);
   }
 };

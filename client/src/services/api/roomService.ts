@@ -125,6 +125,42 @@ export const getAmenities = async (): Promise<{
   data: { amenities: string[] };
 }> => {
   const response = await apiClient.get('/rooms/amenities');
+=======
+ * Create new room
+ */
+export interface CreateRoomData {
+  room_number: string;
+  floor: number;
+  room_type_id: number;
+  status: 'available' | 'occupied' | 'maintenance';
+  featured?: boolean;
+}
+
+export const createRoom = async (
+  data: CreateRoomData
+): Promise<{ success: boolean; data: { room: Room }; message: string }> => {
+  const response = await apiClient.post('/rooms', data);
+  return response.data;
+};
+
+/**
+ * Update room
+ */
+export const updateRoom = async (
+  id: number,
+  data: Partial<CreateRoomData>
+): Promise<{ success: boolean; data: { room: Room }; message: string }> => {
+  const response = await apiClient.put(`/rooms/${id}`, data);
+  return response.data;
+};
+
+/**
+ * Delete room
+ */
+export const deleteRoom = async (
+  id: number
+): Promise<{ success: boolean; message: string }> => {
+  const response = await apiClient.delete(`/rooms/${id}`);
   return response.data;
 };
 
@@ -133,4 +169,7 @@ export default {
   getRooms,
   getRoomById,
   searchAvailableRooms,
+  createRoom,
+  updateRoom,
+  deleteRoom,
 };

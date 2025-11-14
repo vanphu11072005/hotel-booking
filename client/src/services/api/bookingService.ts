@@ -60,8 +60,10 @@ export interface Booking {
   user?: {
     id: number;
     name: string;
+    full_name: string;
     email: string;
     phone?: string;
+    phone_number?: string;
   };
   payments?: Payment[];
   createdAt: string;
@@ -180,6 +182,34 @@ export const checkBookingByNumber = async (
 };
 
 /**
+ * Get all bookings (admin)
+ * GET /api/bookings
+ */
+export const getAllBookings = async (
+  params?: {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }
+): Promise<BookingsResponse> => {
+  const response = await apiClient.get<BookingsResponse>('/bookings', { params });
+  return response.data;
+};
+
+/**
+ * Update booking status (admin)
+ * PUT /api/bookings/:id
+ */
+export const updateBooking = async (
+  id: number,
+  data: Partial<Booking>
+): Promise<BookingResponse> => {
+  const response = await apiClient.put<BookingResponse>(`/bookings/${id}`, data);
+  return response.data;
+};
+
+/**
  * Check room availability (helper function)
  * GET /api/rooms/available?roomId=...&from=...&to=...
  */
@@ -279,4 +309,6 @@ export default {
   checkRoomAvailability,
   notifyPayment,
   generateQRCode,
+  getAllBookings,
+  updateBooking,
 };

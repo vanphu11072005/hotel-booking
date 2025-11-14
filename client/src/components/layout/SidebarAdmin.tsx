@@ -12,7 +12,10 @@ import {
   Tag,
   Image,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Star,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarAdminProps {
@@ -76,6 +79,21 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({
       path: '/admin/promotions', 
       icon: Tag, 
       label: 'Khuyến mãi' 
+    },
+    { 
+      path: '/admin/check-in', 
+      icon: LogIn, 
+      label: 'Check-in' 
+    },
+    { 
+      path: '/admin/check-out', 
+      icon: LogOut, 
+      label: 'Check-out' 
+    },
+    { 
+      path: '/admin/reviews', 
+      icon: Star, 
+      label: 'Đánh giá' 
     },
     { 
       path: '/admin/banners', 

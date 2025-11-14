@@ -15,8 +15,16 @@ export interface Review {
   updated_at: string;
   user?: {
     id: number;
+    name: string;
     full_name: string;
     email: string;
+  };
+  room?: {
+    id: number;
+    room_number: string;
+    room_type?: {
+      name: string;
+    };
   };
 }
 
@@ -27,6 +35,12 @@ export interface ReviewListResponse {
     reviews: Review[];
     average_rating?: number;
     total_reviews?: number;
+    pagination?: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
   };
   message?: string;
 }
@@ -59,7 +73,45 @@ export const createReview = async (
   return response.data;
 };
 
+/**
+ * Get all reviews (admin)
+ */
+export const getReviews = async (
+  params?: {
+    status?: string;
+    roomId?: number;
+    page?: number;
+    limit?: number;
+  }
+): Promise<ReviewListResponse> => {
+  const response = await apiClient.get('/reviews', { params });
+  return response.data;
+};
+
+/**
+ * Approve review (admin)
+ */
+export const approveReview = async (
+  id: number
+): Promise<{ success: boolean; message: string }> => {
+  const response = await apiClient.patch(`/reviews/${id}/approve`);
+  return response.data;
+};
+
+/**
+ * Reject review (admin)
+ */
+export const rejectReview = async (
+  id: number
+): Promise<{ success: boolean; message: string }> => {
+  const response = await apiClient.patch(`/reviews/${id}/reject`);
+  return response.data;
+};
+
 export default {
   getRoomReviews,
   createReview,
+  getReviews,
+  approveReview,
+  rejectReview,
 };

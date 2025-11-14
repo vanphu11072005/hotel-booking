@@ -1,5 +1,7 @@
 const { Room, RoomType, Review, sequelize, Sequelize } = require('../databases/models');
 const { Op } = require('sequelize');
+const path = require('path');
+const fs = require('fs');
 
 /**
  * Get all rooms with filters
@@ -499,6 +501,127 @@ const deleteRoom = async (req, res, next) => {
   }
 };
 
+/**
+ * Upload room images
+ * POST /api/rooms/:id/images
+ */
+const uploadRoomImages = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const room = await Room.findByPk(id, {
+      include: [
+        {
+          model: RoomType,
+          as: 'room_type',
+        },
+      ],
+    });
+
+    if (!room) {
+      // Delete uploaded files if room not found
+      if (req.files) {
+        req.files.forEach(file => {
+          fs.unlinkSync(file.path);
+        });
+      }
+      return res.status(404).json({
+        status: 'error',
+        message: 'Room not found',
+      });
+    }
+
+    // Get uploaded file URLs
+    const imageUrls = req.files.map(file => `/uploads/rooms/${file.filename}`);
+    
+    // Get existing images from room_type
+    const existingImages = room.room_type.images || [];
+    
+    // Append new images
+    const updatedImages = [...existingImages, ...imageUrls];
+
+    // Update room_type images
+    await room.room_type.update({
+      images: updatedImages,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Images uploaded successfully',
+      data: {
+        images: updatedImages,
+      },
+    });
+  } catch (error) {
+    // Clean up uploaded files on error
+    if (req.files) {
+      req.files.forEach(file => {
+        try {
+          fs.unlinkSync(file.path);
+        } catch (err) {
+          console.error('Error deleting file:', err);
+        }
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Delete room image
+ * DELETE /api/rooms/:id/images
+ */
+const deleteRoomImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { imageUrl } = req.body;
+
+    const room = await Room.findByPk(id, {
+      include: [
+        {
+          model: RoomType,
+          as: 'room_type',
+        },
+      ],
+    });
+
+    if (!room) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Room not found',
+      });
+    }
+
+    // Get existing images
+    const existingImages = room.room_type.images || [];
+    
+    // Remove the specified image
+    const updatedImages = existingImages.filter(img => img !== imageUrl);
+
+    // Delete file from disk
+    const filename = path.basename(imageUrl);
+    const filePath = path.join(__dirname, '../../uploads/rooms', filename);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // Update room_type images
+    await room.room_type.update({
+      images: updatedImages,
+    });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Image deleted successfully',
+      data: {
+        images: updatedImages,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getRooms,
   getRoomById,
@@ -507,4 +630,6 @@ module.exports = {
   createRoom,
   updateRoom,
   deleteRoom,
+  uploadRoomImages,
+  deleteRoomImage,
 };

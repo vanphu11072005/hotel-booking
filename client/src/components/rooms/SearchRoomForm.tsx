@@ -82,12 +82,12 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
   };
 
   // Reset helper (kept for potential future use)
-  const handleReset = () => {
-    setCheckInDate(null);
-    setCheckOutDate(null);
-    setRoomType('');
-    setGuestCount(1);
-  };
+  // const handleReset = () => {
+  //   setCheckInDate(null);
+  //   setCheckOutDate(null);
+  //   setRoomType('');
+  //   setGuestCount(1);
+  // };
 
   return (
     <div className={`w-full bg-white rounded-lg shadow-sm p-4 ${className}`}>
