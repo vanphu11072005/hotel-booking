@@ -53,12 +53,12 @@ export interface Booking {
     room_number: string;
     floor: number;
     status: string;
+    images?: string[];
     room_type: {
       id: number;
       name: string;
       base_price: number;
       capacity: number;
-      images?: string[];
     };
   };
   user?: {

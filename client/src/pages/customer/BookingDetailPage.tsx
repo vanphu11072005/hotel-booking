@@ -308,11 +308,11 @@ const BookingDetailPage: React.FC = () => {
               gap-6"
             >
               {/* Room Image */}
-              {roomType.images?.[0] && (
+              {room?.images?.[0] && (
                 <div className="md:w-64 flex-shrink-0">
                   <img
-                    src={roomType.images[0]}
-                    alt={roomType.name}
+                    src={room.images[0]}
+                    alt={roomType?.name}
                     className="w-full h-48 md:h-full 
                       object-cover rounded-lg"
                   />

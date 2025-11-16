@@ -5,6 +5,7 @@ const {
   Review,
   Sequelize 
 } = require('../databases/models');
+const { Op } = require('sequelize');
 
 /**
  * Add room to favorites
@@ -97,29 +98,50 @@ const getFavorites = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
-    // Get all favorites with room details
+    // Get all favorites (minimal fields) to avoid complex nested
+    // JSON selection issues on some MySQL setups. We'll load rooms
+    // (with room_type) separately and merge results.
     const favorites = await Favorite.findAll({
       where: { user_id: userId },
-      include: [
-        {
-          model: Room,
-          as: 'room',
-          include: [
-            {
-              model: RoomType,
-              as: 'room_type',
-            },
-          ],
-        },
-      ],
+      attributes: ['id', 'user_id', 'room_id', 'created_at'],
       order: [['created_at', 'DESC']],
     });
 
-    // Get ratings for each room
+    // Load rooms for these favorites
+    const roomIds = favorites.map((f) => f.room_id).filter(Boolean);
+    const rooms = await Room.findAll({
+      where: roomIds.length ? { id: { [Op.in]: roomIds } } : { id: 0 },
+      include: [
+        {
+          model: RoomType,
+          as: 'room_type',
+          // Explicit attributes avoid selecting a possibly-missing
+          // `images` column on older DB schemas; migrations should
+          // add that column, but defend here to prevent 500s.
+          attributes: [
+            'id',
+            'name',
+            'description',
+            'base_price',
+            'capacity',
+            'amenities',
+            'created_at',
+            'updated_at',
+          ],
+        },
+      ],
+    });
+
+    const roomsById = {};
+    rooms.forEach((r) => {
+      roomsById[r.id] = r;
+    });
+
+    // Get ratings for each room and merge with favorite entries
     const roomsWithRatings = await Promise.all(
       favorites.map(async (favorite) => {
-        const room = favorite.room;
-        
+        const room = roomsById[favorite.room_id];
+
         if (!room) {
           return favorite.toJSON();
         }
@@ -130,14 +152,8 @@ const getFavorites = async (req, res, next) => {
             status: 'approved',
           },
           attributes: [
-            [
-              Sequelize.fn('AVG', Sequelize.col('rating')),
-              'average_rating',
-            ],
-            [
-              Sequelize.fn('COUNT', Sequelize.col('id')),
-              'total_reviews',
-            ],
+            [Sequelize.fn('AVG', Sequelize.col('rating')), 'average_rating'],
+            [Sequelize.fn('COUNT', Sequelize.col('id')), 'total_reviews'],
           ],
           raw: true,
         });
@@ -147,9 +163,7 @@ const getFavorites = async (req, res, next) => {
           room: {
             ...room.toJSON(),
             average_rating: reviewStats?.average_rating
-              ? Math.round(
-                  parseFloat(reviewStats.average_rating) * 10
-                ) / 10
+              ? Math.round(parseFloat(reviewStats.average_rating) * 10) / 10
               : null,
             total_reviews: reviewStats?.total_reviews
               ? parseInt(reviewStats.total_reviews, 10)

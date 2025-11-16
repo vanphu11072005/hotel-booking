@@ -22,7 +22,6 @@ export interface Room {
     base_price: number;
     capacity: number;
     amenities: string[];
-    images: string[];
   };
   average_rating?: number | string | null;
   total_reviews?: number | string | null;
