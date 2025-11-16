@@ -38,6 +38,7 @@ const getBanners = async (req, res, next) => {
     });
 
     const totalPages = Math.ceil(count / parseInt(limit));
+
     // Ensure image_url is absolute so frontend can load directly
     const baseUrl = process.env.SERVER_URL || `http://${req.get('host')}`;
     const mapped = banners.map((b) => {

@@ -1,5 +1,28 @@
-const { Booking, Room, RoomType, Payment, User, sequelize, Sequelize } = require('../databases/models');
+const { 
+  Booking, 
+  Room, 
+  RoomType, 
+  Payment, 
+  User, 
+  Service,
+  ServiceUsage,
+  sequelize, 
+  Sequelize 
+} = require('../databases/models');
 const { Op } = require('sequelize');
+
+// Defensive attribute list for RoomType to avoid selecting a possibly
+// missing `images` column on older DB schemas.
+const roomTypeAttributes = [
+	'id',
+	'name',
+	'description',
+	'base_price',
+	'capacity',
+	'amenities',
+	'created_at',
+	'updated_at',
+];
 
 // Helper to generate a simple booking number
 const generateBookingNumber = () => {
@@ -25,6 +48,7 @@ const createBooking = async (req, res, next) => {
 			total_price,
 			notes,
 			payment_method = 'cash',
+			services = [],
 		} = req.body;
 
 		if (!room_id || !check_in_date || !check_out_date || !total_price) {
@@ -36,7 +60,7 @@ const createBooking = async (req, res, next) => {
 
 		// Ensure room exists
 		const room = await Room.findByPk(room_id, {
-			include: [{ model: RoomType, as: 'room_type' }],
+			include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }],
 		});
 
 		if (!room) {
@@ -104,13 +128,44 @@ const createBooking = async (req, res, next) => {
 			);
 		}
 
+		// Create service usage records if services are selected
+		if (services && services.length > 0) {
+			for (const serviceItem of services) {
+				const { service_id, quantity } = serviceItem;
+				
+				// Get service details to store the price
+				const service = await Service.findByPk(service_id);
+				if (service && service.is_active) {
+					const unitPrice = parseFloat(service.price);
+					const totalServicePrice = unitPrice * quantity;
+					
+					await ServiceUsage.create(
+						{
+							booking_id: booking.id,
+							service_id,
+							quantity,
+							unit_price: unitPrice,
+							total_price: totalServicePrice,
+							usage_date: new Date(check_in_date),
+						},
+						{ transaction: t }
+					);
+				}
+			}
+		}
+
 		await t.commit();
 
-		// Fetch booking with payment info
+		// Fetch booking with payment info and services
 		const bookingWithPayments = await Booking.findByPk(booking.id, {
 			include: [
-				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type' }] },
+				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }] },
 				{ model: Payment, as: 'payments' },
+				{ 
+					model: ServiceUsage, 
+					as: 'service_usages',
+					include: [{ model: Service, as: 'service' }]
+				},
 			],
 		});
 
@@ -142,7 +197,7 @@ const getMyBookings = async (req, res, next) => {
 				{
 					model: Room,
 					as: 'room',
-					include: [{ model: RoomType, as: 'room_type' }],
+					include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }],
 				},
 			],
 			order: [['created_at', 'DESC']],
@@ -163,7 +218,7 @@ const getBookingById = async (req, res, next) => {
 		const { id } = req.params;
 		const booking = await Booking.findByPk(id, {
 			include: [
-				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type' }] },
+				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }] },
 				{ model: Payment, as: 'payments' },
 			],
 		});

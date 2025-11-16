@@ -23,9 +23,71 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
     return null;
   }
 
-  // Get first image or use placeholder
-  const imageUrl = roomType.images?.[0] || 
-    '/images/room-placeholder.jpg';
+  // Server root (strip possible trailing '/api' if env points to API root)
+  const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+    .replace(/\/api\/?$/i, '')
+    .replace(/\/$/, '');
+
+  // Resolve images coming from DB. `roomType.images` can be:
+  // - an array of paths (preferred)
+  // - a JSON-stringified array (e.g. "[\"/uploads/rooms/x.png\"]")
+  // - a single string path (absolute '/uploads/..' or filename)
+  // Build `imageSrc` so that server uploads (`/uploads/...`) are
+  // prefixed with `SERVER_URL`, while client-side placeholders
+  // (e.g. '/images/...') remain served from the client public folder.
+  const PLACEHOLDER = '/images/room-placeholder.jpg';
+
+  // Prefer images defined on the room record first (API returns
+  // `images` at the room level), then fall back to the room type.
+  const imagesField = (room.images) as any;
+  let firstImage: string | undefined;
+
+  if (Array.isArray(imagesField)) {
+    firstImage = imagesField[0];
+  } else if (typeof imagesField === 'string') {
+    // Try parse JSON array first
+    try {
+      const parsed = JSON.parse(imagesField);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        firstImage = parsed[0];
+      } else if (typeof parsed === 'string') {
+        firstImage = parsed;
+      }
+    } catch {
+      // Not JSON: treat as single path or comma-separated list
+      const s = imagesField as string;
+      if (s.includes(',')) {
+        firstImage = s.split(',')[0].trim();
+      } else {
+        firstImage = s.trim();
+      }
+    }
+  } else if (imagesField && typeof imagesField === 'object') {
+    // If stored as object with data array
+    try {
+      const vals = Object.values(imagesField);
+      if (Array.isArray(vals) && vals.length > 0) {
+        firstImage = String(vals.flat()[0]);
+      }
+    } catch {}
+  }
+
+  // Final image source resolution
+  let imageSrc = PLACEHOLDER;
+  if (firstImage) {
+    if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+      imageSrc = firstImage;
+    } else if (firstImage.startsWith('/uploads')) {
+      // Server-hosted uploads
+      imageSrc = `${SERVER_URL}${firstImage}`;
+    } else if (firstImage.startsWith('/')) {
+      // Client-side absolute path (public folder)
+      imageSrc = firstImage;
+    } else {
+      // treat as filename under uploads/rooms
+      imageSrc = `${SERVER_URL}/uploads/rooms/${firstImage}`;
+    }
+  }
   
   // Format price
   const formattedPrice = new Intl.NumberFormat('vi-VN', {
@@ -79,15 +141,19 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
         bg-gray-200"
       >
         <img
-          src={imageUrl}
+          src={imageSrc}
           alt={roomType.name}
           loading="lazy"
           className="w-full h-full object-cover 
             group-hover:scale-110 transition-transform 
             duration-300"
-          onLoad={(e) => 
-            e.currentTarget.classList.add('loaded')
-          }
+          onLoad={(e) => e.currentTarget.classList.add('loaded')}
+          onError={(e) => {
+            // fallback to client-side placeholder; avoid infinite loop
+            const img = e.currentTarget as HTMLImageElement;
+            img.onerror = null;
+            img.src = PLACEHOLDER;
+          }}
         />
         
         {/* Favorite Button */}

@@ -370,10 +370,10 @@ const BookingSuccessPage: React.FC = () => {
             {roomType && (
               <div className="border-b pb-4">
                 <div className="flex items-start gap-4">
-                  {roomType.images?.[0] && (
+                  {room?.images?.[0] && (
                     <img
-                      src={roomType.images[0]}
-                      alt={roomType.name}
+                      src={room.images[0]}
+                      alt={roomType?.name}
                       className="w-24 h-24 object-cover 
                         rounded-lg"
                     />

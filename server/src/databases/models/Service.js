@@ -38,9 +38,19 @@ module.exports = (sequelize, DataTypes) => {
           min: 0
         }
       },
+      unit: {
+        type: DataTypes.STRING(50),
+        allowNull: true,
+        defaultValue: 'lần'
+      },
       category: {
         type: DataTypes.STRING(50),
         allowNull: true
+      },
+      status: {
+        type: DataTypes.ENUM('active', 'inactive'),
+        allowNull: false,
+        defaultValue: 'active'
       },
       is_active: {
         type: DataTypes.BOOLEAN,
