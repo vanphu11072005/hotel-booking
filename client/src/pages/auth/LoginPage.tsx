@@ -49,9 +49,19 @@ const LoginPage: React.FC = () => {
         rememberMe: data.rememberMe,
       });
 
-      // Redirect về trang trước đó hoặc dashboard
-      const from = location.state?.from?.pathname || 
-        '/dashboard';
+      // Lấy thông tin user để redirect
+      const userInfo = useAuthStore.getState().userInfo;
+      
+      // Redirect dựa trên role
+      let redirectPath = '/dashboard';
+      if (userInfo?.role === 'admin') {
+        redirectPath = '/admin/dashboard';
+      } else if (userInfo?.role === 'staff') {
+        redirectPath = '/staff/dashboard';
+      }
+      
+      // Nếu có location.state.from thì ưu tiên redirect về đó
+      const from = location.state?.from?.pathname || redirectPath;
       navigate(from, { replace: true });
     } catch (error) {
       // Error đã được xử lý trong store

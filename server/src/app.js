@@ -58,11 +58,12 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Rate limiting
+// Rate limiting - chỉ áp dụng trong production, lỏng hơn trong development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP'
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 100 req/15min trong production, 1000 trong dev
+  message: 'Too many requests from this IP',
+  skip: (req) => process.env.NODE_ENV === 'development' // Bỏ qua rate limit trong development
 });
 app.use('/api/', limiter);
 

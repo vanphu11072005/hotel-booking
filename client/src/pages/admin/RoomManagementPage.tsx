@@ -32,6 +32,21 @@ const RoomManagementPage: React.FC = () => {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
+  // Helper function to parse images (handle both string and array)
+  const parseImages = (images: any): string[] => {
+    if (!images) return [];
+    if (Array.isArray(images)) return images;
+    if (typeof images === 'string') {
+      try {
+        const parsed = JSON.parse(images);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
@@ -48,6 +63,11 @@ const RoomManagementPage: React.FC = () => {
         page: currentPage,
         limit: itemsPerPage,
       });
+      console.log('=== ROOM DEBUG ===');
+      console.log('First room:', response.data.rooms[0]);
+      console.log('Room type:', response.data.rooms[0]?.room_type);
+      console.log('Images:', response.data.rooms[0]?.room_type?.images);
+      console.log('==================');
       setRooms(response.data.rooms);
       if (response.data.pagination) {
         setTotalPages(response.data.pagination.totalPages);
@@ -259,6 +279,9 @@ const RoomManagementPage: React.FC = () => {
                 Loại phòng
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Hình ảnh
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Tầng
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -283,6 +306,35 @@ const RoomManagementPage: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">{room.room_type?.name || 'N/A'}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const images = parseImages(room.room_type?.images);
+                      return images.length > 0 ? (
+                        <div className="relative group">
+                          <img
+                            src={`http://localhost:3000${images[0]}`}
+                            alt={room.room_number}
+                            className="w-16 h-16 object-cover rounded-lg"
+                            onError={(e) => {
+                              console.error('Image load error:', images[0]);
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                          {images.length > 1 && (
+                            <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                              +{images.length - 1}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <ImageIcon className="w-8 h-8 text-gray-400" />
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">Tầng {room.floor}</div>
@@ -447,29 +499,32 @@ const RoomManagementPage: React.FC = () => {
                 </h3>
                 
                 {/* Current Images */}
-                {editingRoom.room_type?.images && editingRoom.room_type.images.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-600 mb-2">Ảnh hiện tại:</p>
-                    <div className="grid grid-cols-3 gap-3">
-                      {editingRoom.room_type.images.map((img, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={`http://localhost:3000${img}`}
-                            alt={`Room ${index + 1}`}
-                            className="w-full h-24 object-cover rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteImage(img)}
-                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                {(() => {
+                  const images = parseImages(editingRoom.room_type?.images);
+                  return images.length > 0 ? (
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-2">Ảnh hiện tại:</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        {images.map((img, index) => (
+                          <div key={index} className="relative group">
+                            <img
+                              src={`http://localhost:3000${img}`}
+                              alt={`Room ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteImage(img)}
+                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : null;
+                })()}
 
                 {/* Upload New Images */}
                 <div>

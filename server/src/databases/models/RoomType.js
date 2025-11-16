@@ -49,6 +49,11 @@ module.exports = (sequelize, DataTypes) => {
       amenities: {
         type: DataTypes.JSON,
         allowNull: true
+      },
+      images: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        defaultValue: []
       }
     },
     {

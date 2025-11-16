@@ -37,18 +37,18 @@ router.delete(
 	roomController.deleteRoom
 );
 
-// Image upload routes
+// Image upload routes (Admin only)
 router.post(
 	'/:id/images',
 	authenticateToken,
-	authorizeRoles('admin', 'staff'),
+	authorizeRoles('admin'),
 	upload.array('images', 5), // Max 5 images at once
 	roomController.uploadRoomImages
 );
 router.delete(
 	'/:id/images',
 	authenticateToken,
-	authorizeRoles('admin', 'staff'),
+	authorizeRoles('admin'),
 	roomController.deleteRoomImage
 );
 

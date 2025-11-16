@@ -1,4 +1,4 @@
-const { Service, BookingService, Booking, sequelize } = require('../databases/models');
+const { Service, ServiceUsage, Booking, sequelize } = require('../databases/models');
 const { Op } = require('sequelize');
 
 /**
@@ -24,9 +24,9 @@ const getServices = async (req, res, next) => {
       ];
     }
 
-    // Filter by status
+    // Filter by status (is_active)
     if (status) {
-      whereClause.status = status;
+      whereClause.is_active = status === 'active' ? true : false;
     }
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
@@ -93,7 +93,7 @@ const createService = async (req, res, next) => {
       name,
       description,
       price,
-      unit,
+      category,
       status = 'active',
     } = req.body;
 
@@ -110,8 +110,8 @@ const createService = async (req, res, next) => {
       name,
       description,
       price,
-      unit,
-      status,
+      category,
+      is_active: status === 'active' ? true : false,
     });
 
     res.status(201).json({
@@ -169,8 +169,7 @@ const updateService = async (req, res, next) => {
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (price !== undefined) updateData.price = price;
-    if (unit !== undefined) updateData.unit = unit;
-    if (status !== undefined) updateData.status = status;
+    if (status !== undefined) updateData.is_active = status === 'active' ? true : false;
 
     await service.update(updateData);
 
@@ -203,7 +202,7 @@ const deleteService = async (req, res, next) => {
     }
 
     // Check if service is used in any active bookings
-    const activeUsage = await BookingService.count({
+    const activeUsage = await ServiceUsage.count({
       where: { service_id: id },
       include: [
         {
@@ -257,7 +256,7 @@ const useService = async (req, res, next) => {
 
     // Check if service exists
     const service = await Service.findByPk(service_id);
-    if (!service || service.status !== 'active') {
+    if (!service || !service.is_active) {
       return res.status(404).json({
         status: 'error',
         message: 'Service not found or inactive',
@@ -268,11 +267,11 @@ const useService = async (req, res, next) => {
     const total_price = service.price * quantity;
 
     // Add service to booking
-    const bookingService = await BookingService.create({
+    const bookingService = await ServiceUsage.create({
       booking_id,
       service_id,
       quantity,
-      price: service.price,
+      unit_price: service.price,
       total_price,
     });
 

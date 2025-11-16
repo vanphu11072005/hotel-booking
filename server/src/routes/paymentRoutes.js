@@ -4,6 +4,7 @@ const paymentController = require('../controllers/paymentController');
 const { authenticateToken } = require('../middlewares/auth');
 
 /**
+
  * Payment Routes
  * All routes require authentication
  */
@@ -14,6 +15,7 @@ router.get(
 	authenticateToken,
 	paymentController.getPaymentByBookingId
 );
+
 
 // Get bank transfer info (QR code)
 router.get(
