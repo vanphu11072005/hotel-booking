@@ -83,6 +83,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.JSON,
         allowNull: true
       },
+      amenities: {
+        type: DataTypes.JSON,
+        allowNull: true
+      },
       description: {
         type: DataTypes.TEXT,
         allowNull: true

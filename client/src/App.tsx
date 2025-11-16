@@ -44,8 +44,12 @@ import BookingSuccessPage from
   './pages/customer/BookingSuccessPage';
 import BookingDetailPage from 
   './pages/customer/BookingDetailPage';
+import DepositPaymentPage from 
+  './pages/customer/DepositPaymentPage';
 import PaymentConfirmationPage from 
   './pages/customer/PaymentConfirmationPage';
+import PaymentResultPage from 
+  './pages/customer/PaymentResultPage';
 import { 
   LoginPage, 
   RegisterPage,
@@ -161,6 +165,10 @@ function App() {
             element={<FavoritesPage />} 
           />
           <Route 
+            path="payment-result" 
+            element={<PaymentResultPage />} 
+          />
+          <Route 
             path="about" 
             element={<DemoPage title="Giới thiệu" />} 
           />
@@ -187,6 +195,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <BookingSuccessPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="deposit-payment/:bookingId" 
+            element={
+              <ProtectedRoute>
+                <DepositPaymentPage />
               </ProtectedRoute>
             } 
           />

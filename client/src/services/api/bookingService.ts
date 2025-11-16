@@ -36,6 +36,8 @@ export interface Booking {
     | 'unpaid' 
     | 'paid' 
     | 'refunded';
+  deposit_paid?: boolean;
+  requires_deposit?: boolean;
   notes?: string;
   guest_info?: {
     full_name: string;
@@ -63,8 +65,24 @@ export interface Booking {
     phone?: string;
     phone_number?: string;
   };
+  payments?: Payment[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Payment {
+  id: number;
+  booking_id: number;
+  amount: number;
+  payment_method: string;
+  payment_type: 'full' | 'deposit' | 'remaining';
+  deposit_percentage?: number;
+  payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
+  transaction_id?: string;
+  payment_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface BookingResponse {

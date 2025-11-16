@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const roomController = require('../controllers/roomController');
+const reviewController = require('../controllers/reviewController');
 const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
 
@@ -10,9 +11,12 @@ const upload = require('../middlewares/upload');
 
 // Public routes
 router.get('/', roomController.getRooms);
+router.get('/amenities', roomController.getAmenities);
 router.get('/available', roomController.searchAvailableRooms);
 router.get('/:id', roomController.getRoomById);
 
+// Public: Get reviews for a specific room (support /api/rooms/:id/reviews)
+router.get('/:id/reviews', reviewController.getRoomReviews);
 // Admin routes
 router.post(
 	'/',

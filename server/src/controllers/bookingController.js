@@ -24,6 +24,7 @@ const createBooking = async (req, res, next) => {
 			guest_count,
 			total_price,
 			notes,
+			payment_method = 'cash',
 		} = req.body;
 
 		if (!room_id || !check_in_date || !check_out_date || !total_price) {
@@ -65,6 +66,11 @@ const createBooking = async (req, res, next) => {
 
 		const bookingNumber = generateBookingNumber();
 
+		// Determine if deposit is required (cash payment requires 20% deposit)
+		const requiresDeposit = payment_method === 'cash';
+		const depositPercentage = requiresDeposit ? 20 : 0;
+		const depositAmount = requiresDeposit ? (total_price * depositPercentage) / 100 : 0;
+
 		const booking = await Booking.create(
 			{
 				booking_number: bookingNumber,
@@ -76,18 +82,47 @@ const createBooking = async (req, res, next) => {
 				total_price,
 				special_requests: notes || null,
 				status: 'pending',
+				requires_deposit: requiresDeposit,
+				deposit_paid: false,
 			},
 			{ transaction: t }
 		);
 
+		// Create deposit payment record if required
+		if (requiresDeposit) {
+			await Payment.create(
+				{
+					booking_id: booking.id,
+					amount: depositAmount,
+					payment_method: 'bank_transfer', // Deposit must be paid online
+					payment_type: 'deposit',
+					deposit_percentage: depositPercentage,
+					payment_status: 'pending',
+					notes: `Deposit payment (${depositPercentage}%) for booking ${bookingNumber}`,
+				},
+				{ transaction: t }
+			);
+		}
+
 		await t.commit();
 
-			return res.status(201).json({
-				success: true,
-				data: {
-					booking,
-				},
-			});
+		// Fetch booking with payment info
+		const bookingWithPayments = await Booking.findByPk(booking.id, {
+			include: [
+				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type' }] },
+				{ model: Payment, as: 'payments' },
+			],
+		});
+
+		return res.status(201).json({
+			success: true,
+			data: {
+				booking: bookingWithPayments,
+			},
+			message: requiresDeposit
+				? `Booking created. Please pay ${depositPercentage}% deposit to confirm.`
+				: 'Booking created successfully',
+		});
 	} catch (error) {
 		await t.rollback();
 		next(error);
