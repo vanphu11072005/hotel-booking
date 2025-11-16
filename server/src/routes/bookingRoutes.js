@@ -3,12 +3,12 @@ const router = express.Router();
 const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
 const bookingController = require('../controllers/bookingController');
 
-// Get all bookings (Admin/Staff only)
+// Get all bookings (Staff only)
 // GET /api/bookings
 router.get(
   '/',
   authenticateToken,
-  authorizeRoles('admin', 'staff'),
+  authorizeRoles('staff'),
   bookingController.getAllBookings
 );
 
@@ -24,12 +24,12 @@ router.get('/me', authenticateToken, bookingController.getMyBookings);
 // GET /api/bookings/:id
 router.get('/:id', authenticateToken, bookingController.getBookingById);
 
-// Update booking status (Admin/Staff only)
+// Update booking status (Staff only)
 // PUT /api/bookings/:id
 router.put(
   '/:id',
   authenticateToken,
-  authorizeRoles('admin', 'staff'),
+  authorizeRoles('staff'),
   bookingController.updateBooking
 );
 

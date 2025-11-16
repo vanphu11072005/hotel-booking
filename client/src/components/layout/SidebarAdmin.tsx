@@ -4,8 +4,6 @@ import {
   LayoutDashboard, 
   Users, 
   Hotel, 
-  Calendar, 
-  CreditCard, 
   Settings, 
   FileText, 
   BarChart3,
@@ -14,8 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
-  LogIn,
-  LogOut
+  CreditCard
 } from 'lucide-react';
 
 interface SidebarAdminProps {
@@ -61,16 +58,6 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({
       label: 'Phòng' 
     },
     { 
-      path: '/admin/bookings', 
-      icon: Calendar, 
-      label: 'Đặt phòng' 
-    },
-    { 
-      path: '/admin/payments', 
-      icon: CreditCard, 
-      label: 'Thanh toán' 
-    },
-    { 
       path: '/admin/services', 
       icon: Settings, 
       label: 'Dịch vụ' 
@@ -81,19 +68,14 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({
       label: 'Khuyến mãi' 
     },
     { 
-      path: '/admin/check-in', 
-      icon: LogIn, 
-      label: 'Check-in' 
-    },
-    { 
-      path: '/admin/check-out', 
-      icon: LogOut, 
-      label: 'Check-out' 
-    },
-    { 
       path: '/admin/reviews', 
       icon: Star, 
       label: 'Đánh giá' 
+    },
+    { 
+      path: '/admin/payments', 
+      icon: CreditCard, 
+      label: 'Thanh toán' 
     },
     { 
       path: '/admin/banners', 

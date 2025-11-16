@@ -1,44 +1,43 @@
 const { Banner } = require('../databases/models');
 const { Op } = require('sequelize');
+const fs = require('fs');
+const path = require('path');
 
 /**
- * Get all banners with filters
+ * Get all banners with filters and pagination
  */
 const getBanners = async (req, res, next) => {
   try {
-    const { position } = req.query;
+    const { search, status, page = 1, limit = 10 } = req.query;
 
-    const whereClause = {
-      is_active: true,
-    };
+    const whereClause = {};
 
-    // Filter by position if provided
-    if (position) {
-      whereClause.position = position;
+    // Search by title
+    if (search) {
+      whereClause.title = {
+        [Op.like]: `%${search}%`,
+      };
     }
 
-    // Get current date for filtering active banners
-    const now = new Date();
-    whereClause[Op.or] = [
-      { start_date: null },
-      { start_date: { [Op.lte]: now } },
-    ];
-    whereClause[Op.and] = [
-      {
-        [Op.or]: [
-          { end_date: null },
-          { end_date: { [Op.gte]: now } },
-        ],
-      },
-    ];
+    // Filter by status
+    if (status === 'active') {
+      whereClause.is_active = true;
+    } else if (status === 'inactive') {
+      whereClause.is_active = false;
+    }
 
-    const banners = await Banner.findAll({
+    // Calculate offset
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Get banners with pagination
+    const { count, rows: banners } = await Banner.findAndCountAll({
       where: whereClause,
-      order: [
-        ['display_order', 'ASC'],
-        ['created_at', 'DESC'],
-      ],
+      order: [['created_at', 'DESC']],
+      limit: parseInt(limit),
+      offset: offset,
     });
+
+    const totalPages = Math.ceil(count / parseInt(limit));
 
     // Ensure image_url is absolute so frontend can load directly
     const baseUrl = process.env.SERVER_URL || `http://${req.get('host')}`;
@@ -53,9 +52,15 @@ const getBanners = async (req, res, next) => {
     });
 
     res.status(200).json({
-      status: 'success',
+      success: true,
       data: {
-        banners: mapped,
+        banners,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: count,
+          totalPages,
+        },
       },
     });
   } catch (error) {
@@ -74,8 +79,8 @@ const getBannerById = async (req, res, next) => {
 
     if (!banner) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Banner not found',
+        success: false,
+        message: 'Banner không tồn tại',
       });
     }
 
@@ -89,7 +94,7 @@ const getBannerById = async (req, res, next) => {
     }
 
     res.status(200).json({
-      status: 'success',
+      success: true,
       data: {
         banner: out,
       },
@@ -106,28 +111,21 @@ const createBanner = async (req, res, next) => {
   try {
     const {
       title,
-      image_url,
-      link,
-      position,
-      display_order,
-      start_date,
-      end_date,
+      description,
+      link_url,
+      is_active = true,
     } = req.body;
 
     const banner = await Banner.create({
       title,
-      image_url,
-      link,
-      position: position || 'home',
-      display_order: display_order || 0,
-      is_active: true,
-      start_date,
-      end_date,
+      description,
+      link_url,
+      is_active,
     });
 
     res.status(201).json({
-      status: 'success',
-      message: 'Banner created successfully',
+      success: true,
+      message: 'Thêm banner thành công',
       data: {
         banner,
       },
@@ -145,38 +143,31 @@ const updateBanner = async (req, res, next) => {
     const { id } = req.params;
     const {
       title,
-      image_url,
-      link,
-      position,
-      display_order,
+      description,
+      link_url,
       is_active,
-      start_date,
-      end_date,
     } = req.body;
 
     const banner = await Banner.findByPk(id);
 
     if (!banner) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Banner not found',
+        success: false,
+        message: 'Banner không tồn tại',
       });
     }
 
-    await banner.update({
-      title,
-      image_url,
-      link,
-      position,
-      display_order,
-      is_active,
-      start_date,
-      end_date,
-    });
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (link_url !== undefined) updateData.link_url = link_url;
+    if (is_active !== undefined) updateData.is_active = is_active;
+
+    await banner.update(updateData);
 
     res.status(200).json({
-      status: 'success',
-      message: 'Banner updated successfully',
+      success: true,
+      message: 'Cập nhật banner thành công',
       data: {
         banner,
       },
@@ -197,18 +188,79 @@ const deleteBanner = async (req, res, next) => {
 
     if (!banner) {
       return res.status(404).json({
-        status: 'error',
-        message: 'Banner not found',
+        success: false,
+        message: 'Banner không tồn tại',
       });
+    }
+
+    // Delete image file if exists
+    if (banner.image_url) {
+      const imagePath = path.join(__dirname, '../../', banner.image_url);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
     }
 
     await banner.destroy();
 
     res.status(200).json({
-      status: 'success',
-      message: 'Banner deleted successfully',
+      success: true,
+      message: 'Xóa banner thành công',
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload banner image
+ */
+const uploadBannerImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const banner = await Banner.findByPk(id);
+    if (!banner) {
+      return res.status(404).json({
+        success: false,
+        message: 'Banner không tồn tại',
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng chọn file ảnh',
+      });
+    }
+
+    // Delete old image if exists
+    if (banner.image_url) {
+      const oldImagePath = path.join(__dirname, '../../', banner.image_url);
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath);
+      }
+    }
+
+    // Update banner with new image URL
+    const imageUrl = `/uploads/banners/${req.file.filename}`;
+    await banner.update({ image_url: imageUrl });
+
+    res.status(200).json({
+      success: true,
+      message: 'Upload ảnh thành công',
+      data: {
+        banner,
+      },
+    });
+  } catch (error) {
+    // Clean up uploaded file on error
+    if (req.file) {
+      const filePath = path.join(__dirname, '../../uploads/banners', req.file.filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
     next(error);
   }
 };
@@ -219,4 +271,5 @@ module.exports = {
   createBanner,
   updateBanner,
   deleteBanner,
+  uploadBannerImage,
 };

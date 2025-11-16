@@ -193,6 +193,10 @@ export const getAllBookings = async (
   params?: {
     status?: string;
     search?: string;
+    from?: string;
+    to?: string;
+    check_in_date?: string;
+    check_out_date?: string;
     page?: number;
     limit?: number;
   }

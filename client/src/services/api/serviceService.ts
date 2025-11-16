@@ -10,7 +10,9 @@ export interface Service {
   description?: string;
   price: number;
   unit?: string;
-  status: 'active' | 'inactive';
+  category?: string;
+  is_active?: boolean;
+  status?: 'active' | 'inactive';
   created_at?: string;
   updated_at?: string;
 }
@@ -60,6 +62,13 @@ export const getServices = async (
   params: ServiceSearchParams = {}
 ): Promise<ServiceListResponse> => {
   const response = await apiClient.get('/services', { params });
+  // Map is_active to status for frontend
+  if (response.data.data?.services) {
+    response.data.data.services = response.data.data.services.map((service: any) => ({
+      ...service,
+      status: service.is_active ? 'active' : 'inactive'
+    }));
+  }
   return response.data;
 };
 
@@ -70,6 +79,13 @@ export const getServiceById = async (
   id: number
 ): Promise<{ success: boolean; data: { service: Service } }> => {
   const response = await apiClient.get(`/services/${id}`);
+  // Map is_active to status for frontend
+  if (response.data.data?.service) {
+    response.data.data.service = {
+      ...response.data.data.service,
+      status: response.data.data.service.is_active ? 'active' : 'inactive'
+    };
+  }
   return response.data;
 };
 
