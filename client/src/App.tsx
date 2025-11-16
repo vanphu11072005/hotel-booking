@@ -24,8 +24,7 @@ import {
 
 // Pages
 import HomePage from './pages/HomePage';
-import DashboardPage from 
-  './pages/customer/DashboardPage';
+import AboutPage from './pages/customer/AboutPage';
 import RoomListPage from 
   './pages/customer/RoomListPage';
 import RoomDetailPage from 
@@ -54,6 +53,7 @@ import {
   ForgotPasswordPage,
   ResetPasswordPage 
 } from './pages/auth';
+import ProfilePage from './pages/customer/ProfilePage';
 
 // Admin Pages
 import {
@@ -161,18 +161,9 @@ function App() {
           />
           <Route 
             path="about" 
-            element={<DemoPage title="Giới thiệu" />} 
+            element={<AboutPage />} 
           />
           
-          {/* Protected Routes - Yêu cầu đăng nhập */}
-          <Route 
-            path="dashboard" 
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            } 
-          />
           <Route 
             path="booking/:id" 
             element={
@@ -225,7 +216,7 @@ function App() {
             path="profile" 
             element={
               <ProtectedRoute>
-                <DemoPage title="Hồ sơ" />
+                <ProfilePage />
               </ProtectedRoute>
             } 
           />

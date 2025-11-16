@@ -51,7 +51,7 @@ const LoginPage: React.FC = () => {
 
       // Redirect về trang trước đó hoặc dashboard
       const from = location.state?.from?.pathname || 
-        '/dashboard';
+        '/';
       navigate(from, { replace: true });
     } catch (error) {
       // Error đã được xử lý trong store

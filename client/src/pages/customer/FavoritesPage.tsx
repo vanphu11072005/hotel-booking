@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, AlertCircle, ArrowLeft } from 'lucide-react';
 import { RoomCard, RoomCardSkeleton } from 
   '../../components/rooms';
+import Pagination from '../../components/rooms/Pagination';
 import useFavoritesStore from 
   '../../store/useFavoritesStore';
 import useAuthStore from '../../store/useAuthStore';
@@ -15,6 +16,16 @@ const FavoritesPage: React.FC = () => {
     error, 
     fetchFavorites 
   } = useFavoritesStore();
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
+
+  // adjust page if favorites length changes
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(favorites.length / ITEMS_PER_PAGE));
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [favorites.length]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -66,19 +77,15 @@ const FavoritesPage: React.FC = () => {
         <div className="mb-8">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 
-              text-gray-600 hover:text-gray-900 
-              mb-4 transition-colors"
+            className="inline-flex items-center gap-2 bg-indigo-600 
+            text-white px-3 py-2 rounded-md hover:bg-indigo-700 
+            disabled:bg-gray-400 mb-6 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Quay lại trang chủ</span>
           </Link>
 
           <div className="flex items-center gap-3">
-            <Heart 
-              className="w-8 h-8 text-red-500" 
-              fill="currentColor" 
-            />
             <div>
               <h1 
                 className="text-3xl font-bold 
@@ -178,22 +185,24 @@ const FavoritesPage: React.FC = () => {
         )}
 
         {/* Favorites Grid */}
-        {!isLoading && 
-          !error && 
-          favorites.length > 0 && (
-          <div 
-            className="grid grid-cols-1 md:grid-cols-2 
-              lg:grid-cols-3 gap-6"
-          >
-            {favorites.map((favorite) =>
-              favorite.room ? (
-                <RoomCard
-                  key={favorite.id}
-                  room={favorite.room}
-                />
-              ) : null
-            )}
-          </div>
+        {!isLoading && !error && favorites.length > 0 && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {favorites
+                .slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+                .map((favorite) =>
+                  favorite.room ? (
+                    <RoomCard key={favorite.id} room={favorite.room} />
+                  ) : null
+                )}
+            </div>
+
+            <Pagination
+              currentPage={page}
+              totalPages={Math.max(1, Math.ceil(favorites.length / ITEMS_PER_PAGE))}
+              onPageChange={(p) => setPage(p)}
+            />
+          </>
         )}
       </div>
     </div>

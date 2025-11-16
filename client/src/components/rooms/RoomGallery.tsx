@@ -15,7 +15,7 @@ const RoomGallery: React.FC<RoomGalleryProps> = ({
 
   const safeImages = Array.isArray(images) && images.length > 0
     ? images
-    : ['/images/room-placeholder.jpg'];
+    : ['/images/room-placeholder.svg'];
 
   const goToPrevious = () => {
     setCurrentIndex((prev) =>
