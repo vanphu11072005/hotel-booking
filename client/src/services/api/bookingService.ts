@@ -14,6 +14,10 @@ export interface BookingData {
     email: string;
     phone: string;
   };
+  services?: {
+    service_id: number;
+    quantity: number;
+  }[];
 }
 
 export interface Booking {

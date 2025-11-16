@@ -90,7 +90,7 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
   // };
 
   return (
-    <div className={`w-full bg-white rounded-lg shadow-sm p-4 ${className}`}>
+    <div className={`w-full bg-gray-100 border border-gray-200 rounded-lg shadow-sm p-4 ${className}`}>
       <div className="flex items-center justify-center gap-3 mb-6">
         <h3 className="text-xl font-bold text-gray-900">
           Tìm phòng trống

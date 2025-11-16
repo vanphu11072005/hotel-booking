@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { 
   Hotel, 
   User, 
@@ -48,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50">
+    <header className="bg-[#0F2F2F] shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -58,52 +58,64 @@ const Header: React.FC<HeaderProps> = ({
               hover:opacity-80 transition-opacity"
           >
             <Hotel className="w-8 h-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-800">
+              <span className="text-2xl font-bold text-white">
               Hotel Booking
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center 
-            space-x-6"
-          >
-            <Link 
-              to="/" 
-              className="text-gray-700 hover:text-blue-600 
-                transition-colors font-medium"
+          <nav className="hidden md:flex items-center space-x-6">
+            <NavLink
+              to="/"
+              className={({ isActive }) =>
+                `text-white hover:text-blue-400 transition-colors font-medium ${
+                  isActive ? 'bg-blue-900 rounded-md px-2 py-1' : ''
+                }`
+              }
             >
               Trang chủ
-            </Link>
-            <Link 
-              to="/rooms" 
-              className="text-gray-700 hover:text-blue-600 
-                transition-colors font-medium"
+            </NavLink>
+            <NavLink
+              to="/rooms"
+              className={({ isActive }) =>
+                `text-white hover:text-blue-400 transition-colors font-medium ${
+                  isActive ? 'bg-blue-900 rounded-md px-2 py-1' : ''
+                }`
+              }
             >
               Phòng
-            </Link>
-            <Link 
-              to="/bookings" 
-              className="text-gray-700 hover:text-blue-600 
-                transition-colors font-medium"
+            </NavLink>
+            <NavLink
+              to="/bookings"
+              className={({ isActive }) =>
+                `text-white hover:text-blue-400 transition-colors font-medium ${
+                  isActive ? 'bg-blue-900 rounded-md px-2 py-1' : ''
+                }`
+              }
             >
               Đặt phòng
-            </Link>
-            <Link 
-              to="/favorites" 
-              className="text-gray-700 hover:text-blue-600 
-                transition-colors font-medium flex 
-                items-center gap-1"
+            </NavLink>
+            <NavLink
+              to="/favorites"
+              className={({ isActive }) =>
+                `text-white hover:text-blue-400 transition-colors font-medium flex items-center gap-1 ${
+                  isActive ? 'bg-blue-900 rounded-md px-2 py-1' : ''
+                }`
+              }
             >
               <Heart className="w-4 h-4" />
               Yêu thích
-            </Link>
-            <Link 
-              to="/about" 
-              className="text-gray-700 hover:text-blue-600 
-                transition-colors font-medium"
+            </NavLink>
+            <NavLink
+              to="/about"
+              className={({ isActive }) =>
+                `text-white hover:text-blue-400 transition-colors font-medium ${
+                  isActive ? 'bg-blue-900 rounded-md px-2 py-1' : ''
+                }`
+              }
             >
               Giới thiệu
-            </Link>
+            </NavLink>
           </nav>
 
           {/* Desktop Auth Section */}
@@ -112,16 +124,17 @@ const Header: React.FC<HeaderProps> = ({
           >
             {!isAuthenticated ? (
               <>
-                <Link 
-                  to="/login"
-                  className="flex items-center space-x-2 
-                    px-4 py-2 text-blue-600 
-                    hover:text-blue-700 transition-colors 
-                    font-medium"
-                >
+                  <NavLink 
+                    to="/login"
+                    className={({ isActive }) =>
+                      `flex items-center space-x-2 px-4 py-2 text-white hover:text-blue-700 transition-colors font-medium ${
+                        isActive ? 'text-blue-300' : ''
+                      }`
+                    }
+                  >
                   <LogIn className="w-4 h-4" />
                   <span>Đăng nhập</span>
-                </Link>
+                  </NavLink>
                 <Link 
                   to="/register"
                   className="flex items-center space-x-2 
@@ -138,8 +151,7 @@ const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={toggleUserMenu}
                   className="flex items-center space-x-3 
-                    px-3 py-2 rounded-lg hover:bg-gray-100 
-                    transition-colors"
+                    px-3 py-2 rounded-lg transition-colors"
                 >
                   {userInfo?.avatar ? (
                     <img 
@@ -161,7 +173,7 @@ const Header: React.FC<HeaderProps> = ({
                       </span>
                     </div>
                   )}
-                  <span className="font-medium text-gray-700">
+                  <span className="font-medium text-white">
                     {userInfo?.name}
                   </span>
                 </button>
@@ -172,29 +184,31 @@ const Header: React.FC<HeaderProps> = ({
                     w-48 bg-white rounded-lg shadow-lg 
                     py-2 border border-gray-200 z-50"
                   >
-                    <Link
+                    <NavLink
                       to="/profile"
                       onClick={() => setIsUserMenuOpen(false)}
-                      className="flex items-center space-x-2 
-                        px-4 py-2 text-gray-700 
-                        hover:bg-gray-100 transition-colors"
+                      className={({ isActive }) =>
+                        `flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors ${
+                          isActive ? 'font-semibold' : ''
+                        }`
+                      }
                     >
                       <User className="w-4 h-4" />
                       <span>Hồ sơ</span>
-                    </Link>
+                    </NavLink>
                     {userInfo?.role === 'admin' && (
-                      <Link
+                      <NavLink
                         to="/admin"
-                        onClick={() => 
-                          setIsUserMenuOpen(false)
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors ${
+                            isActive ? 'font-semibold' : ''
+                          }`
                         }
-                        className="flex items-center 
-                          space-x-2 px-4 py-2 text-gray-700 
-                          hover:bg-gray-100 transition-colors"
                       >
                         <User className="w-4 h-4" />
                         <span>Quản trị</span>
-                      </Link>
+                      </NavLink>
                     )}
                     <button
                       onClick={handleLogout}
@@ -232,52 +246,62 @@ const Header: React.FC<HeaderProps> = ({
             border-gray-200 mt-4"
           >
             <div className="flex flex-col space-y-2">
-              <Link 
+              <NavLink
                 to="/"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-gray-700 
-                  hover:bg-gray-100 rounded-lg 
-                  transition-colors"
+                className={({ isActive }) =>
+                  `px-4 py-2 text-white hover:bg-gray-100 rounded-lg transition-colors ${
+                    isActive ? 'bg-blue-900' : ''
+                  }`
+                }
               >
                 Trang chủ
-              </Link>
-              <Link 
+              </NavLink>
+              <NavLink
                 to="/rooms"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-gray-700 
-                  hover:bg-gray-100 rounded-lg 
-                  transition-colors"
+                className={({ isActive }) =>
+                  `px-4 py-2 text-white hover:bg-gray-100 rounded-lg transition-colors ${
+                    isActive ? 'bg-blue-900' : ''
+                  }`
+                }
               >
                 Phòng
-              </Link>
-              <Link 
+              </NavLink>
+              <NavLink
                 to="/bookings"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-gray-700 
-                  hover:bg-gray-100 rounded-lg 
-                  transition-colors"
+                className={({ isActive }) =>
+                  `px-4 py-2 text-white hover:bg-gray-100 rounded-lg transition-colors ${
+                    isActive ? 'bg-blue-900' : ''
+                  }`
+                }
               >
                 Đặt phòng
-              </Link>
-              <Link 
+              </NavLink>
+              <NavLink
                 to="/favorites"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-gray-700 
-                  hover:bg-gray-100 rounded-lg 
-                  transition-colors flex items-center gap-2"
+                className={({ isActive }) =>
+                  `px-4 py-2 text-white hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 ${
+                    isActive ? 'bg-blue-900' : ''
+                  }`
+                }
               >
                 <Heart className="w-4 h-4" />
                 Yêu thích
-              </Link>
-              <Link 
+              </NavLink>
+              <NavLink
                 to="/about"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="px-4 py-2 text-gray-700 
-                  hover:bg-gray-100 rounded-lg 
-                  transition-colors"
+                className={({ isActive }) =>
+                  `px-4 py-2 text-white hover:bg-gray-100 rounded-lg transition-colors ${
+                    isActive ? 'bg-blue-900' : ''
+                  }`
+                }
               >
                 Giới thiệu
-              </Link>
+              </NavLink>
               
               <div className="border-t border-gray-200 
                 pt-2 mt-2"
@@ -314,7 +338,7 @@ const Header: React.FC<HeaderProps> = ({
                 ) : (
                   <>
                     <div className="px-4 py-2 text-sm 
-                      text-gray-500"
+                        text-white"
                     >
                       Xin chào, {userInfo?.name}
                     </div>
@@ -348,8 +372,32 @@ const Header: React.FC<HeaderProps> = ({
                     )}
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center 
-                        space-x-2 px-4 py-2 text-red-600 
+                      className="flex items-center 
+                        space-x-2 px-4 py-2 text-white 
+                        hover:bg-gray-100 rounded-lg 
+                        transition-colors text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Đăng xuất</span>
+                    </button>
+                    {userInfo?.role === 'admin' && (
+                      <Link
+                        to="/admin"
+                        onClick={() => 
+                          setIsMobileMenuOpen(false)
+                        }
+                        className="flex items-center 
+                          space-x-2 px-4 py-2 text-white 
+                          hover:bg-gray-100 transition-colors"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Quản trị</span>
+                      </Link>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center 
+                        space-x-2 px-4 py-2 text-white 
                         hover:bg-gray-100 rounded-lg 
                         transition-colors text-left"
                     >

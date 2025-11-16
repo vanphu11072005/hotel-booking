@@ -26,6 +26,8 @@ import {
   checkRoomAvailability,
   type BookingData,
 } from '../../services/api/bookingService';
+import { getServices, type Service } from 
+  '../../services/api/serviceService';
 import useAuthStore from '../../store/useAuthStore';
 import { 
   bookingValidationSchema, 
@@ -42,6 +44,10 @@ const BookingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [selectedServices, setSelectedServices] = useState<
+    Record<number, number>
+  >({});
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -55,10 +61,11 @@ const BookingPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate, id]);
 
-  // Fetch room details
+  // Fetch room details and services
   useEffect(() => {
     if (id && isAuthenticated) {
       fetchRoomDetails(Number(id));
+      fetchServices();
     }
   }, [id, isAuthenticated]);
 
@@ -89,6 +96,33 @@ const BookingPage: React.FC = () => {
     }
   };
 
+  const fetchServices = async () => {
+    try {
+      const response = await getServices({ status: 'active', limit: 100 });
+
+      // Support either `response.data.services` (controller) or
+      // `response.services` / other shapes. Be permissive.
+      const servicesFromResponse: Service[] =
+        (response as any)?.data?.services ?? (response as any)?.services ?? [];
+
+      if (Array.isArray(servicesFromResponse) && servicesFromResponse.length > 0) {
+        setServices(servicesFromResponse);
+        return;
+      }
+
+      // Fallback: try fetching without status filter (in case DB/migration
+      // didn't add `status` column yet)
+      const fallback = await getServices({ limit: 100 });
+      const fallbackServices: Service[] =
+        (fallback as any)?.data?.services ?? (fallback as any)?.services ?? [];
+      if (Array.isArray(fallbackServices) && fallbackServices.length > 0) {
+        setServices(fallbackServices);
+      }
+    } catch (err: any) {
+      console.error('Error fetching services:', err);
+    }
+  };
+
   // Set up form with default values
   const {
     control,
@@ -107,6 +141,7 @@ const BookingPage: React.FC = () => {
       fullName: userInfo?.name || '',
       email: userInfo?.email || '',
       phone: userInfo?.phone || '',
+      services: [],
     },
   });
 
@@ -127,7 +162,20 @@ const BookingPage: React.FC = () => {
 
   const roomPrice = 
     room?.room_type?.base_price || 0;
-  const totalPrice = numberOfNights * roomPrice;
+  const roomTotalPrice = numberOfNights * roomPrice;
+  
+  // Calculate services total
+  const servicesTotalPrice = Object.entries(selectedServices).reduce(
+    (sum, [serviceId, quantity]) => {
+      const service = services.find(
+        (s) => s.id === Number(serviceId)
+      );
+      return sum + (service ? service.price * quantity : 0);
+    },
+    0
+  );
+  
+  const totalPrice = roomTotalPrice + servicesTotalPrice;
 
   // Format price
   const formatPrice = (price: number) => {
@@ -167,6 +215,13 @@ const BookingPage: React.FC = () => {
       }
 
       // Step 2: Prepare booking data
+      const servicesList = Object.entries(selectedServices)
+        .filter(([_, quantity]) => quantity > 0)
+        .map(([serviceId, quantity]) => ({
+          service_id: Number(serviceId),
+          quantity,
+        }));
+
       const bookingData: BookingData = {
         room_id: room.id,
         check_in_date: checkInDateStr,
@@ -180,6 +235,7 @@ const BookingPage: React.FC = () => {
           email: data.email,
           phone: data.phone,
         },
+        services: servicesList.length > 0 ? servicesList : undefined,
       };
 
       // Step 3: Create booking
@@ -271,9 +327,9 @@ const BookingPage: React.FC = () => {
         {/* Back Button */}
         <Link
           to={`/rooms/${room.id}`}
-          className="inline-flex items-center gap-2 
-            text-gray-600 hover:text-gray-900 
-            mb-6 transition-colors"
+          className="inline-flex items-center gap-2 bg-indigo-600 
+            text-white px-3 py-2 rounded-md hover:bg-indigo-700 
+            disabled:bg-gray-400 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Quay lại chi tiết phòng</span>
@@ -559,6 +615,135 @@ const BookingPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Additional Services */}
+              {services.length > 0 && (
+                <div className="border-t pt-6">
+                  <h2 
+                    className="text-xl font-bold 
+                      text-gray-900 mb-4"
+                  >
+                    Dịch vụ bổ sung (tùy chọn)
+                  </h2>
+
+                  <div className="space-y-3">
+                        <div className="max-h-72 overflow-y-auto space-y-3 pr-2">
+                        {services.map((service) => (
+                          <div
+                            key={service.id}
+                            className="flex items-center 
+                              justify-between p-4 border 
+                              border-gray-200 rounded-lg 
+                              hover:border-indigo-500 
+                              transition-colors"
+                          >
+                        <div className="flex-1">
+                          <h3 
+                            className="font-medium 
+                              text-gray-900"
+                          >
+                            {service.name}
+                          </h3>
+                          {service.description && (
+                            <p 
+                              className="text-sm 
+                                text-gray-600 mt-1"
+                            >
+                              {service.description}
+                            </p>
+                          )}
+                          <p
+                            className="text-sm text-indigo-600 
+                              font-medium mt-1"
+                          >
+                            {formatPrice(service.price)} /{service.unit}
+                          </p>
+                        </div>
+
+                        <div 
+                          className="flex items-center gap-2 
+                            ml-4"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentQty =
+                                selectedServices[
+                                  service.id
+                                ] || 0;
+                              if (currentQty > 0) {
+                                setSelectedServices({
+                                  ...selectedServices,
+                                  [service.id]: 
+                                    currentQty - 1,
+                                });
+                              }
+                            }}
+                            className="w-8 h-8 flex 
+                              items-center justify-center 
+                              rounded-lg border 
+                              border-gray-300 
+                              hover:bg-gray-100 
+                              disabled:opacity-50 
+                              disabled:cursor-not-allowed"
+                            disabled={
+                              !selectedServices[service.id] ||
+                              selectedServices[service.id] === 0
+                            }
+                          >
+                            -
+                          </button>
+
+                          <input
+                            type="number"
+                            min="0"
+                            value={
+                              selectedServices[service.id] || 0
+                            }
+                            onChange={(e) => {
+                              const value = Math.max(
+                                0,
+                                parseInt(e.target.value) || 0
+                              );
+                              setSelectedServices({
+                                ...selectedServices,
+                                [service.id]: value,
+                              });
+                            }}
+                            className="w-16 text-center px-2 
+                              py-1 border border-gray-300 
+                              rounded-lg focus:ring-2 
+                              focus:ring-indigo-500 
+                              focus:border-indigo-500"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentQty =
+                                selectedServices[
+                                  service.id
+                                ] || 0;
+                              setSelectedServices({
+                                ...selectedServices,
+                                [service.id]: currentQty + 1,
+                              });
+                            }}
+                            className="w-8 h-8 flex 
+                              items-center justify-center 
+                              rounded-lg border 
+                              border-gray-300 
+                              hover:bg-gray-100"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Payment Method */}
               <div className="border-t pt-6">
                 <h2 
@@ -765,6 +950,67 @@ const BookingPage: React.FC = () => {
                       {numberOfNights} đêm
                     </span>
                   </div>
+                )}
+
+                {numberOfNights > 0 && (
+                  <div className="flex justify-between 
+                    text-sm"
+                  >
+                    <span className="text-gray-600">
+                      Tổng tiền phòng
+                    </span>
+                    <span className="font-medium">
+                      {formatPrice(roomTotalPrice)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Services breakdown */}
+                {servicesTotalPrice > 0 && (
+                  <>
+                    <div className="border-t pt-2">
+                      <p className="text-sm font-medium 
+                        text-gray-700 mb-2"
+                      >
+                        Dịch vụ bổ sung
+                      </p>
+                      {Object.entries(selectedServices)
+                        .filter(([_, qty]) => qty > 0)
+                        .map(([serviceId, qty]) => {
+                          const service = services.find(
+                            (s) => s.id === Number(serviceId)
+                          );
+                          if (!service) return null;
+                          return (
+                            <div
+                              key={serviceId}
+                              className="flex justify-between 
+                                text-sm text-gray-600 mb-1"
+                            >
+                              <span>
+                                {service.name} × {qty}
+                              </span>
+                              <span>
+                                {formatPrice(
+                                  service.price * qty
+                                )}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+
+                    <div className="flex justify-between 
+                      text-sm font-medium"
+                    >
+                      <span className="text-gray-600">
+                        Tổng tiền dịch vụ
+                      </span>
+                      <span>
+                        {formatPrice(servicesTotalPrice)}
+                      </span>
+                    </div>
+                  </>
                 )}
 
                 <div 

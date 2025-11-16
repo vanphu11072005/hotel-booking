@@ -58,6 +58,16 @@ export const bookingValidationSchema = yup.object().shape({
       /^[0-9]{10,11}$/,
       'Số điện thoại phải có 10-11 chữ số'
     ),
+
+  services: yup
+    .array()
+    .of(
+      yup.object().shape({
+        service_id: yup.number().required(),
+        quantity: yup.number().min(1).required(),
+      })
+    )
+    .optional(),
 });
 
 export type BookingFormData = yup.InferType<
