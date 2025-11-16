@@ -3,6 +3,28 @@ const { Op } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
 
+// Normalize image paths stored in DB (relative) to absolute URLs
+const normalizeImages = (images, baseUrl) => {
+  if (!images) return [];
+  let imgs = images;
+  if (typeof images === 'string') {
+    try {
+      imgs = JSON.parse(images);
+    } catch (e) {
+      // comma separated?
+      imgs = images.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  if (!Array.isArray(imgs)) return [];
+  return imgs.map((img) => {
+    if (!img) return img;
+    if (/^https?:\/\//i.test(img)) return img;
+    // ensure leading slash
+    const pathPart = img.startsWith('/') ? img : `/${img}`;
+    return `${baseUrl}${pathPart}`;
+  });
+};
+
 /**
  * Get all rooms with filters
  */
@@ -85,6 +107,9 @@ const getRooms = async (req, res, next) => {
       distinct: true,
     });
 
+    // compute base url for images
+    const baseUrl = process.env.SERVER_URL || `http://${req.get('host')}`;
+
     // Get average rating for each room
     const roomsWithRatings = await Promise.all(
       rooms.map(async (room) => {
@@ -106,7 +131,7 @@ const getRooms = async (req, res, next) => {
           raw: true,
         });
 
-        return {
+        const item = {
           ...room.toJSON(),
           average_rating: reviewStats?.average_rating
             ? Math.round(parseFloat(reviewStats.average_rating) * 10) / 10
@@ -115,6 +140,25 @@ const getRooms = async (req, res, next) => {
             ? parseInt(reviewStats.total_reviews, 10)
             : 0,
         };
+
+        // Normalize images for room and its room_type
+        try {
+          item.images = normalizeImages(item.images, baseUrl);
+        } catch (e) {
+          item.images = [];
+        }
+        if (item.room_type) {
+          try {
+            item.room_type.images = normalizeImages(
+              item.room_type.images,
+              baseUrl
+            );
+          } catch (e) {
+            item.room_type.images = [];
+          }
+        }
+
+        return item;
       })
     );
 
@@ -177,6 +221,8 @@ const getRoomById = async (req, res, next) => {
       raw: true,
     });
 
+    const baseUrl = process.env.SERVER_URL || `http://${req.get('host')}`;
+
     const roomData = {
       ...room.toJSON(),
       average_rating: reviewStats?.average_rating
@@ -186,6 +232,23 @@ const getRoomById = async (req, res, next) => {
         ? parseInt(reviewStats.total_reviews, 10)
         : 0,
     };
+
+    // Normalize images
+    try {
+      roomData.images = normalizeImages(roomData.images, baseUrl);
+    } catch (e) {
+      roomData.images = [];
+    }
+    if (roomData.room_type) {
+      try {
+        roomData.room_type.images = normalizeImages(
+          roomData.room_type.images,
+          baseUrl
+        );
+      } catch (e) {
+        roomData.room_type.images = [];
+      }
+    }
 
     res.status(200).json({
       status: 'success',
@@ -310,6 +373,9 @@ const searchAvailableRooms = async (req, res, next) => {
       distinct: true,
     });
 
+    // compute base url for images
+    const baseUrl = process.env.SERVER_URL || `http://${req.get('host')}`;
+
     // Get ratings for available rooms
     const roomsWithRatings = await Promise.all(
       availableRooms.map(async (room) => {
@@ -331,7 +397,7 @@ const searchAvailableRooms = async (req, res, next) => {
           raw: true,
         });
 
-        return {
+        const item = {
           ...room.toJSON(),
           average_rating: reviewStats?.average_rating
             ? Math.round(parseFloat(reviewStats.average_rating) * 10) / 10
@@ -340,6 +406,25 @@ const searchAvailableRooms = async (req, res, next) => {
             ? parseInt(reviewStats.total_reviews, 10)
             : 0,
         };
+
+        // Normalize images
+        try {
+          item.images = normalizeImages(item.images, baseUrl);
+        } catch (e) {
+          item.images = [];
+        }
+        if (item.room_type) {
+          try {
+            item.room_type.images = normalizeImages(
+              item.room_type.images,
+              baseUrl
+            );
+          } catch (e) {
+            item.room_type.images = [];
+          }
+        }
+
+        return item;
       })
     );
 

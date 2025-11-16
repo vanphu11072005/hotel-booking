@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  ArrowRight, 
-  Sparkles, 
+  ArrowRight,
   AlertCircle,
-  Clock
 } from 'lucide-react';
 import {
   BannerCarousel,
@@ -116,7 +114,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Banner Section */}
-      <section className="container mx-auto px-4 py-8">
+      <section className="container mx-auto px-4 pb-8">
         {isLoadingBanners ? (
           <BannerSkeleton />
         ) : (
@@ -134,9 +132,6 @@ const HomePage: React.FC = () => {
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Sparkles 
-              className="w-8 h-8 text-yellow-500" 
-            />
             <div>
               <h2 
                 className="text-3xl font-bold 
@@ -241,9 +236,6 @@ const HomePage: React.FC = () => {
         {/* Section Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <Clock 
-              className="w-8 h-8 text-blue-500" 
-            />
             <div>
               <h2 
                 className="text-3xl font-bold 

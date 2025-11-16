@@ -7,11 +7,19 @@ const { Op } = require('sequelize');
  */
 const getRoomReviews = async (req, res, next) => {
   try {
-    const { roomId } = req.params;
+    // Support both routes: /api/reviews/room/:roomId and /api/rooms/:id/reviews
+    const roomId = req.params.roomId || req.params.id;
+
+    if (!roomId) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'roomId is required',
+      });
+    }
 
     const reviews = await Review.findAll({
       where: {
-        room_id: roomId,
+        room_id: parseInt(roomId, 10),
         status: 'approved',
       },
       include: [

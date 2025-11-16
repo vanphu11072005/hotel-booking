@@ -58,8 +58,9 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
   const currentBanner = displayBanners[currentIndex];
 
   return (
-    <div className="relative w-full h-[400px] md:h-[500px] 
-      overflow-hidden rounded-xl shadow-lg"
+    <div
+      className="relative w-full h-[500px] md:h-[640px] \
+        overflow-hidden rounded-xl shadow-lg"
     >
       {/* Banner Image */}
       <div className="relative w-full h-full">

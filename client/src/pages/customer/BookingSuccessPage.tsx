@@ -271,9 +271,9 @@ const BookingSuccessPage: React.FC = () => {
             </p>
             <button
               onClick={() => navigate('/rooms')}
-              className="px-6 py-2 bg-red-600 
-                text-white rounded-lg 
-                hover:bg-red-700 transition-colors"
+              className="inline-flex items-center gap-2 bg-indigo-600 
+            text-white px-3 py-2 rounded-md hover:bg-indigo-700 
+            disabled:bg-gray-400 mb-6 transition-colors"
             >
               Quay lại danh sách phòng
             </button>

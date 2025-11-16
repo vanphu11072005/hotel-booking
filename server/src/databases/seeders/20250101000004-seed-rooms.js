@@ -16,8 +16,8 @@ module.exports = {
           featured: false,
           price: 500000,
           images: JSON.stringify([
-            '/uploads/rooms/standard-single-1.jpg',
-            '/uploads/rooms/standard-single-2.jpg'
+            '/uploads/rooms/standard-single-1.png',
+            '/uploads/rooms/standard-single-2.png'
           ]),
           description: 
             `Standard single room on floor ${floor}`,
@@ -38,9 +38,9 @@ module.exports = {
           featured: false,
           price: 800000,
           images: JSON.stringify([
-            '/uploads/rooms/standard-double-1.jpg',
-            '/uploads/rooms/standard-double-2.jpg',
-            '/uploads/rooms/standard-double-3.jpg'
+            '/uploads/rooms/standard-double-1.png',
+            '/uploads/rooms/standard-double-2.png',
+            '/uploads/rooms/standard-double-3.png'
           ]),
           description: 
             `Standard double room on floor ${floor}`,
@@ -61,10 +61,10 @@ module.exports = {
           featured: false,
           price: 1200000,
           images: JSON.stringify([
-            '/uploads/rooms/deluxe-1.jpg',
-            '/uploads/rooms/deluxe-2.jpg',
-            '/uploads/rooms/deluxe-3.jpg',
-            '/uploads/rooms/deluxe-4.jpg'
+            '/uploads/rooms/deluxe-1.png',
+            '/uploads/rooms/deluxe-2.png',
+            '/uploads/rooms/deluxe-3.png',
+            '/uploads/rooms/deluxe-4.png'
           ]),
           description: 
             `Deluxe room on floor ${floor} with city view`,
@@ -85,11 +85,11 @@ module.exports = {
           featured: false,
           price: 2000000,
           images: JSON.stringify([
-            '/uploads/rooms/family-suite-1.jpg',
-            '/uploads/rooms/family-suite-2.jpg',
-            '/uploads/rooms/family-suite-3.jpg',
-            '/uploads/rooms/family-suite-4.jpg',
-            '/uploads/rooms/family-suite-5.jpg'
+            '/uploads/rooms/family-suite-1.png',
+            '/uploads/rooms/family-suite-2.png',
+            '/uploads/rooms/family-suite-3.png',
+            '/uploads/rooms/family-suite-4.png',
+            '/uploads/rooms/family-suite-5.png'
           ]),
           description: 
             `Family suite on floor ${floor}`,
@@ -106,15 +106,15 @@ module.exports = {
         room_number: `100${room}`,
         floor: 10,
         status: 'available',
-  featured: false,
+        featured: false,
         price: 5000000,
         images: JSON.stringify([
-          '/uploads/rooms/presidential-1.jpg',
-          '/uploads/rooms/presidential-2.jpg',
-          '/uploads/rooms/presidential-3.jpg',
-          '/uploads/rooms/presidential-4.jpg',
-          '/uploads/rooms/presidential-5.jpg',
-          '/uploads/rooms/presidential-6.jpg'
+          '/uploads/rooms/presidential-1.png',
+          '/uploads/rooms/presidential-2.png',
+          '/uploads/rooms/presidential-3.png',
+          '/uploads/rooms/presidential-4.png',
+          '/uploads/rooms/presidential-5.png',
+          '/uploads/rooms/presidential-6.png'
         ]),
         description: 
           'Presidential suite with panoramic city view',

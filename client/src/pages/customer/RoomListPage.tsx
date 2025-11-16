@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { getRooms } from '../../services/api/roomService';
 import type { Room } from '../../services/api/roomService';
 import RoomFilter from '../../components/rooms/RoomFilter';
 import RoomCard from '../../components/rooms/RoomCard';
 import RoomCardSkeleton from '../../components/rooms/RoomCardSkeleton';
 import Pagination from '../../components/rooms/Pagination';
+import { ArrowLeft } from 'lucide-react';
 
 const RoomListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -67,13 +68,24 @@ const RoomListPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
+        {/* Back Button */}
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 bg-indigo-600 
+            text-white px-3 py-2 rounded-md hover:bg-indigo-700 
+            disabled:bg-gray-400 mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Quay lại trang chủ</span>
+        </Link>
+
+        <div className="mb-10">
+          <h1 className="text-3xl text-center font-bold text-gray-900">
             Danh sách phòng
           </h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <aside className="lg:col-span-1">
             <RoomFilter />
           </aside>
@@ -159,7 +171,7 @@ const RoomListPage: React.FC = () => {
             {!loading && !error && rooms.length > 0 && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 
-                  xl:grid-cols-3 gap-6"
+                  xl:grid-cols-2 gap-6"
                 >
                   {rooms.map((room) => (
                     <RoomCard key={room.id} room={room} />

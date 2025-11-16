@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PaginationProps {
   currentPage: number;
@@ -76,13 +77,13 @@ const Pagination: React.FC<PaginationProps> = ({
       <button
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-4 py-2 border border-gray-300 
+        className="px-3 py-2 border border-gray-300 
           rounded-lg hover:bg-gray-100 
           disabled:opacity-50 disabled:cursor-not-allowed 
           transition-colors"
         aria-label="Previous page"
       >
-        ‹
+        <ChevronLeft size={18} />
       </button>
 
       {/* Page Numbers */}
@@ -123,13 +124,13 @@ const Pagination: React.FC<PaginationProps> = ({
       <button
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-4 py-2 border border-gray-300 
+        className="px-3 py-2 border border-gray-300 
           rounded-lg hover:bg-gray-100 
           disabled:opacity-50 disabled:cursor-not-allowed 
           transition-colors"
         aria-label="Next page"
       >
-        ›
+        <ChevronRight size={18} />
       </button>
     </div>
   );

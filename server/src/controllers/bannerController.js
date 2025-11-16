@@ -40,10 +40,22 @@ const getBanners = async (req, res, next) => {
       ],
     });
 
+    // Ensure image_url is absolute so frontend can load directly
+    const baseUrl = process.env.SERVER_URL || `http://${req.get('host')}`;
+    const mapped = banners.map((b) => {
+      const obj = b.toJSON ? b.toJSON() : b;
+      if (obj.image_url && !/^https?:\/\//i.test(obj.image_url)) {
+        obj.image_url = obj.image_url.startsWith('/')
+          ? `${baseUrl}${obj.image_url}`
+          : `${baseUrl}/${obj.image_url}`;
+      }
+      return obj;
+    });
+
     res.status(200).json({
       status: 'success',
       data: {
-        banners,
+        banners: mapped,
       },
     });
   } catch (error) {
@@ -67,10 +79,19 @@ const getBannerById = async (req, res, next) => {
       });
     }
 
+    // Prefix image_url to full URL for client convenience
+    const baseUrl = process.env.SERVER_URL || `http://${req.get('host')}`;
+    const out = banner.toJSON ? banner.toJSON() : banner;
+    if (out.image_url && !/^https?:\/\//i.test(out.image_url)) {
+      out.image_url = out.image_url.startsWith('/')
+        ? `${baseUrl}${out.image_url}`
+        : `${baseUrl}/${out.image_url}`;
+    }
+
     res.status(200).json({
       status: 'success',
       data: {
-        banner,
+        banner: out,
       },
     });
   } catch (error) {

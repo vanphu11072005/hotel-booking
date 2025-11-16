@@ -91,7 +91,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
         />
         
         {/* Favorite Button */}
-        <div className="absolute top-3 right-3 z-10">
+        <div className="absolute top-3 right-3 z-5">
           <FavoriteButton roomId={room.id} size="md" />
         </div>
         

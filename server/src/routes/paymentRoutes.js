@@ -36,5 +36,6 @@ router.post(
 	paymentController.notifyPayment
 );
 
+// (VNPay integration removed) — VNPay-related routes deleted
 
 module.exports = router;
