@@ -2,8 +2,8 @@ import React from 'react';
 
 const BannerSkeleton: React.FC = () => {
   return (
-    <div 
-      className="w-full h-[400px] md:h-[500px] 
+    <div
+      className="w-full h-[500px] md:h-[640px] \
         bg-gray-300 rounded-xl shadow-lg animate-pulse"
     >
       <div className="w-full h-full flex items-end p-8">

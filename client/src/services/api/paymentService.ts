@@ -13,40 +13,37 @@ export interface Payment {
   id: number;
   booking_id: number;
   amount: number;
-  payment_method: 'cash' | 'bank_transfer';
-  payment_status: 'pending' | 'completed' | 'failed';
+  payment_method: 'cash' | 'bank_transfer' | 'credit_card' | 'debit_card' | 'e_wallet';
+  payment_type: 'full' | 'deposit' | 'remaining';
+  deposit_percentage?: number;
+  payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
   transaction_id?: string;
   payment_date?: string;
   notes?: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
   booking?: {
-    booking_number: string;
+    booking_number?: string;
     user?: {
-      name: string;
-      email: string;
-    };
+      name?: string;
+    }
   };
+}
+
+export interface BankInfo {
+  bank_name: string;
+  bank_code: string;
+  account_number: string;
+  account_name: string;
+  amount: number;
+  content: string;
+  qr_url: string;
 }
 
 export interface PaymentResponse {
   success: boolean;
   data: {
     payment: Payment;
-  };
-  message?: string;
-}
-
-export interface PaymentListResponse {
-  success: boolean;
-  data: {
-    payments: Payment[];
-    pagination?: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
   };
   message?: string;
 }
@@ -107,31 +104,88 @@ export const confirmBankTransfer = async (
       },
     }
   );
-  
   return response.data;
 };
 
 /**
- * Get all payments (admin)
+ * Confirm deposit payment
+ * POST /api/payments/confirm-deposit
+ */
+export const confirmDepositPayment = async (
+  paymentId: number,
+  transactionId?: string
+): Promise<{
+  success: boolean;
+  data: { payment: Payment; booking: any };
+  message?: string;
+}> => {
+  const response = await apiClient.post(
+    '/payments/confirm-deposit',
+    {
+      payment_id: paymentId,
+      transaction_id: transactionId,
+    }
+  );
+  return response.data;
+};
+
+/**
+ * Notify payment completion (for admin verification)
+ * POST /api/payments/notify
+ */
+export const notifyPaymentCompletion = async (
+  paymentId: number,
+  notes?: string
+): Promise<{ success: boolean; message?: string }> => {
+  const response = await apiClient.post(
+    '/payments/notify',
+    {
+      payment_id: paymentId,
+      notes,
+    }
+  );
+  return response.data;
+};
+
+/**
+ * Get payments for a booking
+ * GET /api/payments/booking/:bookingId
+ */
+export const getPaymentsByBookingId = async (
+  bookingId: number
+): Promise<{
+  success: boolean;
+  data: { payments: Payment[] };
+  message?: string;
+}> => {
+  const response = await apiClient.get(
+    `/payments/booking/${bookingId}`
+  );
+  return response.data;
+};
+
+/**
+ * Get all payments with filters (admin/staff)
  * GET /api/payments
  */
 export const getPayments = async (
-  params?: {
-    search?: string;
-    method?: string;
-    from?: string;
-    to?: string;
-    page?: number;
-    limit?: number;
-  }
-): Promise<PaymentListResponse> => {
-  const response = await apiClient.get<PaymentListResponse>('/payments', { params });
+  params: Record<string, any> = {}
+): Promise<{
+  success: boolean;
+  data: { payments: Payment[]; pagination?: any };
+  message?: string;
+}> => {
+  const response = await apiClient.get('/payments', { params });
   return response.data;
 };
+
 
 export default {
   createPayment,
   getPaymentByBookingId,
   confirmBankTransfer,
+  confirmDepositPayment,
+  notifyPaymentCompletion,
+  getPaymentsByBookingId,
   getPayments,
 };

@@ -9,6 +9,16 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'booking_id',
         as: 'booking'
       });
+      
+      // Self-referencing for deposit/remaining payment relationship
+      Payment.belongsTo(models.Payment, {
+        foreignKey: 'related_payment_id',
+        as: 'related_payment'
+      });
+      Payment.hasMany(models.Payment, {
+        foreignKey: 'related_payment_id',
+        as: 'related_payments'
+      });
     }
   }
 
@@ -40,6 +50,23 @@ module.exports = (sequelize, DataTypes) => {
           'e_wallet'
         ),
         allowNull: false
+      },
+      payment_type: {
+        type: DataTypes.ENUM('full', 'deposit', 'remaining'),
+        allowNull: false,
+        defaultValue: 'full'
+      },
+      deposit_percentage: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        validate: {
+          min: 0,
+          max: 100
+        }
+      },
+      related_payment_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
       },
       payment_status: {
         type: DataTypes.ENUM(

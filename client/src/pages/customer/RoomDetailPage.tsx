@@ -80,9 +80,9 @@ const RoomDetailPage: React.FC = () => {
             </p>
             <button
               onClick={() => navigate('/rooms')}
-              className="px-6 py-2 bg-red-600 text-white 
-                rounded-lg hover:bg-red-700 
-                transition-colors"
+              className="inline-flex items-center gap-2 bg-indigo-600 
+            text-white px-3 py-2 rounded-md hover:bg-indigo-700 
+            disabled:bg-gray-400 mb-6 transition-colors"
             >
               Quay lại danh sách phòng
             </button>
@@ -100,13 +100,13 @@ const RoomDetailPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <Link
           to="/rooms"
-          className="inline-flex items-center gap-2 
-            text-gray-600 hover:text-gray-900 
-            mb-6 transition-colors"
+          className="inline-flex items-center gap-2 bg-indigo-600 
+            text-white px-3 py-2 rounded-md hover:bg-indigo-700 
+            disabled:bg-gray-400 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Quay lại danh sách phòng</span>
@@ -121,11 +121,9 @@ const RoomDetailPage: React.FC = () => {
         </div>
 
         {/* Room Information */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 
-          gap-8 mb-12"
-        >
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
           {/* Main Info */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-8 space-y-6">
             {/* Title & Basic Info */}
             <div>
               <h1 className="text-4xl font-bold 
@@ -207,57 +205,68 @@ const RoomDetailPage: React.FC = () => {
                 Tiện ích
               </h2>
               <RoomAmenities
-                amenities={roomType?.amenities || []}
+                amenities={
+                  (room.amenities && room.amenities.length > 0)
+                    ? room.amenities
+                    : (roomType?.amenities || [])
+                }
               />
             </div>
           </div>
 
           {/* Booking Card */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg 
-              p-6 sticky top-8"
-            >
-              <div className="flex items-baseline gap-2 mb-6">
-                <DollarSign className="w-6 h-6 
-                  text-gray-600"
-                />
-                <span className="text-3xl font-bold 
-                  text-indigo-600"
-                >
-                  {formattedPrice}
-                </span>
-                <span className="text-gray-600">/ đêm</span>
+          <aside className="lg:col-span-4">
+            <div className="bg-white rounded-xl shadow-md p-6 sticky top-6">
+              <div className="flex items-baseline gap-3 mb-4">
+                <DollarSign className="w-5 h-5 text-gray-600" />
+                <div>
+                  <div className="text-3xl font-extrabold text-indigo-600">
+                    {formattedPrice}
+                  </div>
+                  <div className="text-sm text-gray-500">/ đêm</div>
+                </div>
               </div>
 
-              <Link
-                to={`/booking/${room.id}`}
-                className={`block w-full py-4 text-center 
-                  font-semibold rounded-lg 
-                  transition-colors ${
+              <div className="mt-4">
+                <Link
+                  to={`/booking/${room.id}`}
+                  className={`block w-full py-3 text-center font-semibold rounded-md transition-colors ${
                     room.status === 'available'
                       ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                   }`}
-                onClick={(e) => {
-                  if (room.status !== 'available') {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                {room.status === 'available'
-                  ? 'Đặt ngay'
-                  : 'Không khả dụng'}
-              </Link>
+                  onClick={(e) => {
+                    if (room.status !== 'available') e.preventDefault();
+                  }}
+                >
+                  {room.status === 'available' ? 'Đặt ngay' : 'Không khả dụng'}
+                </Link>
+              </div>
 
               {room.status === 'available' && (
-                <p className="text-sm text-gray-500 
-                  text-center mt-4"
-                >
-                  Bạn sẽ không bị tính phí ngay
+                <p className="text-sm text-gray-500 text-center mt-3">
+                  Không bị tính phí ngay — thanh toán tại khách sạn
                 </p>
               )}
+
+              <hr className="my-4" />
+
+              <div className="text-sm text-gray-700 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span>Loại phòng</span>
+                  <strong>{roomType?.name}</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Số khách</span>
+                  <span>{roomType?.capacity} người</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Số phòng</span>
+                  <span>1</span>
+                </div>
+              </div>
             </div>
-          </div>
+          </aside>
         </div>
 
         {/* Reviews Section */}

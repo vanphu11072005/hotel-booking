@@ -149,10 +149,10 @@ const PaymentManagementPage: React.FC = () => {
                   <div className="text-sm font-medium text-gray-900">{payment.transaction_id || `PAY-${payment.id}`}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-blue-600">{payment.booking?.booking_number}</div>
+                   {/* <div className="text-sm text-blue-600">{payment.booking?.booking_number}</div> */}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{payment.booking?.user?.name}</div>
+                   {/* <div className="text-sm text-gray-900">{payment.booking?.user?.name}</div> */}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {getMethodBadge(payment.payment_method)}
@@ -164,7 +164,7 @@ const PaymentManagementPage: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500">
-                    {new Date(payment.payment_date || payment.createdAt).toLocaleDateString('vi-VN')}
+                     {new Date(payment.payment_date || payment.created_at).toLocaleDateString('vi-VN')}
                   </div>
                 </td>
               </tr>
