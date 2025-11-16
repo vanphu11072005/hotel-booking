@@ -1,14 +1,18 @@
-// VNPay integration removed.
-// This file intentionally left as a stub to avoid import errors
-// in case any reference still exists. If you want this file fully
-// deleted, remove any remaining imports and then delete this file.
+/**
+ * VNPay integration removed
+ * This file is intentionally left as a stub to indicate the VNPay
+ * payment gateway has been removed from the project. Any attempt
+ * to require this module should be considered a usage error.
+ */
 
 module.exports = {
+  // No-op placeholders
   createPaymentUrl: () => {
-    throw new Error('VNPay integration removed');
+    throw new Error('VNPay integration has been removed');
   },
-  verifyReturnUrl: () => {
-    throw new Error('VNPay integration removed');
+  verifyReturn: () => {
+    throw new Error('VNPay integration has been removed');
   },
-  getSupportedBanks: () => [],
+  sortObject: () => ({}),
+  createSignature: () => '',
 };

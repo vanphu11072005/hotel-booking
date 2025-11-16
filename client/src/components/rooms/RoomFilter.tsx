@@ -79,7 +79,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
     import('../../services/api/roomService').then((mod) => {
       mod.getAmenities().then((res) => {
         const list = res.data?.amenities || [];
-        if (mounted) setAvailableAmenities(list.slice(0, 10));
+        if (mounted) setAvailableAmenities(list.slice(0, 8));
       }).catch(() => {});
     });
     return () => {
@@ -231,7 +231,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div className="bg-white rounded-lg shadow-md p-4 mb-6">
       <h2 className="text-xl font-semibold mb-4 text-gray-800">
         Bộ lọc phòng
       </h2>
@@ -254,12 +254,12 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               rounded-lg focus:ring-2 focus:ring-blue-500 
               focus:border-transparent"
           >
-            <option value="">Tất cả loại phòng</option>
-            <option value="Standard Single">Standard Single</option>
-            <option value="Standard Double">Standard Double</option>
-            <option value="Deluxe">Deluxe</option>
-            <option value="Family Suite">Family Suite</option>
-            <option value="Presidential">Presidential</option>
+            <option value="">Tất cả</option>
+            <option value="Phòng Tiêu chuẩn">Phòng Tiêu chuẩn</option>
+            <option value="Phòng Cao cấp">Phòng Cao cấp</option>
+            <option value="Phòng Hạng sang">Phòng Hạng sang</option>
+            <option value="Phòng Gia đình">Phòng Gia đình</option>
+            <option value="Phòng 2 giường đơn">Phòng 2 giường đơn</option>
           </select>
         </div>
 
@@ -270,7 +270,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               htmlFor="from"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Ngày nhận phòng
+              Ngày nhận
             </label>
             <DatePicker
               selected={checkInDate}
@@ -280,7 +280,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               endDate={checkOutDate}
               minDate={new Date()}
               dateFormat="dd/MM/yyyy"
-              placeholderText="Chọn ngày nhận"
+              placeholderText=""
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
           </div>
@@ -290,7 +290,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               htmlFor="to"
               className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Ngày trả phòng
+              Ngày trả
             </label>
             <DatePicker
               selected={checkOutDate}
@@ -300,7 +300,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               endDate={checkOutDate}
               minDate={checkInDate || new Date()}
               dateFormat="dd/MM/yyyy"
-              placeholderText="Chọn ngày trả"
+              placeholderText=""
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
           </div>

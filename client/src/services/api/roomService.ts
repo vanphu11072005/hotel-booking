@@ -125,7 +125,10 @@ export const getAmenities = async (): Promise<{
   data: { amenities: string[] };
 }> => {
   const response = await apiClient.get('/rooms/amenities');
-=======
+  return response.data;
+};
+
+/**
  * Create new room
  */
 export interface CreateRoomData {
@@ -169,6 +172,7 @@ export default {
   getRooms,
   getRoomById,
   searchAvailableRooms,
+  getAmenities,
   createRoom,
   updateRoom,
   deleteRoom,

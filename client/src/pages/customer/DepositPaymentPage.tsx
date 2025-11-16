@@ -36,7 +36,7 @@ const DepositPaymentPage: React.FC = () => {
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
     'bank_transfer' | null
-  >('bank_transfer');
+    >('bank_transfer');
 
   useEffect(() => {
     if (bookingId) {
@@ -143,6 +143,8 @@ const DepositPaymentPage: React.FC = () => {
       setNotifying(false);
     }
   };
+
+  // VNPay removed: no online redirect handler
 
   if (loading) {
     return <Loading fullScreen text="Đang tải..." />;
@@ -305,46 +307,47 @@ const DepositPaymentPage: React.FC = () => {
 
                 {/* Payment Method Buttons */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                    {/* Bank Transfer Button */}
-                    <button
-                      onClick={() => setSelectedPaymentMethod('bank_transfer')}
-                      className={`p-4 border-2 rounded-lg transition-all 
-                        ${
-                          selectedPaymentMethod === 'bank_transfer'
-                            ? 'border-indigo-500 bg-indigo-50'
-                            : 'border-gray-300 bg-white hover:border-indigo-300'
-                        }`}
+                  {/* Bank Transfer Button */}
+                  <button
+                    onClick={() => setSelectedPaymentMethod('bank_transfer')}
+                    className={`p-4 border-2 rounded-lg transition-all 
+                      ${
+                        selectedPaymentMethod === 'bank_transfer'
+                          ? 'border-indigo-500 bg-indigo-50'
+                          : 'border-gray-300 bg-white hover:border-indigo-300'
+                      }`}
+                  >
+                    <Building2
+                      className={`w-8 h-8 mx-auto mb-2 ${
+                        selectedPaymentMethod === 'bank_transfer'
+                          ? 'text-indigo-600'
+                          : 'text-gray-600'
+                      }`}
+                    />
+                    <div
+                      className={`font-bold text-sm ${
+                        selectedPaymentMethod === 'bank_transfer'
+                          ? 'text-indigo-900'
+                          : 'text-gray-700'
+                      }`}
                     >
-                      <Building2
-                        className={`w-8 h-8 mx-auto mb-2 ${
-                          selectedPaymentMethod === 'bank_transfer'
-                            ? 'text-indigo-600'
-                            : 'text-gray-600'
-                        }`}
-                      />
-                      <div
-                        className={`font-bold text-sm ${
-                          selectedPaymentMethod === 'bank_transfer'
-                            ? 'text-indigo-900'
-                            : 'text-gray-700'
-                        }`}
-                      >
-                        Chuyển khoản
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Chuyển khoản ngân hàng
-                      </div>
-                    </button>
+                      Chuyển khoản
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Chuyển khoản ngân hàng
+                    </div>
+                  </button>
+
+                  {/* VNPay removed */}
                 </div>
 
                 
               </div>
             )}
 
-            {/* Bank Transfer Instructions */}
-            {!isDepositPaid && 
-              bankInfo && 
-              selectedPaymentMethod === 'bank_transfer' && (
+            {/* Bank Transfer Instructions or VNPay panel */}
+            {!isDepositPaid && selectedPaymentMethod === 'bank_transfer' &&
+              bankInfo && (
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">
                   <Building2 className="w-5 h-5 inline mr-2" />
@@ -490,6 +493,8 @@ const DepositPaymentPage: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* VNPay removed */}
           </div>
 
           {/* QR Code Sidebar */}

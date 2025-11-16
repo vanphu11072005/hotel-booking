@@ -91,8 +91,7 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
 
   return (
     <div className={`w-full bg-white rounded-lg shadow-sm p-4 ${className}`}>
-      <div className="flex items-center gap-3 mb-6">
-        <Search className="w-6 h-6 text-indigo-600" />
+      <div className="flex items-center justify-center gap-3 mb-6">
         <h3 className="text-xl font-bold text-gray-900">
           Tìm phòng trống
         </h3>
@@ -130,7 +129,7 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
             />
           </div>
 
-          <div className="md:col-span-3">
+          <div className="md:col-span-2">
             <label className="sr-only">Loại phòng</label>
             <select
               value={roomType}
@@ -138,22 +137,22 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
             >
               <option value="">Tất cả loại</option>
-              <option value="Standard">Standard</option>
-              <option value="Deluxe">Deluxe</option>
-              <option value="Suite">Suite</option>
-              <option value="Family">Family</option>
-              <option value="Twin">Twin</option>
+                <option value="Phòng Tiêu chuẩn">Phòng Tiêu chuẩn</option>
+                <option value="Phòng Cao cấp">Phòng Cao cấp</option>
+                <option value="Phòng Hạng sang">Phòng Hạng sang</option>
+                <option value="Phòng Gia đình">Phòng Gia đình</option>
+                <option value="Phòng 2 giường đơn">Phòng 2 giường đơn</option>
             </select>
           </div>
 
-          <div className="md:col-span-1">
+          <div className="md:col-span-2">
             <label className="sr-only">Số khách</label>
             <select
               value={guestCount}
               onChange={(e) => setGuestCount(Number(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
             >
-              {Array.from({ length: 10 }).map((_, i) => (
+              {Array.from({ length: 6 }).map((_, i) => (
                 <option key={i} value={i + 1}>{i + 1} khách</option>
               ))}
             </select>
