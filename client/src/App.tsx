@@ -15,11 +15,13 @@ import useFavoritesStore from './store/useFavoritesStore';
 // Layout Components
 import { LayoutMain } from './components/layout';
 import AdminLayout from './pages/AdminLayout';
+import StaffLayout from './pages/StaffLayout';
 
 // Auth Components
 import { 
   ProtectedRoute, 
-  AdminRoute 
+  AdminRoute,
+  StaffRoute 
 } from './components/auth';
 
 // Pages
@@ -56,14 +58,21 @@ import {
   DashboardPage as AdminDashboardPage,
   RoomManagementPage,
   UserManagementPage,
-  BookingManagementPage,
-  PaymentManagementPage,
   ServiceManagementPage,
   ReviewManagementPage,
   PromotionManagementPage,
-  CheckInPage,
-  CheckOutPage,
+  PaymentManagementPage,
 } from './pages/admin';
+import BannerManagementPage from './pages/admin/BannerManagementPage';
+import SettingsPage from './pages/admin/SettingsPage';
+
+// Staff Pages
+import {
+  StaffDashboard,
+  BookingManagementPage as StaffBookingPage,
+  CheckInPage as StaffCheckInPage,
+  CheckOutPage as StaffCheckOutPage,
+} from './pages/staff';
 
 // Demo component cho các page chưa có
 const DemoPage: React.FC<{ title: string }> = ({ title }) => (
@@ -256,44 +265,60 @@ function App() {
             element={<RoomManagementPage />} 
           />
           <Route 
-            path="bookings" 
-            element={<BookingManagementPage />} 
-          />
-          <Route 
-            path="payments" 
-            element={<PaymentManagementPage />} 
-          />
-          <Route 
             path="services" 
             element={<ServiceManagementPage />} 
-          />
-          <Route 
-            path="reviews" 
-            element={<ReviewManagementPage />} 
           />
           <Route 
             path="promotions" 
             element={<PromotionManagementPage />} 
           />
           <Route 
-            path="check-in" 
-            element={<CheckInPage />} 
+            path="reviews" 
+            element={<ReviewManagementPage />} 
           />
           <Route 
-            path="check-out" 
-            element={<CheckOutPage />} 
+            path="payments" 
+            element={<PaymentManagementPage />} 
           />
           <Route 
             path="banners" 
-            element={<DemoPage title="Quản lý banner" />} 
+            element={<BannerManagementPage />} 
           />
           <Route 
             path="reports" 
-            element={<DemoPage title="Báo cáo" />} 
+            element={<AdminDashboardPage />} 
           />
           <Route 
             path="settings" 
-            element={<DemoPage title="Cài đặt" />} 
+            element={<SettingsPage />} 
+          />
+        </Route>
+
+        {/* Staff Routes - Cho staff và admin */}
+        <Route 
+          path="/staff" 
+          element={
+            <StaffRoute>
+              <StaffLayout />
+            </StaffRoute>
+          }
+        >
+          <Route 
+            index 
+            element={<Navigate to="dashboard" replace />} 
+          />
+          <Route path="dashboard" element={<StaffDashboard />} />
+          <Route 
+            path="bookings" 
+            element={<StaffBookingPage />} 
+          />
+          <Route 
+            path="check-in" 
+            element={<StaffCheckInPage />} 
+          />
+          <Route 
+            path="check-out" 
+            element={<StaffCheckOutPage />} 
           />
         </Route>
 

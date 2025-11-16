@@ -17,10 +17,22 @@ const getRooms = async (req, res, next) => {
       limit = 10,
       sort,
       featured,
+      search,
+      status,
     } = req.query;
 
     const whereClause = {};
     const roomTypeWhere = {};
+
+    // Filter by search (room number)
+    if (search) {
+      whereClause.room_number = { [Op.like]: `%${search}%` };
+    }
+
+    // Filter by status
+    if (status) {
+      whereClause.status = status;
+    }
 
     // Filter by featured
     if (featured !== undefined) {
@@ -28,9 +40,14 @@ const getRooms = async (req, res, next) => {
         featured === 'true' || featured === true;
     }
 
-    // Filter by room type
+    // Filter by room type (ID or name)
     if (type) {
-      roomTypeWhere.name = { [Op.like]: `%${type}%` };
+      // Check if type is a number (ID) or string (name)
+      if (!isNaN(type)) {
+        whereClause.room_type_id = parseInt(type);
+      } else {
+        roomTypeWhere.name = { [Op.like]: `%${type}%` };
+      }
     }
 
     // Filter by capacity
@@ -448,6 +465,24 @@ const deleteRoom = async (req, res, next) => {
 };
 
 /**
+ * Helper function to parse images from database
+ * Handles both array and JSON string
+ */
+const parseImages = (images) => {
+  if (!images) return [];
+  if (Array.isArray(images)) return images;
+  if (typeof images === 'string') {
+    try {
+      const parsed = JSON.parse(images);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+/**
  * Upload room images
  * POST /api/rooms/:id/images
  */
@@ -480,8 +515,8 @@ const uploadRoomImages = async (req, res, next) => {
     // Get uploaded file URLs
     const imageUrls = req.files.map(file => `/uploads/rooms/${file.filename}`);
     
-    // Get existing images from room_type
-    const existingImages = room.room_type.images || [];
+    // Get existing images from room_type and parse them
+    const existingImages = parseImages(room.room_type.images);
     
     // Append new images
     const updatedImages = [...existingImages, ...imageUrls];
@@ -538,8 +573,8 @@ const deleteRoomImage = async (req, res, next) => {
       });
     }
 
-    // Get existing images
-    const existingImages = room.room_type.images || [];
+    // Get existing images and parse them
+    const existingImages = parseImages(room.room_type.images);
     
     // Remove the specified image
     const updatedImages = existingImages.filter(img => img !== imageUrl);

@@ -14,7 +14,7 @@ const {
 // Admin: Get all reviews
 router.get('/', 
   authenticateToken, 
-  authorizeRoles('admin', 'staff'), 
+  authorizeRoles('admin'), 
   reviewController.getAllReviews
 );
 
@@ -32,14 +32,14 @@ router.get('/room/:roomId',
 // Admin: Approve review
 router.patch('/:id/approve', 
   authenticateToken, 
-  authorizeRoles('admin', 'staff'), 
+  authorizeRoles('admin'), 
   reviewController.approveReview
 );
 
 // Admin: Reject review
 router.patch('/:id/reject', 
   authenticateToken, 
-  authorizeRoles('admin', 'staff'), 
+  authorizeRoles('admin'), 
   reviewController.rejectReview
 );
 

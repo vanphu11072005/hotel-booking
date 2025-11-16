@@ -4,7 +4,7 @@ const paymentController = require('../controllers/paymentController');
 const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
 
 /**
- * GET /api/payments - Get all payments (Admin/Staff)
+ * GET /api/payments - Get all payments (Admin & Staff - Read only)
  */
 router.get(
   '/',
@@ -14,7 +14,7 @@ router.get(
 );
 
 /**
- * GET /api/payments/:id - Get payment by ID (Admin/Staff)
+ * GET /api/payments/:id - Get payment by ID (Admin & Staff - Read only)
  */
 router.get(
   '/:id',

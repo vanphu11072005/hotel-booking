@@ -80,7 +80,7 @@ const ServiceManagementPage: React.FC = () => {
       description: service.description || '',
       price: service.price,
       unit: service.unit || 'lần',
-      status: service.status,
+      status: service.status || 'active',
     });
     setShowModal(true);
   };

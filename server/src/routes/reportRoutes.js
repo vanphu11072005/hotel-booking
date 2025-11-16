@@ -4,7 +4,7 @@ const reportController = require('../controllers/reportController');
 const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
 
 /**
- * GET /api/reports/dashboard - Get dashboard statistics (Admin/Staff)
+ * GET /api/reports/dashboard - Get dashboard statistics (Admin & Staff)
  */
 router.get(
   '/dashboard',
@@ -14,7 +14,7 @@ router.get(
 );
 
 /**
- * GET /api/reports - Get detailed reports (Admin/Staff)
+ * GET /api/reports - Get detailed reports (Admin & Staff)
  */
 router.get(
   '/',
@@ -24,7 +24,7 @@ router.get(
 );
 
 /**
- * GET /api/reports/export - Export report to CSV (Admin/Staff)
+ * GET /api/reports/export - Export report to CSV (Admin & Staff)
  */
 router.get(
   '/export',
