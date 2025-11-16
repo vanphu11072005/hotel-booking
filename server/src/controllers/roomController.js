@@ -106,14 +106,26 @@ const getRooms = async (req, res, next) => {
     }
 
     // Get rooms with room type and reviews
+    const roomTypeAttributes = [
+      'id',
+      'name',
+      'description',
+      'base_price',
+      'capacity',
+      'amenities',
+      'created_at',
+      'updated_at',
+    ];
+
     const { count, rows: rooms } = await Room.findAndCountAll({
       where: whereClause,
       include: [
         {
           model: RoomType,
           as: 'room_type',
-          where: Object.keys(roomTypeWhere).length > 0 
-            ? roomTypeWhere 
+          attributes: roomTypeAttributes,
+          where: Object.keys(roomTypeWhere).length > 0
+            ? roomTypeWhere
             : undefined,
           required: true,
         },
@@ -158,21 +170,17 @@ const getRooms = async (req, res, next) => {
             : 0,
         };
 
-        // Normalize images for room and its room_type
+        // Normalize images for room only. Room types no longer carry
+        // an `images` column in the canonical schema; keep room_type
+        // without images to avoid confusion.
         try {
           item.images = normalizeImages(item.images, baseUrl);
         } catch (e) {
           item.images = [];
         }
         if (item.room_type) {
-          try {
-            item.room_type.images = normalizeImages(
-              item.room_type.images,
-              baseUrl
-            );
-          } catch (e) {
-            item.room_type.images = [];
-          }
+          // Ensure the room_type does not expose an images field
+          delete item.room_type.images;
         }
 
         return item;
@@ -203,11 +211,23 @@ const getRoomById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    const roomTypeAttributes = [
+      'id',
+      'name',
+      'description',
+      'base_price',
+      'capacity',
+      'amenities',
+      'created_at',
+      'updated_at',
+    ];
+
     const room = await Room.findByPk(id, {
       include: [
         {
           model: RoomType,
           as: 'room_type',
+          attributes: roomTypeAttributes,
         },
       ],
     });
@@ -250,21 +270,14 @@ const getRoomById = async (req, res, next) => {
         : 0,
     };
 
-    // Normalize images
+    // Normalize images at the room level only
     try {
       roomData.images = normalizeImages(roomData.images, baseUrl);
     } catch (e) {
       roomData.images = [];
     }
     if (roomData.room_type) {
-      try {
-        roomData.room_type.images = normalizeImages(
-          roomData.room_type.images,
-          baseUrl
-        );
-      } catch (e) {
-        roomData.room_type.images = [];
-      }
+      delete roomData.room_type.images;
     }
 
     res.status(200).json({
@@ -379,6 +392,7 @@ const searchAvailableRooms = async (req, res, next) => {
         {
           model: RoomType,
           as: 'room_type',
+          attributes: roomTypeAttributes,
           where: Object.keys(roomTypeWhere).length > 0
             ? roomTypeWhere
             : undefined,
@@ -424,21 +438,14 @@ const searchAvailableRooms = async (req, res, next) => {
             : 0,
         };
 
-        // Normalize images
+        // Normalize images at the room level only
         try {
           item.images = normalizeImages(item.images, baseUrl);
         } catch (e) {
           item.images = [];
         }
         if (item.room_type) {
-          try {
-            item.room_type.images = normalizeImages(
-              item.room_type.images,
-              baseUrl
-            );
-          } catch (e) {
-            item.room_type.images = [];
-          }
+          delete item.room_type.images;
         }
 
         return item;
@@ -655,13 +662,13 @@ const uploadRoomImages = async (req, res, next) => {
     const imageUrls = req.files.map(file => `/uploads/rooms/${file.filename}`);
     
     // Get existing images from room_type and parse them
-    const existingImages = parseImages(room.room_type.images);
+    const existingImages = parseImages(room.images);
     
     // Append new images
     const updatedImages = [...existingImages, ...imageUrls];
 
-    // Update room_type images
-    await room.room_type.update({
+    // Update room images (store images at room level)
+    await room.update({
       images: updatedImages,
     });
 
@@ -712,8 +719,8 @@ const deleteRoomImage = async (req, res, next) => {
       });
     }
 
-    // Get existing images and parse them
-    const existingImages = parseImages(room.room_type.images);
+    // Get existing images and parse them (room-level)
+    const existingImages = parseImages(room.images);
     
     // Remove the specified image
     const updatedImages = existingImages.filter(img => img !== imageUrl);
@@ -725,8 +732,8 @@ const deleteRoomImage = async (req, res, next) => {
       fs.unlinkSync(filePath);
     }
 
-    // Update room_type images
-    await room.room_type.update({
+    // Update room images (store images at room level)
+    await room.update({
       images: updatedImages,
     });
 

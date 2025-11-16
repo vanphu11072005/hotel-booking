@@ -11,6 +11,19 @@ const {
 } = require('../databases/models');
 const { Op } = require('sequelize');
 
+// Defensive attribute list for RoomType to avoid selecting a possibly
+// missing `images` column on older DB schemas.
+const roomTypeAttributes = [
+	'id',
+	'name',
+	'description',
+	'base_price',
+	'capacity',
+	'amenities',
+	'created_at',
+	'updated_at',
+];
+
 // Helper to generate a simple booking number
 const generateBookingNumber = () => {
 	const prefix = 'BK';
@@ -47,7 +60,7 @@ const createBooking = async (req, res, next) => {
 
 		// Ensure room exists
 		const room = await Room.findByPk(room_id, {
-			include: [{ model: RoomType, as: 'room_type' }],
+			include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }],
 		});
 
 		if (!room) {
@@ -146,7 +159,7 @@ const createBooking = async (req, res, next) => {
 		// Fetch booking with payment info and services
 		const bookingWithPayments = await Booking.findByPk(booking.id, {
 			include: [
-				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type' }] },
+				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }] },
 				{ model: Payment, as: 'payments' },
 				{ 
 					model: ServiceUsage, 
@@ -184,7 +197,7 @@ const getMyBookings = async (req, res, next) => {
 				{
 					model: Room,
 					as: 'room',
-					include: [{ model: RoomType, as: 'room_type' }],
+					include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }],
 				},
 			],
 			order: [['created_at', 'DESC']],
@@ -205,7 +218,7 @@ const getBookingById = async (req, res, next) => {
 		const { id } = req.params;
 		const booking = await Booking.findByPk(id, {
 			include: [
-				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type' }] },
+				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }] },
 				{ model: Payment, as: 'payments' },
 			],
 		});

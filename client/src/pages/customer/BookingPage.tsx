@@ -910,9 +910,9 @@ const BookingPage: React.FC = () => {
 
               {/* Room Info */}
               <div className="mb-4">
-                {roomType.images?.[0] && (
+                {room?.images?.[0] && (
                   <img
-                    src={roomType.images[0]}
+                    src={room.images[0]}
                     alt={roomType.name}
                     className="w-full h-48 object-cover 
                       rounded-lg mb-3"

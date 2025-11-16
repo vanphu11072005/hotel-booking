@@ -115,9 +115,9 @@ const RoomDetailPage: React.FC = () => {
         {/* Image Gallery */}
         <div className="mb-8">
           <RoomGallery
-            images={roomType?.images || []}
-            roomName={roomType?.name || 'Room'}
-          />
+              images={room.images || []}
+              roomName={roomType?.name || 'Room'}
+            />
         </div>
 
         {/* Room Information */}

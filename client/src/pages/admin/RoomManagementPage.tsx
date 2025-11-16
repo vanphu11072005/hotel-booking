@@ -66,7 +66,7 @@ const RoomManagementPage: React.FC = () => {
       console.log('=== ROOM DEBUG ===');
       console.log('First room:', response.data.rooms[0]);
       console.log('Room type:', response.data.rooms[0]?.room_type);
-      console.log('Images:', response.data.rooms[0]?.room_type?.images);
+      console.log('Images (room-level):', response.data.rooms[0]?.images);
       console.log('==================');
       setRooms(response.data.rooms);
       if (response.data.pagination) {
@@ -310,7 +310,7 @@ const RoomManagementPage: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     {(() => {
-                      const images = parseImages(room.room_type?.images);
+                      const images = parseImages(room.images);
                       return images.length > 0 ? (
                         <div className="relative group">
                           <img
@@ -500,7 +500,7 @@ const RoomManagementPage: React.FC = () => {
                 
                 {/* Current Images */}
                 {(() => {
-                  const images = parseImages(editingRoom.room_type?.images);
+                  const images = parseImages(editingRoom.images);
                   return images.length > 0 ? (
                     <div className="mb-4">
                       <p className="text-sm text-gray-600 mb-2">Ảnh hiện tại:</p>

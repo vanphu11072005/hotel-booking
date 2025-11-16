@@ -39,7 +39,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
 
   // Prefer images defined on the room record first (API returns
   // `images` at the room level), then fall back to the room type.
-  const imagesField = (room.images ?? roomType.images) as any;
+  const imagesField = (room.images) as any;
   let firstImage: string | undefined;
 
   if (Array.isArray(imagesField)) {

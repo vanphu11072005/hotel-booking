@@ -406,11 +406,11 @@ const MyBookingsPage: React.FC = () => {
                       lg:flex-row gap-6"
                     >
                       {/* Room Image */}
-                      {roomType?.images?.[0] && (
+                      {room?.images?.[0] && (
                         <div className="lg:w-48 flex-shrink-0">
                           <img
-                            src={roomType.images[0]}
-                            alt={roomType.name}
+                            src={room.images[0]}
+                            alt={roomType?.name}
                             className="w-full h-48 lg:h-full 
                               object-cover rounded-lg"
                           />
