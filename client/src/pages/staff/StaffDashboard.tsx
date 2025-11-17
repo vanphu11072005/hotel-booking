@@ -64,18 +64,18 @@ const StaffDashboard: React.FC = () => {
         limit: 1,
       });
 
-      // Lấy thanh toán chưa hoàn tất (filter bằng search)
+      // Lấy thanh toán chưa hoàn tất (filter bằng trạng thái)
       const pendingPaymentsResponse = await paymentService.getPayments({
-        search: 'pending',
+        payment_status: 'pending',
         page: 1,
         limit: 1,
       });
 
-      // Lấy doanh thu hôm nay (filter bằng search)
+      // Lấy doanh thu hôm nay (filter bằng trạng thái)
       const revenueResponse = await paymentService.getPayments({
         from: today,
         to: today,
-        search: 'completed',
+        payment_status: 'completed',
         page: 1,
         limit: 100,
       });

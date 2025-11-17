@@ -152,7 +152,7 @@ module.exports = {
 	 */
 	getAllPayments: async (req, res, next) => {
 		try {
-			const { search = '', method = '', from = '', to = '', page = 1, limit = 5 } = req.query;
+			const { search = '', method = '', from = '', to = '', payment_status = '', page = 1, limit = 5 } = req.query;
 			const offset = (parseInt(page) - 1) * parseInt(limit);
 			const where = {};
 
@@ -164,6 +164,9 @@ module.exports = {
 			}
 			if (from && to) {
 				where.payment_date = { $between: [new Date(from), new Date(to)] };
+			}
+			if (payment_status) {
+				where.payment_status = payment_status;
 			}
 
 			const { rows, count } = await Payment.findAndCountAll({
