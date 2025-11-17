@@ -16,7 +16,6 @@ import { getBookingById, type Booking } from
   '../../services/api/bookingService';
 import {
   getPaymentsByBookingId,
-  getBankTransferInfo,
   notifyPaymentCompletion,
   type Payment,
   type BankInfo,
@@ -29,7 +28,7 @@ const DepositPaymentPage: React.FC = () => {
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [depositPayment, setDepositPayment] = useState<Payment | null>(null);
-  const [bankInfo, setBankInfo] = useState<BankInfo | null>(null);
+  const [bankInfo] = useState<BankInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notifying, setNotifying] = useState(false);
@@ -76,10 +75,10 @@ const DepositPaymentPage: React.FC = () => {
 
           // If payment is pending, fetch bank info
           if (deposit.payment_status === 'pending') {
-            const bankInfoResponse = await getBankTransferInfo(deposit.id);
-            if (bankInfoResponse.success && bankInfoResponse.data.bank_info) {
-              setBankInfo(bankInfoResponse.data.bank_info);
-            }
+            // const bankInfoResponse = await getBankTransferInfo(deposit.id);   
+            // if (bankInfoResponse.success && bankInfoResponse.data.bank_info) {
+            //   setBankInfo(bankInfoResponse.data.bank_info);
+            // }
           }
         }
       }

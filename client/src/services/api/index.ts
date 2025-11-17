@@ -18,7 +18,7 @@ export { default as bookingService } from './bookingService';
 export type * from './bookingService';
 
 export { default as paymentService } from './paymentService';
-export type * from './paymentService';
+// Không export type * từ paymentService để tránh trùng tên Payment
 
 export { default as userService } from './userService';
 export type * from './userService';

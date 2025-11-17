@@ -51,6 +51,7 @@ export interface UpdateServiceData {
 export interface ServiceSearchParams {
   status?: string;
   search?: string;
+  category?: string;
   page?: number;
   limit?: number;
 }
@@ -61,8 +62,13 @@ export interface ServiceSearchParams {
 export const getServices = async (
   params: ServiceSearchParams = {}
 ): Promise<ServiceListResponse> => {
-  const response = await apiClient.get('/services', { params });
-  // Map is_active to status for frontend
+  // Chỉ truyền category nếu có giá trị
+  const queryParams = { ...params };
+  if (!params.category) {
+    delete queryParams.category;
+  }
+  const response = await apiClient.get('/services', { params: queryParams });
+  // Map is_active to status cho frontend
   if (response.data.data?.services) {
     response.data.data.services = response.data.data.services.map((service: any) => ({
       ...service,

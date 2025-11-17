@@ -820,13 +820,13 @@ const CheckInPage: React.FC = () => {
                     <div>
                       <p className="text-sm text-gray-600">Ngày tạo</p>
                       <p className="font-medium">
-                        {new Date(payment.createdAt).toLocaleString('vi-VN')}
+                        {new Date(payment.created_at).toLocaleString('vi-VN')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Cập nhật lần cuối</p>
                       <p className="font-medium">
-                        {new Date(payment.updatedAt).toLocaleString('vi-VN')}
+                        {new Date(payment.updated_at).toLocaleString('vi-VN')}
                       </p>
                     </div>
                   </div>

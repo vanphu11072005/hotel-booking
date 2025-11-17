@@ -83,14 +83,29 @@ const RoomManagementPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let newRoomId = null;
       if (editingRoom) {
         // Update room
         await roomService.updateRoom(editingRoom.id, formData);
         toast.success('Cập nhật phòng thành công');
+        newRoomId = editingRoom.id;
       } else {
         // Create room
-        await roomService.createRoom(formData);
+        const res = await roomService.createRoom(formData);
         toast.success('Thêm phòng thành công');
+        newRoomId = res.data?.room?.id;
+      }
+      // Nếu có file ảnh, upload luôn sau khi tạo phòng
+      if (selectedFiles.length > 0 && newRoomId) {
+        const formImg = new FormData();
+        selectedFiles.forEach(file => {
+          formImg.append('images', file);
+        });
+        await apiClient.post(`/rooms/${newRoomId}/images`, formImg, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
       }
       setShowModal(false);
       resetForm();
@@ -153,11 +168,21 @@ const RoomManagementPage: React.FC = () => {
         formData.append('images', file);
       });
 
-      await apiClient.post(`/rooms/${editingRoom.id}/images`, formData, {
+
+      // Upload ảnh, backend sẽ trả về mảng đường dẫn tương đối
+      const uploadRes = await apiClient.post(`/rooms/${editingRoom.id}/images`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+      // Nếu backend trả về images, cập nhật lại editingRoom.images
+      if (uploadRes.data?.data?.images) {
+        // Chuyển tất cả images về đường dẫn tương đối
+        const fixedImages = uploadRes.data.data.images.map((img: string) =>
+          img.startsWith('http') ? img.replace('http://localhost:3000', '') : img
+        );
+        setEditingRoom(prev => prev ? { ...prev, images: fixedImages } : prev);
+      }
 
       toast.success('Upload ảnh thành công');
       setSelectedFiles([]);
@@ -174,12 +199,14 @@ const RoomManagementPage: React.FC = () => {
   };
 
   const handleDeleteImage = async (imageUrl: string) => {
+    // Luôn chuyển về đường dẫn tương đối
+    const relativeUrl = imageUrl.startsWith('http') ? imageUrl.replace('http://localhost:3000', '') : imageUrl;
     if (!editingRoom) return;
     if (!window.confirm('Bạn có chắc muốn xóa ảnh này?')) return;
 
     try {
       await apiClient.delete(`/rooms/${editingRoom.id}/images`, {
-        data: { imageUrl },
+        data: { imageUrl: relativeUrl },
       });
 
       toast.success('Xóa ảnh thành công');
@@ -313,15 +340,19 @@ const RoomManagementPage: React.FC = () => {
                       const images = parseImages(room.images);
                       return images.length > 0 ? (
                         <div className="relative group">
-                          <img
-                            src={`http://localhost:3000${images[0]}`}
-                            alt={room.room_number}
-                            className="w-16 h-16 object-cover rounded-lg"
-                            onError={(e) => {
-                              console.error('Image load error:', images[0]);
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
+                            <img
+                              src={
+                                images[0].startsWith('http')
+                                  ? images[0]
+                                  : `http://localhost:3000${images[0].startsWith('/') ? images[0] : '/' + images[0]}`
+                              }
+                              alt={room.room_number}
+                              className="w-16 h-16 object-cover rounded-lg"
+                              onError={(e) => {
+                                console.error('Image load error:', images[0]);
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
                           {images.length > 1 && (
                             <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                               +{images.length - 1}

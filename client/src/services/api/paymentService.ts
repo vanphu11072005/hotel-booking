@@ -20,8 +20,14 @@ export interface Payment {
   transaction_id?: string;
   payment_date?: string;
   notes?: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
+  booking?: {
+    booking_number?: string;
+    user?: {
+      name?: string;
+    }
+  };
 }
 
 export interface BankInfo {
@@ -98,24 +104,6 @@ export const confirmBankTransfer = async (
       },
     }
   );
-  
-  return response.data;
-};
-
-/**
- * Get bank transfer info with QR code for deposit
- * GET /api/payments/:paymentId/bank-info
- */
-export const getBankTransferInfo = async (
-  paymentId: number
-): Promise<{ 
-  success: boolean; 
-  data: { payment: Payment; bank_info: BankInfo }; 
-  message?: string;
-}> => {
-  const response = await apiClient.get(
-    `/payments/${paymentId}/bank-info`
-  );
   return response.data;
 };
 
@@ -176,13 +164,28 @@ export const getPaymentsByBookingId = async (
   return response.data;
 };
 
+/**
+ * Get all payments with filters (admin/staff)
+ * GET /api/payments
+ */
+export const getPayments = async (
+  params: Record<string, any> = {}
+): Promise<{
+  success: boolean;
+  data: { payments: Payment[]; pagination?: any };
+  message?: string;
+}> => {
+  const response = await apiClient.get('/payments', { params });
+  return response.data;
+};
+
 
 export default {
   createPayment,
   getPaymentByBookingId,
   confirmBankTransfer,
-  getBankTransferInfo,
   confirmDepositPayment,
   notifyPaymentCompletion,
   getPaymentsByBookingId,
+  getPayments,
 };
