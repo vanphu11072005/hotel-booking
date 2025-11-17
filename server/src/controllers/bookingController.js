@@ -216,14 +216,13 @@ const getMyBookings = async (req, res, next) => {
 const getBookingById = async (req, res, next) => {
 	try {
 		const { id } = req.params;
-		const booking = await Booking.findByPk(id, {
-			include: [
-				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }] },
-				{ model: Payment, as: 'payments' },
-			],
-		});
-
-			if (!booking) {
+	const booking = await Booking.findByPk(id, {
+		include: [
+			{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }] },
+			{ model: Payment, as: 'payments' },
+			{ model: ServiceUsage, as: 'service_usages', include: [{ model: Service, as: 'service' }] },
+		],
+	});			if (!booking) {
 				return res.status(404).json({ success: false, message: 'Booking not found' });
 			}
 

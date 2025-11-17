@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   useParams, 
   useNavigate, 
-  Link 
+  Link,
+  useLocation,
 } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import DatePicker from 'react-datepicker';
+import QRCode from 'qrcode';
 import { 
   Calendar,
   Users,
@@ -48,6 +50,11 @@ const BookingPage: React.FC = () => {
   const [selectedServices, setSelectedServices] = useState<
     Record<number, number>
   >({});
+  const [recentBooking, setRecentBooking] = useState<
+    { id: number; booking_number: string } | null
+  >(null);
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -68,7 +75,6 @@ const BookingPage: React.FC = () => {
       fetchServices();
     }
   }, [id, isAuthenticated]);
-
   const fetchRoomDetails = async (roomId: number) => {
     try {
       setLoading(true);
@@ -76,19 +82,21 @@ const BookingPage: React.FC = () => {
       const response = await getRoomById(roomId);
 
       if (
-        (response.success || 
-          (response as any).status === 'success') && 
-        response.data?.room
+        (response as any).success ||
+        (response as any).status === 'success'
       ) {
-        setRoom(response.data.room);
+        if (response.data && response.data.room) {
+          setRoom(response.data.room);
+        } else {
+          throw new Error('Không thể tải thông tin phòng');
+        }
       } else {
         throw new Error('Không thể tải thông tin phòng');
       }
     } catch (err: any) {
       console.error('Error fetching room:', err);
       const message =
-        err.response?.data?.message ||
-        'Không thể tải thông tin phòng';
+        err.response?.data?.message || 'Không thể tải thông tin phòng';
       setError(message);
       toast.error(message);
     } finally {
@@ -99,51 +107,39 @@ const BookingPage: React.FC = () => {
   const fetchServices = async () => {
     try {
       const response = await getServices({ status: 'active', limit: 100 });
-
-      // Support either `response.data.services` (controller) or
-      // `response.services` / other shapes. Be permissive.
       const servicesFromResponse: Service[] =
         (response as any)?.data?.services ?? (response as any)?.services ?? [];
-
       if (Array.isArray(servicesFromResponse) && servicesFromResponse.length > 0) {
         setServices(servicesFromResponse);
         return;
       }
 
-      // Fallback: try fetching without status filter (in case DB/migration
-      // didn't add `status` column yet)
       const fallback = await getServices({ limit: 100 });
       const fallbackServices: Service[] =
         (fallback as any)?.data?.services ?? (fallback as any)?.services ?? [];
       if (Array.isArray(fallbackServices) && fallbackServices.length > 0) {
         setServices(fallbackServices);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching services:', err);
     }
   };
 
-  // Set up form with default values
-  const {
-    control,
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<BookingFormData>({
-    resolver: yupResolver(bookingValidationSchema),
-    defaultValues: {
-      checkInDate: undefined,
-      checkOutDate: undefined,
-      guestCount: 1,
-      notes: '',
-      paymentMethod: 'cash',
-      fullName: userInfo?.name || '',
-      email: userInfo?.email || '',
-      phone: userInfo?.phone || '',
-      services: [],
-    },
-  });
+  const { control, register, handleSubmit, watch, formState: { errors } } =
+    useForm<BookingFormData>({
+      resolver: yupResolver(bookingValidationSchema),
+      defaultValues: {
+        checkInDate: undefined,
+        checkOutDate: undefined,
+        guestCount: 1,
+        notes: '',
+        paymentMethod: 'cash',
+        fullName: userInfo?.name || '',
+        email: userInfo?.email || '',
+        phone: userInfo?.phone || '',
+        services: [],
+      },
+    });
 
   // Watch form values for calculations
   const checkInDate = watch('checkInDate');
@@ -241,23 +237,47 @@ const BookingPage: React.FC = () => {
       // Step 3: Create booking
       const response = await createBooking(bookingData);
 
-      if (
-        response.success && 
-        response.data?.booking
-      ) {
-        const bookingId = response.data.booking.id;
-        
-        toast.success(
-          '🎉 Đặt phòng thành công!',
-          { icon: <CheckCircle className="text-green-500" /> }
-        );
-        
-        // Navigate to success page
-        navigate(`/booking-success/${bookingId}`);
+      if (response.success && response.data?.booking) {
+        const created = response.data.booking;
+
+        // If payment is bank transfer, show the transfer modal
+        // with QR and account info so the user can complete the
+        // transfer. We delay showing the success toast until the
+        // user confirms they've transferred (so they first see
+        // the QR/account info). For cash payments we navigate
+        // to the success page immediately and show success toast.
+        if (bookingData.payment_method === 'bank_transfer') {
+          setRecentBooking({ id: created.id, booking_number: created.booking_number });
+          
+          // Generate QR code from bank transfer info
+          const qrContent = `Bank: Vietcombank\nAccount: 0123456789\nAmount: ${totalPrice}\nContent: ${created.booking_number}`;
+          try {
+            const qrUrl = await QRCode.toDataURL(qrContent, {
+              width: 300,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF',
+              },
+            });
+            setQrCodeUrl(qrUrl);
+          } catch (err) {
+            console.error('Error generating QR code:', err);
+            setQrCodeUrl(null);
+          }
+          
+          setShowBankModal(true);
+          toast.info('Đặt phòng đã được tạo. Vui lòng hoàn tất chuyển khoản theo thông tin hiển thị.');
+        } else {
+          toast.success(
+            '🎉 Đặt phòng thành công!',
+            { icon: <CheckCircle className="text-green-500" /> }
+          );
+          navigate(`/booking-success/${created.id}`);
+        }
       } else {
         throw new Error(
-          response.message || 
-          'Không thể tạo đặt phòng'
+          response.message || 'Không thể tạo đặt phòng'
         );
       }
     } catch (err: any) {
@@ -326,7 +346,7 @@ const BookingPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4">
         {/* Back Button */}
         <Link
-          to={`/rooms/${room.id}`}
+          to={`/rooms/${room.id}${useLocation().search || ''}`}
           className="inline-flex items-center gap-2 bg-indigo-600 
             text-white px-3 py-2 rounded-md hover:bg-indigo-700 
             disabled:bg-gray-400 mb-6 transition-colors"
@@ -1077,6 +1097,149 @@ const BookingPage: React.FC = () => {
             </div>
           </div>
         </div>
+        {/* Bank transfer modal shown after successful booking */}
+        {showBankModal && recentBooking && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5">
+                <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <Building2 className="w-7 h-7" />
+                  Thông tin chuyển khoản
+                </h3>
+                <p className="text-indigo-100 text-sm mt-1">
+                  Vui lòng chuyển khoản theo thông tin bên dưới
+                </p>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Bank Details */}
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-indigo-100">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Building2 className="w-5 h-5 text-indigo-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 font-medium uppercase">Ngân hàng</p>
+                            <p className="text-base font-bold text-gray-900 mt-0.5">Vietcombank (VCB)</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <CreditCard className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 font-medium uppercase">Số tài khoản</p>
+                            <p className="text-base font-bold text-gray-900 mt-0.5 font-mono">0123456789</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Users className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-500 font-medium uppercase">Chủ tài khoản</p>
+                            <p className="text-base font-bold text-gray-900 mt-0.5">KHACH SAN ABC</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Amount & Content */}
+                    <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border border-orange-100">
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium uppercase mb-1">Số tiền</p>
+                          <p className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600">
+                            {formatPrice(totalPrice)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 font-medium uppercase mb-1">Nội dung chuyển khoản</p>
+                          <div className="bg-white rounded-lg px-3 py-2 border border-orange-200">
+                            <p className="text-base font-bold text-gray-900 font-mono">{recentBooking.booking_number}</p>
+                          </div>
+                          <p className="text-xs text-orange-600 mt-1 font-medium">
+                            ⚠️ Vui lòng nhập chính xác nội dung
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* QR Code */}
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="bg-white rounded-2xl p-4 shadow-lg border-2 border-gray-100">
+                      {qrCodeUrl ? (
+                        <img
+                          src={qrCodeUrl}
+                          alt="QR code chuyển khoản"
+                          className="w-64 h-64 object-contain"
+                        />
+                      ) : (
+                        <div className="w-64 h-64 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg">
+                          <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-3 text-center font-medium">
+                      Quét mã QR để chuyển khoản nhanh
+                    </p>
+                  </div>
+                </div>
+
+                {/* Important Note */}
+                <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                  <div className="flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-yellow-900 mb-1">Lưu ý quan trọng</p>
+                      <ul className="text-xs text-yellow-800 space-y-1 list-disc list-inside">
+                        <li>Vui lòng chuyển khoản đúng số tiền và nội dung như trên</li>
+                        <li>Đơn hàng sẽ được xác nhận sau khi nhận được thanh toán (5-15 phút)</li>
+                        <li>Nếu có thắc mắc, vui lòng liên hệ hotline: 1900 1234</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
+                <button
+                  type="button"
+                  className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  onClick={() => setShowBankModal(false)}
+                >
+                  Đóng
+                </button>
+                <button
+                  type="button"
+                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg shadow-indigo-500/30 flex items-center gap-2"
+                  onClick={() => {
+                    setShowBankModal(false);
+                    if (recentBooking) {
+                      toast.success(
+                        '🎉 Đặt phòng thành công! Cảm ơn bạn đã chuyển khoản.',
+                        { icon: <CheckCircle className="text-green-500" /> }
+                      );
+                      navigate(`/booking-success/${recentBooking.id}`);
+                    }
+                  }}
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  Tôi đã chuyển khoản
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

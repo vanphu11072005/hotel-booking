@@ -53,7 +53,7 @@ const LoginPage: React.FC = () => {
       const userInfo = useAuthStore.getState().userInfo;
       
       // Redirect dựa trên role
-      let redirectPath = '/dashboard';
+      let redirectPath = '/';
       if (userInfo?.role === 'admin') {
         redirectPath = '/admin/dashboard';
       } else if (userInfo?.role === 'staff') {

@@ -152,8 +152,8 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
               onChange={(e) => setGuestCount(Number(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
             >
-              {Array.from({ length: 6 }).map((_, i) => (
-                <option key={i} value={i + 1}>{i + 1} khách</option>
+              {[1, 2, 4].map((v) => (
+                <option key={v} value={v}>{v} khách</option>
               ))}
             </select>
           </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Users,
   Star,
@@ -129,6 +129,8 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
     tv: <Tv className="w-4 h-4" />,
     'air-conditioning': <Wind className="w-4 h-4" />,
   };
+
+  const location = useLocation();
 
   return (
     <div 
@@ -270,7 +272,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
           </div>
 
           <Link
-            to={`/rooms/${room.id}`}
+            to={`/rooms/${room.id}${location.search || ''}`}
             className="flex items-center gap-1 
               bg-indigo-600 text-white px-4 py-2 
               rounded-lg hover:bg-indigo-700 

@@ -279,7 +279,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               startDate={checkInDate}
               endDate={checkOutDate}
               minDate={new Date()}
-              dateFormat="dd/MM/yyyy"
+              dateFormat="dd/MM"
               placeholderText=""
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
@@ -299,7 +299,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               startDate={checkInDate}
               endDate={checkOutDate}
               minDate={checkInDate || new Date()}
-              dateFormat="dd/MM/yyyy"
+              dateFormat="dd/MM"
               placeholderText=""
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
@@ -373,20 +373,18 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
           >
             Số người
           </label>
-          <input
-            type="number"
+          <select
             id="capacity"
             name="capacity"
-            value={filters.capacity || ''}
+            value={filters.capacity ?? ''}
             onChange={handleInputChange}
-            placeholder="1"
-            min="1"
-            max="10"
-            className="w-full px-4 py-2 border 
-              border-gray-300 rounded-lg 
-              focus:ring-2 focus:ring-blue-500 
-              focus:border-transparent"
-          />
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="">Tất cả</option>
+            {[1, 2, 4].map((v) => (
+              <option key={v} value={v}>{v} người</option>
+            ))}
+          </select>
         </div>
 
         {/* Amenities */}

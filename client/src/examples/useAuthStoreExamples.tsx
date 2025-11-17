@@ -21,7 +21,7 @@ export const LoginExample = () => {
   ) => {
     try {
       await login({ email, password });
-      navigate('/dashboard');
+      navigate('/');
     } catch (error) {
       // Error đã được xử lý trong store
       console.error('Login failed:', error);
