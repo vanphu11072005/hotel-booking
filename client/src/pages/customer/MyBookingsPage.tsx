@@ -15,6 +15,7 @@ import {
   Loader2,
   Search,
   Filter,
+  ArrowLeft,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import {
@@ -234,11 +235,68 @@ const MyBookingsPage: React.FC = () => {
     return <Loading fullScreen text="Đang tải..." />;
   }
 
+  // Resolve room image with SERVER_URL
+  const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+    .replace(/\/api\/?$/i, '')
+    .replace(/\/$/, '');
+  
+  const PLACEHOLDER = '/images/room-placeholder.jpg';
+  
+  const resolveRoomImage = (room: any): string => {
+    const imagesField = room?.images as any;
+    let firstImage: string | undefined;
+
+    if (Array.isArray(imagesField)) {
+      firstImage = imagesField[0];
+    } else if (typeof imagesField === 'string') {
+      try {
+        const parsed = JSON.parse(imagesField);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          firstImage = parsed[0];
+        } else if (typeof parsed === 'string') {
+          firstImage = parsed;
+        }
+      } catch {
+        const s = imagesField as string;
+        if (s.includes(',')) {
+          firstImage = s.split(',')[0].trim();
+        } else {
+          firstImage = s.trim();
+        }
+      }
+    }
+
+    if (firstImage) {
+      if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+        return firstImage;
+      } else if (firstImage.startsWith('/uploads')) {
+        return `${SERVER_URL}${firstImage}`;
+      } else if (firstImage.startsWith('/')) {
+        return firstImage;
+      } else {
+        return `${SERVER_URL}/uploads/rooms/${firstImage}`;
+      }
+    }
+    
+    return PLACEHOLDER;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
+        {/* Back to Home Button */}
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 bg-indigo-600 
+          text-white px-3 py-2 rounded-md hover:bg-indigo-700 
+          disabled:bg-gray-400 mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Quay lại trang chủ</span>
+        </Link>
+
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 
             mb-2"
           >
@@ -406,16 +464,17 @@ const MyBookingsPage: React.FC = () => {
                       lg:flex-row gap-6"
                     >
                       {/* Room Image */}
-                      {room?.images?.[0] && (
-                        <div className="lg:w-48 flex-shrink-0">
-                          <img
-                            src={room.images[0]}
-                            alt={roomType?.name}
-                            className="w-full h-48 lg:h-full 
-                              object-cover rounded-lg"
-                          />
-                        </div>
-                      )}
+                      <div className="w-full lg:w-80 flex-shrink-0">
+                        <img
+                          src={resolveRoomImage(room)}
+                          alt={roomType?.name || 'Room'}
+                          className="w-full h-56 lg:h-full 
+                            object-cover rounded-lg"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = PLACEHOLDER;
+                          }}
+                        />
+                      </div>
 
                       {/* Booking Info */}
                       <div className="flex-1 min-w-0">

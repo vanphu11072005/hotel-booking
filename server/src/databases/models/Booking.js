@@ -113,6 +113,12 @@ module.exports = (sequelize, DataTypes) => {
       special_requests: {
         type: DataTypes.TEXT,
         allowNull: true
+      },
+      guest_count: {
+        type: DataTypes.VIRTUAL,
+        get() {
+          return this.getDataValue('num_guests');
+        }
       }
     },
     {

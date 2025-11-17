@@ -69,9 +69,17 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
       setLoading(true);
       const response = await getRoomReviews(roomId);
       if (response.status === 'success' && response.data) {
-        setReviews(response.data.reviews || []);
-        setAverageRating(response.data.average_rating || 0);
-        setTotalReviews(response.data.total_reviews || 0);
+        const reviewsData = response.data.reviews || [];
+        setReviews(reviewsData);
+        
+        // Calculate average rating and total from the reviews array
+        const total = reviewsData.length;
+        const avgRating = total > 0
+          ? reviewsData.reduce((sum, r) => sum + r.rating, 0) / total
+          : 0;
+        
+        setAverageRating(avgRating);
+        setTotalReviews(total);
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   Users,
   MapPin,
@@ -79,7 +79,7 @@ const RoomDetailPage: React.FC = () => {
               {error || 'Không tìm thấy phòng'}
             </p>
             <button
-              onClick={() => navigate('/rooms')}
+              onClick={() => navigate(`/rooms${useLocation().search || ''}`)}
               className="inline-flex items-center gap-2 bg-indigo-600 
             text-white px-3 py-2 rounded-md hover:bg-indigo-700 
             disabled:bg-gray-400 mb-6 transition-colors"
@@ -103,7 +103,7 @@ const RoomDetailPage: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <Link
-          to="/rooms"
+          to={`/rooms${useLocation().search || ''}`}
           className="inline-flex items-center gap-2 bg-indigo-600 
             text-white px-3 py-2 rounded-md hover:bg-indigo-700 
             disabled:bg-gray-400 mb-6 transition-colors"
@@ -216,7 +216,7 @@ const RoomDetailPage: React.FC = () => {
 
           {/* Booking Card */}
           <aside className="lg:col-span-4">
-            <div className="bg-white rounded-xl shadow-md p-6 sticky top-6">
+            <div className="bg-white rounded-xl shadow-md p-6 sticky top-10">
               <div className="flex items-baseline gap-3 mb-4">
                 <DollarSign className="w-5 h-5 text-gray-600" />
                 <div>
@@ -243,12 +243,6 @@ const RoomDetailPage: React.FC = () => {
                 </Link>
               </div>
 
-              {room.status === 'available' && (
-                <p className="text-sm text-gray-500 text-center mt-3">
-                  Không bị tính phí ngay — thanh toán tại khách sạn
-                </p>
-              )}
-
               <hr className="my-4" />
 
               <div className="text-sm text-gray-700 space-y-2">
@@ -259,10 +253,6 @@ const RoomDetailPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span>Số khách</span>
                   <span>{roomType?.capacity} người</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Số phòng</span>
-                  <span>1</span>
                 </div>
               </div>
             </div>

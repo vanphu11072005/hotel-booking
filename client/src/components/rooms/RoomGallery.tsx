@@ -41,7 +41,7 @@ const RoomGallery: React.FC<RoomGalleryProps> = ({
   return (
     <>
       {/* Main Gallery */}
-      <div className="grid grid-cols-4 gap-2 h-96">
+      <div className="grid grid-cols-4 gap-2 h-150">
         {/* Main Image */}
         <div
           className="col-span-4 md:col-span-3 relative 

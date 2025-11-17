@@ -64,15 +64,35 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
     >
       {/* Banner Image */}
       <div className="relative w-full h-full">
-        <img
-          src={currentBanner.image_url}
-          alt={currentBanner.title}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            // Fallback to placeholder if image fails to load
-            e.currentTarget.src = '/images/default-banner.jpg';
-          }}
-        />
+        {/* Resolve server URL for uploads so dev server proxies aren't required */}
+        {(() => {
+          const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+            .replace(/\/api\/?$/i, '')
+            .replace(/\/$/, '');
+
+          let imgSrc = currentBanner.image_url || '/images/default-banner.jpg';
+          try {
+            if (imgSrc.startsWith('/uploads')) {
+              imgSrc = `${SERVER_URL}${imgSrc}`;
+            }
+            // If it's a relative client path (starts with '/images'), leave it as-is
+          } catch (e) {
+            imgSrc = '/images/default-banner.jpg';
+          }
+
+          return (
+            <img
+              src={imgSrc}
+              alt={currentBanner.title}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const img = e.currentTarget as HTMLImageElement;
+                img.onerror = null;
+                img.src = '/images/default-banner.jpg';
+              }}
+            />
+          );
+        })()}
 
         {/* Overlay */}
         <div 

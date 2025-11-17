@@ -17,7 +17,10 @@ module.exports = {
           price: 500000,
           images: JSON.stringify([
             '/uploads/rooms/standard-single-1.png',
-            '/uploads/rooms/standard-single-2.png'
+            '/uploads/rooms/standard-single-2.png',
+            '/uploads/rooms/standard-single-3.png',
+            '/uploads/rooms/standard-single-4.png',
+            '/uploads/rooms/standard-single-5.png',
           ]),
           description: 
             `Standard single room on floor ${floor}`,
@@ -40,7 +43,9 @@ module.exports = {
           images: JSON.stringify([
             '/uploads/rooms/standard-double-1.png',
             '/uploads/rooms/standard-double-2.png',
-            '/uploads/rooms/standard-double-3.png'
+            '/uploads/rooms/standard-double-3.png',
+            '/uploads/rooms/standard-double-4.png',
+            '/uploads/rooms/standard-double-5.png',
           ]),
           description: 
             `Standard double room on floor ${floor}`,

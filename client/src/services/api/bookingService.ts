@@ -28,6 +28,7 @@ export interface Booking {
   check_in_date: string;
   check_out_date: string;
   guest_count: number;
+  num_guests?: number; // Backend alias
   total_price: number;
   status: 
     | 'pending' 
@@ -43,6 +44,7 @@ export interface Booking {
   deposit_paid?: boolean;
   requires_deposit?: boolean;
   notes?: string;
+  special_requests?: string;
   guest_info?: {
     full_name: string;
     email: string;
@@ -53,12 +55,13 @@ export interface Booking {
     room_number: string;
     floor: number;
     status: string;
+    price?: number;
     images?: string[];
-    room_type: {
+    room_type?: {
       id: number;
       name: string;
       base_price: number;
-      capacity: number;
+      capacity?: number;
     };
   };
   user?: {
@@ -70,8 +73,29 @@ export interface Booking {
     phone_number?: string;
   };
   payments?: Payment[];
-  createdAt: string;
-  updatedAt: string;
+  service_usages?: ServiceUsage[];
+  created_at: string;
+  updated_at: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ServiceUsage {
+  id: number;
+  booking_id: number;
+  service_id: number;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  service?: {
+    id: number;
+    name: string;
+    description?: string;
+    price: number;
+    unit?: string;
+  };
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Payment {

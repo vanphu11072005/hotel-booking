@@ -54,7 +54,10 @@ const getBanners = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        banners,
+        // Return mapped banners (absolute image_url) so frontend can
+        // load backend-hosted images even when Vite dev server doesn't
+        // proxy /uploads paths.
+        banners: mapped,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),

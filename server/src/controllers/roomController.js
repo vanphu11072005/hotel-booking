@@ -25,6 +25,19 @@ const normalizeImages = (images, baseUrl) => {
   });
 };
 
+// Safe RoomType attributes used in includes to avoid selecting
+// a possibly-missing `images` column on some DB schemas.
+const roomTypeAttributes = [
+  'id',
+  'name',
+  'description',
+  'base_price',
+  'capacity',
+  'amenities',
+  'created_at',
+  'updated_at',
+];
+
 /**
  * Get all rooms with filters
  */
@@ -71,10 +84,33 @@ const getRooms = async (req, res, next) => {
         roomTypeWhere.name = { [Op.like]: `%${type}%` };
       }
     }
-
+    // Filter by amenities (comma-separated list). When user selects
+    // multiple amenities we require rooms to have ALL selected
+    // amenities (AND). A room matches an amenity if either the
+    // room_type.amenities or the room.amenities contains the value.
+    if (req.query.amenities) {
+      const amenitiesArr = String(req.query.amenities)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (amenitiesArr.length > 0) {
+        whereClause[Op.and] = amenitiesArr.map((a) => ({
+          [Op.or]: [
+            sequelize.where(sequelize.col('room_type.amenities'), {
+              [Op.like]: `%${a}%`,
+            }),
+            { amenities: { [Op.like]: `%${a}%` } },
+          ],
+        }));
+      }
+    }
     // Filter by capacity
     if (capacity) {
-      roomTypeWhere.capacity = { [Op.gte]: parseInt(capacity) };
+      // Require exact capacity match (e.g. searching for 1 returns
+      // only room types that support 1). Use equality to avoid
+      // returning larger-capacity rooms when user requests a
+      // specific guest count.
+      roomTypeWhere.capacity = { [Op.eq]: parseInt(capacity) };
     }
 
     // Filter by price
@@ -375,7 +411,9 @@ const searchAvailableRooms = async (req, res, next) => {
       roomTypeWhere.name = { [Op.like]: `%${type}%` };
     }
     if (capacity) {
-      roomTypeWhere.capacity = { [Op.gte]: parseInt(capacity) };
+      // See note above: use exact match for capacity filter so
+      // searching for N people returns room types with capacity == N.
+      roomTypeWhere.capacity = { [Op.eq]: parseInt(capacity) };
     }
 
     // Pagination params
@@ -384,10 +422,30 @@ const searchAvailableRooms = async (req, res, next) => {
     const offset = (pageNum - 1) * limitNum;
 
     // Get available rooms with pagination
+    // Build base where for availability and merge amenities clause
+    const baseWhere = { status: 'available' };
+    // If getAmenities added an Op.and in roomType searches above,
+    // merge that into the baseWhere so the availability and
+    // amenities requirements are applied together.
+    if (req.query.amenities) {
+      const amenitiesArr = String(req.query.amenities)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (amenitiesArr.length > 0) {
+        baseWhere[Op.and] = amenitiesArr.map((a) => ({
+          [Op.or]: [
+            sequelize.where(sequelize.col('room_type.amenities'), {
+              [Op.like]: `%${a}%`,
+            }),
+            { amenities: { [Op.like]: `%${a}%` } },
+          ],
+        }));
+      }
+    }
+
     const { count, rows: availableRooms } = await Room.findAndCountAll({
-      where: {
-        status: 'available',
-      },
+      where: baseWhere,
       include: [
         {
           model: RoomType,
@@ -396,6 +454,7 @@ const searchAvailableRooms = async (req, res, next) => {
           where: Object.keys(roomTypeWhere).length > 0
             ? roomTypeWhere
             : undefined,
+          required: Object.keys(roomTypeWhere).length > 0 ? true : false,
         },
       ],
       limit: limitNum,
