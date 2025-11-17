@@ -13,6 +13,7 @@ const ServiceManagementPage: React.FC = () => {
   const [filters, setFilters] = useState({
     search: '',
     status: '',
+    category: '',
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -38,11 +39,16 @@ const ServiceManagementPage: React.FC = () => {
   const fetchServices = async () => {
     try {
       setLoading(true);
-      const response = await serviceService.getServices({
+      const params: any = {
         ...filters,
         page: currentPage,
         limit: itemsPerPage,
-      });
+      };
+      // Nếu category là rỗng thì xóa khỏi params để backend không filter
+      if (!filters.category) {
+        delete params.category;
+      }
+      const response = await serviceService.getServices(params);
       setServices(response.data.services);
       if (response.data.pagination) {
         setTotalPages(response.data.pagination.totalPages);
@@ -139,7 +145,7 @@ const ServiceManagementPage: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -159,6 +165,18 @@ const ServiceManagementPage: React.FC = () => {
             <option value="active">Hoạt động</option>
             <option value="inactive">Tạm dừng</option>
           </select>
+          <select
+            value={filters.category}
+            onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Tất cả loại dịch vụ</option>
+            <option value="Ăn uống">Ăn uống</option>
+            <option value="Giặt ủi">Giặt ủi</option>
+            <option value="Spa & Sức khỏe">Spa & Sức khỏe</option>
+            <option value="Vận chuyển">Vận chuyển</option>
+            <option value="Tiện ích phòng">Tiện ích phòng</option>
+          </select>
         </div>
       </div>
 
@@ -166,24 +184,13 @@ const ServiceManagementPage: React.FC = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Tên dịch vụ
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Mô tả
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Giá
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Đơn vị
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Trạng thái
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                Thao tác
-              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên dịch vụ</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mô tả</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Giá</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đơn vị</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại dịch vụ</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -202,11 +209,10 @@ const ServiceManagementPage: React.FC = () => {
                   <div className="text-sm text-gray-900">{service.unit}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    service.status === 'active' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
+                  <div className="text-sm text-gray-900">{service.category || '-'}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${service.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                     {service.status === 'active' ? 'Hoạt động' : 'Tạm dừng'}
                   </span>
                 </td>

@@ -10,6 +10,7 @@ const getServices = async (req, res, next) => {
     const {
       search,
       status,
+      category,
       page = 1,
       limit = 10,
     } = req.query;
@@ -27,6 +28,11 @@ const getServices = async (req, res, next) => {
     // Filter by status (is_active)
     if (status) {
       whereClause.is_active = status === 'active' ? true : false;
+    }
+
+    // Filter by category
+    if (category) {
+      whereClause.category = category;
     }
 
     const offset = (parseInt(page) - 1) * parseInt(limit);

@@ -9,6 +9,13 @@ const { authenticateToken } = require('../middlewares/auth');
  * All routes require authentication
  */
 
+// Lấy danh sách tất cả payment (cho admin)
+router.get(
+	'/',
+	authenticateToken,
+	paymentController.getAllPayments
+);
+
 // Get payments for a booking
 router.get(
 	'/booking/:bookingId',
