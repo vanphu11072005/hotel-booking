@@ -180,6 +180,46 @@ export const getPayments = async (
 };
 
 
+/**
+ * Create VNPay payment URL
+ * POST /api/payments/vnpay/create
+ */
+export const createVNPayPayment = async (
+  paymentId: number,
+  returnUrl?: string
+): Promise<{
+  success: boolean;
+  data: { payment_url: string; payment_id: number };
+  message?: string;
+}> => {
+  const response = await apiClient.post(
+    '/payments/vnpay/create',
+    {
+      payment_id: paymentId,
+      return_url: returnUrl,
+    }
+  );
+  return response.data;
+};
+
+/**
+ * Verify VNPay payment return
+ * GET /api/payments/vnpay/return
+ */
+export const verifyVNPayReturn = async (
+  queryParams: string
+): Promise<{
+  success: boolean;
+  data?: { payment: Payment; booking: any };
+  message?: string;
+  code?: string;
+}> => {
+  const response = await apiClient.get(
+    `/payments/vnpay/return${queryParams}`
+  );
+  return response.data;
+};
+
 export default {
   createPayment,
   getPaymentByBookingId,
@@ -188,4 +228,6 @@ export default {
   notifyPaymentCompletion,
   getPaymentsByBookingId,
   getPayments,
+  createVNPayPayment,
+  verifyVNPayReturn,
 };

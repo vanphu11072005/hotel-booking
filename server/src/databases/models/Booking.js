@@ -114,6 +114,18 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: true
       },
+      cancellation_reason: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+      },
+      cancellation_details: {
+        type: DataTypes.TEXT,
+        allowNull: true
+      },
+      cancelled_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
       guest_count: {
         type: DataTypes.VIRTUAL,
         get() {

@@ -16,6 +16,7 @@ import RatingStars from '../../components/rooms/RatingStars';
 const RoomDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +80,7 @@ const RoomDetailPage: React.FC = () => {
               {error || 'Không tìm thấy phòng'}
             </p>
             <button
-              onClick={() => navigate(`/rooms${useLocation().search || ''}`)}
+              onClick={() => navigate(`/rooms${location.search || ''}`)}
               className="inline-flex items-center gap-2 bg-indigo-600 
             text-white px-3 py-2 rounded-md hover:bg-indigo-700 
             disabled:bg-gray-400 mb-6 transition-colors"
@@ -103,7 +104,7 @@ const RoomDetailPage: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <Link
-          to={`/rooms${useLocation().search || ''}`}
+          to={`/rooms${location.search || ''}`}
           className="inline-flex items-center gap-2 bg-indigo-600 
             text-white px-3 py-2 rounded-md hover:bg-indigo-700 
             disabled:bg-gray-400 mb-6 transition-colors"

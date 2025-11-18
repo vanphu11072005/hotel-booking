@@ -40,6 +40,7 @@ import Loading from '../../components/common/Loading';
 const BookingPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, userInfo } = useAuthStore();
 
   const [room, setRoom] = useState<Room | null>(null);
@@ -55,6 +56,7 @@ const BookingPage: React.FC = () => {
   >(null);
   const [showBankModal, setShowBankModal] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [pendingBookingData, setPendingBookingData] = useState<BookingData | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -234,51 +236,42 @@ const BookingPage: React.FC = () => {
         services: servicesList.length > 0 ? servicesList : undefined,
       };
 
-      // Step 3: Create booking
-      const response = await createBooking(bookingData);
-
-      if (response.success && response.data?.booking) {
-        const created = response.data.booking;
-
-        // If payment is bank transfer, show the transfer modal
-        // with QR and account info so the user can complete the
-        // transfer. We delay showing the success toast until the
-        // user confirms they've transferred (so they first see
-        // the QR/account info). For cash payments we navigate
-        // to the success page immediately and show success toast.
-        if (bookingData.payment_method === 'bank_transfer') {
-          setRecentBooking({ id: created.id, booking_number: created.booking_number });
-          
-          // Generate QR code from bank transfer info
-          const qrContent = `Bank: Vietcombank\nAccount: 0123456789\nAmount: ${totalPrice}\nContent: ${created.booking_number}`;
-          try {
-            const qrUrl = await QRCode.toDataURL(qrContent, {
-              width: 300,
-              margin: 2,
-              color: {
-                dark: '#000000',
-                light: '#FFFFFF',
-              },
-            });
-            setQrCodeUrl(qrUrl);
-          } catch (err) {
-            console.error('Error generating QR code:', err);
-            setQrCodeUrl(null);
-          }
-          
-          setShowBankModal(true);
-          toast.info('Đặt phòng đã được tạo. Vui lòng hoàn tất chuyển khoản theo thông tin hiển thị.');
-        } else {
-          toast.success(
-            '🎉 Đặt phòng thành công!',
-            { icon: <CheckCircle className="text-green-500" /> }
-          );
-          navigate(`/booking-success/${created.id}`);
+      // Step 3: Create booking or show modal based on payment method
+      if (bookingData.payment_method === 'bank_transfer') {
+        // For bank transfer, show modal first, create booking only after confirmation
+        setPendingBookingData(bookingData);
+        
+        // Generate temporary booking number for QR code
+        const tempBookingNumber = `TEMP-${Date.now()}`;
+        
+        // Generate QR code from bank transfer info
+        const qrContent = `Bank: Vietcombank\nAccount: 0123456789\nAmount: ${totalPrice}\nContent: ${tempBookingNumber}`;
+        try {
+          const qrUrl = await QRCode.toDataURL(qrContent, {
+            width: 300,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF',
+            },
+          });
+          setQrCodeUrl(qrUrl);
+        } catch (err) {
+          console.error('Error generating QR code:', err);
+          setQrCodeUrl(null);
         }
+        
+        setShowBankModal(true);
+        toast.info('Vui lòng xác nhận thông tin chuyển khoản');
       } else {
-        throw new Error(
-          response.message || 'Không thể tạo đặt phòng'
-        );
+        // For cash payment, save booking data and redirect to deposit payment page
+        // Store booking data in sessionStorage
+        sessionStorage.setItem('pendingBookingData', JSON.stringify(bookingData));
+        
+        toast.info('Vui lòng hoàn tất thanh toán tiền đặt cọc');
+        
+        // Redirect to deposit payment page (use room_id as placeholder)
+        navigate(`/deposit-payment/${room.id}?pending=true`);
       }
     } catch (err: any) {
       console.error('Error creating booking:', err);
@@ -303,6 +296,72 @@ const BookingPage: React.FC = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Handle bank transfer confirmation
+  const handleConfirmBankTransfer = async () => {
+    if (!pendingBookingData) return;
+
+    try {
+      setSubmitting(true);
+
+      const response = await createBooking(pendingBookingData);
+
+      if (response.success && response.data?.booking) {
+        const created = response.data.booking;
+        
+        // Update QR code with actual booking number
+        const qrContent = `Bank: Vietcombank\nAccount: 0123456789\nAmount: ${pendingBookingData.total_price}\nContent: ${created.booking_number}`;
+        try {
+          const qrUrl = await QRCode.toDataURL(qrContent, {
+            width: 300,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF',
+            },
+          });
+          setQrCodeUrl(qrUrl);
+        } catch (err) {
+          console.error('Error generating QR code:', err);
+        }
+
+        setRecentBooking({ 
+          id: created.id, 
+          booking_number: created.booking_number 
+        });
+        
+        setShowBankModal(false);
+        setPendingBookingData(null);
+        
+        toast.success(
+          '🎉 Đặt phòng thành công! Vui lòng hoàn tất chuyển khoản.',
+          { icon: <CheckCircle className="text-green-500" /> }
+        );
+        
+        navigate(`/booking-success/${created.id}`);
+      } else {
+        throw new Error(
+          response.message || 'Không thể tạo đặt phòng'
+        );
+      }
+    } catch (err: any) {
+      console.error('Error creating booking:', err);
+      const message =
+        err.response?.data?.message ||
+        'Không thể tạo đặt phòng. Vui lòng thử lại.';
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Handle close modal without creating booking
+  const handleCloseBankModal = () => {
+    setShowBankModal(false);
+    setPendingBookingData(null);
+    setQrCodeUrl(null);
+    toast.info('Đã hủy thao tác đặt phòng');
   };
 
   if (loading) {
@@ -346,7 +405,7 @@ const BookingPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4">
         {/* Back Button */}
         <Link
-          to={`/rooms/${room.id}${useLocation().search || ''}`}
+          to={`/rooms/${room.id}${location.search || ''}`}
           className="inline-flex items-center gap-2 bg-indigo-600 
             text-white px-3 py-2 rounded-md hover:bg-indigo-700 
             disabled:bg-gray-400 mb-6 transition-colors"
@@ -1097,8 +1156,8 @@ const BookingPage: React.FC = () => {
             </div>
           </div>
         </div>
-        {/* Bank transfer modal shown after successful booking */}
-        {showBankModal && recentBooking && (
+        {/* Bank transfer modal shown before creating booking */}
+        {showBankModal && pendingBookingData && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
             <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden">
               {/* Header */}
@@ -1108,7 +1167,7 @@ const BookingPage: React.FC = () => {
                   Thông tin chuyển khoản
                 </h3>
                 <p className="text-indigo-100 text-sm mt-1">
-                  Vui lòng chuyển khoản theo thông tin bên dưới
+                  Xác nhận thông tin và bấm "Tôi đã chuyển khoản" để hoàn tất đặt phòng
                 </p>
               </div>
 
@@ -1163,10 +1222,12 @@ const BookingPage: React.FC = () => {
                         <div>
                           <p className="text-xs text-gray-500 font-medium uppercase mb-1">Nội dung chuyển khoản</p>
                           <div className="bg-white rounded-lg px-3 py-2 border border-orange-200">
-                            <p className="text-base font-bold text-gray-900 font-mono">{recentBooking.booking_number}</p>
+                            <p className="text-base font-bold text-gray-900 font-mono">
+                              {recentBooking?.booking_number || `BOOKING-${Date.now()}`}
+                            </p>
                           </div>
                           <p className="text-xs text-orange-600 mt-1 font-medium">
-                            ⚠️ Vui lòng nhập chính xác nội dung
+                            ⚠️ Mã đặt phòng sẽ được tạo sau khi xác nhận
                           </p>
                         </div>
                       </div>
@@ -1214,27 +1275,29 @@ const BookingPage: React.FC = () => {
               <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
                 <button
                   type="button"
-                  className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  onClick={() => setShowBankModal(false)}
+                  className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+                  onClick={handleCloseBankModal}
+                  disabled={submitting}
                 >
                   Đóng
                 </button>
                 <button
                   type="button"
-                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg shadow-indigo-500/30 flex items-center gap-2"
-                  onClick={() => {
-                    setShowBankModal(false);
-                    if (recentBooking) {
-                      toast.success(
-                        '🎉 Đặt phòng thành công! Cảm ơn bạn đã chuyển khoản.',
-                        { icon: <CheckCircle className="text-green-500" /> }
-                      );
-                      navigate(`/booking-success/${recentBooking.id}`);
-                    }
-                  }}
+                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg shadow-indigo-500/30 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleConfirmBankTransfer}
+                  disabled={submitting}
                 >
-                  <CheckCircle className="w-5 h-5" />
-                  Tôi đã chuyển khoản
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Tôi đã chuyển khoản
+                    </>
+                  )}
                 </button>
               </div>
             </div>

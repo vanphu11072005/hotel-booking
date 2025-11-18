@@ -44,6 +44,16 @@ router.post(
 	paymentController.notifyPayment
 );
 
-// (VNPay integration removed) — VNPay-related routes deleted
+// VNPay routes
+router.post(
+	'/vnpay/create',
+	authenticateToken,
+	paymentController.createVNPayPayment
+);
+
+router.get(
+	'/vnpay/return',
+	paymentController.handleVNPayReturn
+);
 
 module.exports = router;

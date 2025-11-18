@@ -36,6 +36,8 @@ import useAuthStore from '../../store/useAuthStore';
 import Loading from '../../components/common/Loading';
 import PaymentStatusBadge from 
   '../../components/common/PaymentStatusBadge';
+import SlideOver from '../../components/common/SlideOver';
+import CancelBookingPanel from '../../components/booking/CancelBookingPanel';
 
 const BookingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,6 +51,8 @@ const BookingDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [copiedBookingNumber, setCopiedBookingNumber] = 
+    useState(false);
+  const [showCancelPanel, setShowCancelPanel] = 
     useState(false);
 
   // Redirect if not authenticated
@@ -99,24 +103,28 @@ const BookingDetailPage: React.FC = () => {
     }
   };
 
-  const handleCancelBooking = async () => {
+  const handleOpenCancelPanel = () => {
+    setShowCancelPanel(true);
+  };
+
+  const handleCloseCancelPanel = () => {
+    setShowCancelPanel(false);
+  };
+
+  const handleCancelBooking = async (
+    reason: string,
+    details?: string
+  ) => {
     if (!booking) return;
-
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn hủy đặt phòng ` +
-      `${booking.booking_number}?\n\n` +
-      `⚠️ Lưu ý:\n` +
-      `- Bạn sẽ bị giữ 20% giá trị đơn\n` +
-      `- 80% còn lại sẽ được hoàn trả\n` +
-      `- Trạng thái phòng sẽ được cập nhật về "available"`
-    );
-
-    if (!confirmed) return;
 
     try {
       setCancelling(true);
 
-      const response = await cancelBooking(booking.id);
+      const response = await cancelBooking(
+        booking.id,
+        reason,
+        details
+      );
 
       if (response.success) {
         toast.success(
@@ -124,12 +132,21 @@ const BookingDetailPage: React.FC = () => {
           `thành công!`
         );
         
-        // Update local state
+        // Update local state with cancellation info
         setBooking((prev) =>
           prev
-            ? { ...prev, status: 'cancelled' }
+            ? { 
+                ...prev, 
+                status: 'cancelled',
+                cancellation_reason: reason,
+                cancellation_details: details,
+                cancelled_at: new Date().toISOString()
+              }
             : null
         );
+
+        // Close panel
+        handleCloseCancelPanel();
       } else {
         throw new Error(
           response.message || 
@@ -776,6 +793,47 @@ const BookingDetailPage: React.FC = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* Cancellation Status */}
+                {booking.status === 'cancelled' && (
+                  <div className="flex gap-3 mt-4 pt-4 border-t border-red-200">
+                    <div className="flex flex-col items-center">
+                      <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                        <XCircle className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-red-900">Đã hủy đặt phòng</p>
+                      {booking.cancelled_at && (
+                        <p className="text-sm text-gray-500">
+                          {new Date(booking.cancelled_at).toLocaleString('vi-VN')}
+                        </p>
+                      )}
+                      {booking.cancellation_reason && (
+                        <div className="mt-2 bg-red-50 rounded-lg p-3 border border-red-200">
+                          <p className="text-xs text-red-600 font-medium mb-1">Lý do hủy:</p>
+                          <p className="text-sm text-red-900 font-medium">
+                            {booking.cancellation_reason === 'change_plans' && '📅 Thay đổi kế hoạch'}
+                            {booking.cancellation_reason === 'found_better' && '🏨 Tìm được nơi tốt hơn'}
+                            {booking.cancellation_reason === 'personal_emergency' && '🚨 Có việc gấp'}
+                            {booking.cancellation_reason === 'price_issue' && '💰 Vấn đề về giá'}
+                            {booking.cancellation_reason === 'wrong_booking' && '❌ Đặt nhầm'}
+                            {booking.cancellation_reason === 'other' && '📝 Lý do khác'}
+                            {!['change_plans', 'found_better', 'personal_emergency', 'price_issue', 'wrong_booking', 'other'].includes(booking.cancellation_reason) && booking.cancellation_reason}
+                          </p>
+                          {booking.cancellation_details && (
+                            <>
+                              <p className="text-xs text-red-600 font-medium mt-2 mb-1">Chi tiết:</p>
+                              <p className="text-sm text-red-800">
+                                {booking.cancellation_details}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -924,7 +982,7 @@ const BookingDetailPage: React.FC = () => {
 
           {canCancelBooking(booking) && (
             <button
-              onClick={handleCancelBooking}
+              onClick={handleOpenCancelPanel}
               disabled={cancelling}
               className="flex-1 flex items-center 
                 justify-center gap-2 px-6 py-4 
@@ -937,19 +995,8 @@ const BookingDetailPage: React.FC = () => {
                 disabled:cursor-not-allowed 
                 disabled:transform-none"
             >
-              {cancelling ? (
-                <>
-                  <Loader2 
-                    className="w-6 h-6 animate-spin" 
-                  />
-                  Đang hủy...
-                </>
-              ) : (
-                <>
-                  <XCircle className="w-6 h-6" />
-                  Hủy đặt phòng
-                </>
-              )}
+              <XCircle className="w-6 h-6" />
+              Hủy đặt phòng
             </button>
           )}
 
@@ -968,6 +1015,22 @@ const BookingDetailPage: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {/* Cancel Booking Slide-over Panel */}
+      <SlideOver
+        isOpen={showCancelPanel}
+        onClose={handleCloseCancelPanel}
+        title="Hủy đặt phòng"
+      >
+        {booking && (
+          <CancelBookingPanel
+            bookingNumber={booking.booking_number}
+            onCancel={handleCancelBooking}
+            onClose={handleCloseCancelPanel}
+            isLoading={cancelling}
+          />
+        )}
+      </SlideOver>
     </div>
   );
 };
