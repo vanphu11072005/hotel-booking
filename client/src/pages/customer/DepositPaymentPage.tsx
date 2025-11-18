@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import QRCode from 'qrcode';
 import {
   CheckCircle,
   AlertCircle,
@@ -10,13 +11,15 @@ import {
   Loader2,
   ArrowLeft,
   Download,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { getBookingById, type Booking } from 
+import { getBookingById, createBooking, type Booking } from 
   '../../services/api/bookingService';
 import {
   getPaymentsByBookingId,
   notifyPaymentCompletion,
+  createVNPayPayment,
   type Payment,
   type BankInfo,
 } from '../../services/api/paymentService';
@@ -25,23 +28,45 @@ import Loading from '../../components/common/Loading';
 const DepositPaymentPage: React.FC = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
+  const searchParams = new URLSearchParams(window.location.search);
+  const isPending = searchParams.get('pending') === 'true';
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [depositPayment, setDepositPayment] = useState<Payment | null>(null);
-  const [bankInfo] = useState<BankInfo | null>(null);
+  const [bankInfo, setBankInfo] = useState<BankInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notifying, setNotifying] = useState(false);
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
-    'bank_transfer' | null
+    'bank_transfer' | 'vnpay' | null
     >('bank_transfer');
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [generatingQR, setGeneratingQR] = useState(false);
+  const [pendingBookingData, setPendingBookingData] = useState<any>(null);
 
   useEffect(() => {
-    if (bookingId) {
+    if (isPending) {
+      // Load pending booking data from sessionStorage
+      const storedData = sessionStorage.getItem('pendingBookingData');
+      if (storedData) {
+        try {
+          const data = JSON.parse(storedData);
+          setPendingBookingData(data);
+          setLoading(false);
+        } catch (err) {
+          console.error('Error parsing pending booking data:', err);
+          setError('Không thể tải thông tin đặt phòng');
+          setLoading(false);
+        }
+      } else {
+        setError('Không tìm thấy thông tin đặt phòng');
+        setLoading(false);
+      }
+    } else if (bookingId) {
       fetchData(Number(bookingId));
     }
-  }, [bookingId]);
+  }, [bookingId, isPending]);
 
   const fetchData = async (id: number) => {
     try {
@@ -111,34 +136,205 @@ const DepositPaymentPage: React.FC = () => {
     }
   };
 
+  const generateBankTransferInfo = async () => {
+    try {
+      setGeneratingQR(true);
+
+      let depositAmount = 0;
+      let transferContent = '';
+
+      if (pendingBookingData) {
+        // For pending booking, calculate 20% deposit
+        depositAmount = pendingBookingData.total_price * 0.2;
+        transferContent = `TEMP-${Date.now()} DAT COC`;
+      } else if (depositPayment && booking) {
+        depositAmount = parseFloat(depositPayment.amount.toString());
+        transferContent = `${booking.booking_number} DAT COC`;
+      } else {
+        return;
+      }
+
+      // Create bank info
+      const bankTransferInfo: BankInfo = {
+        bank_name: 'Vietcombank (VCB)',
+        bank_code: 'VCB',
+        account_number: '0123456789',
+        account_name: 'KHACH SAN ABC',
+        amount: depositAmount,
+        content: transferContent,
+        qr_url: '',
+      };
+
+      // Generate QR code
+      const qrContent = `Bank: ${bankTransferInfo.bank_name}\nAccount: ${bankTransferInfo.account_number}\nAmount: ${depositAmount}\nContent: ${transferContent}`;
+      
+      const qrUrl = await QRCode.toDataURL(qrContent, {
+        width: 300,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF',
+        },
+      });
+
+      bankTransferInfo.qr_url = qrUrl;
+      setQrCodeUrl(qrUrl);
+      setBankInfo(bankTransferInfo);
+    } catch (err) {
+      console.error('Error generating QR code:', err);
+      toast.error('Không thể tạo mã QR');
+    } finally {
+      setGeneratingQR(false);
+    }
+  };
+
+  // Generate bank info when bank transfer is selected
+  useEffect(() => {
+    if (selectedPaymentMethod === 'bank_transfer' && !bankInfo) {
+      if (pendingBookingData || (depositPayment && booking)) {
+        generateBankTransferInfo();
+      }
+    }
+  }, [selectedPaymentMethod, depositPayment, booking, pendingBookingData]);
+
   // No auto-redirect payment methods. Default to bank transfer.
 
   const handleNotifyPayment = async () => {
-    if (!depositPayment) return;
-
     try {
       setNotifying(true);
-      const response = await notifyPaymentCompletion(
-        depositPayment.id,
-        'Khách hàng đã chuyển khoản đặt cọc'
-      );
 
-      if (response.success) {
-        toast.success(
-          '✅ Đã gửi thông báo thanh toán! ' +
-            'Chúng tôi sẽ xác nhận trong vòng 24 giờ.'
+      // Case 1: Pending booking - create booking first
+      if (pendingBookingData) {
+        const bookingResponse = await createBooking(pendingBookingData);
+
+        if (bookingResponse.success && bookingResponse.data) {
+          const newBooking = bookingResponse.data.booking;
+          const newBookingId = newBooking.id;
+
+          // Find deposit payment from payments array
+          const depositPayment = newBooking.payments?.find(
+            (p: any) => p.payment_type === 'deposit'
+          );
+
+          if (depositPayment) {
+            await notifyPaymentCompletion(
+              depositPayment.id,
+              'Khách hàng đã chuyển khoản đặt cọc'
+            );
+          }
+
+          // Clear pending data
+          sessionStorage.removeItem('pendingBookingData');
+
+          toast.success(
+            '✅ Đặt phòng thành công! ' +
+              'Chúng tôi sẽ xác nhận thanh toán trong vòng 24 giờ.'
+          );
+          navigate(`/bookings/${newBookingId}`);
+        } else {
+          throw new Error(
+            bookingResponse.message || 'Không thể tạo đặt phòng'
+          );
+        }
+      }
+      // Case 2: Existing booking - just notify payment
+      else if (depositPayment) {
+        const response = await notifyPaymentCompletion(
+          depositPayment.id,
+          'Khách hàng đã chuyển khoản đặt cọc'
         );
-        navigate(`/bookings/${bookingId}`);
-      } else {
-        throw new Error(response.message || 'Không thể gửi thông báo');
+
+        if (response.success) {
+          toast.success(
+            '✅ Đã gửi thông báo thanh toán! ' +
+              'Chúng tôi sẽ xác nhận trong vòng 24 giờ.'
+          );
+          navigate(`/bookings/${bookingId}`);
+        } else {
+          throw new Error(response.message || 'Không thể gửi thông báo');
+        }
       }
     } catch (err: any) {
       console.error('Error notifying payment:', err);
       const message =
         err.response?.data?.message ||
-        'Không thể gửi thông báo. Vui lòng thử lại.';
+        'Không thể xử lý thanh toán. Vui lòng thử lại.';
       toast.error(message);
     } finally {
+      setNotifying(false);
+    }
+  };
+
+  const handleVNPayPayment = async () => {
+    try {
+      setNotifying(true);
+
+      // Case 1: Pending booking - create booking first
+      if (pendingBookingData) {
+        const bookingResponse = await createBooking(pendingBookingData);
+
+        if (bookingResponse.success && bookingResponse.data) {
+          const newBooking = bookingResponse.data.booking;
+          const newBookingId = newBooking.id;
+
+          // Find deposit payment from payments array
+          const depositPayment = newBooking.payments?.find(
+            (p: any) => p.payment_type === 'deposit'
+          );
+
+          if (!depositPayment) {
+            throw new Error('Không tìm thấy thông tin thanh toán đặt cọc');
+          }
+
+          // Clear pending data
+          sessionStorage.removeItem('pendingBookingData');
+
+          // Create VNPay payment URL
+          const returnUrl = `${window.location.origin}/payment/vnpay-return?booking_id=${newBookingId}&payment_id=${depositPayment.id}`;
+
+          const response = await createVNPayPayment(
+            depositPayment.id,
+            returnUrl
+          );
+
+          if (response.success && response.data.payment_url) {
+            toast.info('Đang chuyển đến cổng thanh toán VNPay...');
+            window.location.href = response.data.payment_url;
+          } else {
+            throw new Error(
+              response.message || 'Không thể tạo thanh toán VNPay'
+            );
+          }
+        } else {
+          throw new Error(
+            bookingResponse.message || 'Không thể tạo đặt phòng'
+          );
+        }
+      }
+      // Case 2: Existing booking - create VNPay payment
+      else if (depositPayment) {
+        const returnUrl = `${window.location.origin}/payment/vnpay-return?booking_id=${bookingId}&payment_id=${depositPayment.id}`;
+
+        const response = await createVNPayPayment(
+          depositPayment.id,
+          returnUrl
+        );
+
+        if (response.success && response.data.payment_url) {
+          toast.info('Đang chuyển đến cổng thanh toán VNPay...');
+          window.location.href = response.data.payment_url;
+        } else {
+          throw new Error(
+            response.message || 'Không thể tạo thanh toán VNPay'
+          );
+        }
+      }
+    } catch (err: any) {
+      console.error('Error creating VNPay payment:', err);
+      const message =
+        err.response?.data?.message ||
+        'Không thể tạo thanh toán VNPay. Vui lòng thử lại.';
+      toast.error(message);
       setNotifying(false);
     }
   };
@@ -149,7 +345,8 @@ const DepositPaymentPage: React.FC = () => {
     return <Loading fullScreen text="Đang tải..." />;
   }
 
-  if (error || !booking || !depositPayment) {
+  // Check error for both pending and existing bookings
+  if (error || (!pendingBookingData && (!booking || !depositPayment))) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-4xl mx-auto px-4">
@@ -163,9 +360,9 @@ const DepositPaymentPage: React.FC = () => {
             </p>
             <Link
               to="/bookings"
-              className="inline-flex items-center gap-2 px-6 py-2 
-                bg-red-600 text-white rounded-lg hover:bg-red-700 
-                transition-colors"
+              className="inline-flex items-center gap-2 bg-indigo-600 
+                text-white px-3 py-2 rounded-md hover:bg-indigo-700 
+                disabled:bg-gray-400 mb-6 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Quay lại danh sách booking
@@ -176,22 +373,50 @@ const DepositPaymentPage: React.FC = () => {
     );
   }
 
-  const depositAmount = parseFloat(depositPayment.amount.toString());
-  const remainingAmount = booking.total_price - depositAmount;
-  const isDepositPaid = depositPayment.payment_status === 'completed';
+  // Calculate deposit amount based on pending or existing booking
+  let depositAmount = 0;
+  let remainingAmount = 0;
+  let isDepositPaid = false;
+  let totalPrice = 0;
+
+  if (pendingBookingData) {
+    totalPrice = pendingBookingData.total_price;
+    depositAmount = totalPrice * 0.2;
+    remainingAmount = totalPrice - depositAmount;
+    isDepositPaid = false;
+  } else if (depositPayment && booking) {
+    depositAmount = parseFloat(depositPayment.amount.toString());
+    remainingAmount = booking.total_price - depositAmount;
+    isDepositPaid = depositPayment.payment_status === 'completed';
+    totalPrice = booking.total_price;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Back Button */}
-        <Link
-          to={`/bookings/${bookingId}`}
-          className="inline-flex items-center gap-2 text-gray-600 
-            hover:text-gray-900 mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Quay lại chi tiết booking</span>
-        </Link>
+        {!pendingBookingData && (
+          <Link
+            to={`/bookings/${bookingId}`}
+            className="inline-flex items-center gap-2 bg-indigo-600 
+              text-white px-3 py-2 rounded-md hover:bg-indigo-700 
+              disabled:bg-gray-400 mb-6 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Quay lại chi tiết booking</span>
+          </Link>
+        )}
+        {pendingBookingData && (
+          <Link
+            to={`/booking/${pendingBookingData.room_id}`}
+            className="inline-flex items-center gap-2 bg-indigo-600 
+              text-white px-3 py-2 rounded-md hover:bg-indigo-700 
+              disabled:bg-gray-400 mb-6 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Quay lại trang đặt phòng</span>
+          </Link>
+        )}
 
         {/* Success Header (if paid) */}
         {isDepositPaid && (
@@ -258,7 +483,7 @@ const DepositPaymentPage: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tổng tiền phòng</span>
                   <span className="font-medium">
-                    {formatPrice(booking.total_price)}
+                    {formatPrice(totalPrice)}
                   </span>
                 </div>
 
@@ -280,7 +505,7 @@ const DepositPaymentPage: React.FC = () => {
                 </div>
               </div>
 
-              {isDepositPaid && (
+              {isDepositPaid && depositPayment && (
                 <div className="mt-4 bg-green-50 border border-green-200 rounded p-3">
                   <p className="text-sm text-green-800">
                     ✓ Đã thanh toán tiền cọc vào:{' '}
@@ -337,23 +562,58 @@ const DepositPaymentPage: React.FC = () => {
                     </div>
                   </button>
 
-                  {/* VNPay removed */}
+                  {/* VNPay Button */}
+                  <button
+                    onClick={() => setSelectedPaymentMethod('vnpay')}
+                    className={`p-4 border-2 rounded-lg transition-all 
+                      ${
+                        selectedPaymentMethod === 'vnpay'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-300 bg-white hover:border-blue-300'
+                      }`}
+                  >
+                    <Wallet
+                      className={`w-8 h-8 mx-auto mb-2 ${
+                        selectedPaymentMethod === 'vnpay'
+                          ? 'text-blue-600'
+                          : 'text-gray-600'
+                      }`}
+                    />
+                    <div
+                      className={`font-bold text-sm ${
+                        selectedPaymentMethod === 'vnpay'
+                          ? 'text-blue-900'
+                          : 'text-gray-700'
+                      }`}
+                    >
+                      VNPay
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Thanh toán online
+                    </div>
+                  </button>
                 </div>
 
                 
               </div>
             )}
 
-            {/* Bank Transfer Instructions or VNPay panel */}
-            {!isDepositPaid && selectedPaymentMethod === 'bank_transfer' &&
-              bankInfo && (
+            {/* Bank Transfer Instructions */}
+            {!isDepositPaid && selectedPaymentMethod === 'bank_transfer' && (
               <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
-                  <Building2 className="w-5 h-5 inline mr-2" />
-                  Thông tin chuyển khoản
-                </h2>
+                {generatingQR ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mb-4" />
+                    <p className="text-gray-600">Đang tạo thông tin chuyển khoản...</p>
+                  </div>
+                ) : bankInfo ? (
+                  <>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">
+                      <Building2 className="w-5 h-5 inline mr-2" />
+                      Thông tin chuyển khoản
+                    </h2>
 
-                <div className="space-y-4">
+                    <div className="space-y-4">
                   {/* Bank Info */}
                   <div className="space-y-3">
                     <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
@@ -490,15 +750,67 @@ const DepositPaymentPage: React.FC = () => {
                     Sau khi chuyển khoản, nhấn nút trên để thông báo cho chúng tôi
                   </p>
                 </div>
+                  </>
+                ) : null}
               </div>
             )}
 
-            {/* VNPay removed */}
+            {/* VNPay Payment Section */}
+            {!isDepositPaid && selectedPaymentMethod === 'vnpay' && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  <Wallet className="w-5 h-5 inline mr-2" />
+                  Thanh toán qua VNPay
+                </h2>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-blue-800 mb-2">
+                    <strong>Thanh toán nhanh chóng và an toàn</strong>
+                  </p>
+                  <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                    <li>Hỗ trợ thẻ ATM, thẻ tín dụng, ví điện tử</li>
+                    <li>Xác nhận thanh toán tự động ngay lập tức</li>
+                    <li>Bảo mật thông tin theo tiêu chuẩn quốc tế</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border border-orange-100">
+                    <div className="text-xs text-gray-500 font-medium uppercase mb-1">Số tiền thanh toán</div>
+                    <div className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600">
+                      {formatPrice(depositAmount)}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleVNPayPayment}
+                    disabled={notifying}
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {notifying ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      <>
+                        <Wallet className="w-5 h-5" />
+                        Thanh toán với VNPay
+                      </>
+                    )}
+                  </button>
+
+                  <p className="text-xs text-center text-gray-500">
+                    Bạn sẽ được chuyển đến cổng thanh toán VNPay để hoàn tất giao dịch
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* QR Code Sidebar */}
           {!isDepositPaid && 
-            bankInfo && 
+            qrCodeUrl && 
             selectedPaymentMethod === 'bank_transfer' && (
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
@@ -508,7 +820,7 @@ const DepositPaymentPage: React.FC = () => {
 
                 <div className="bg-gray-50 p-4 rounded-lg mb-4">
                   <img
-                    src={bankInfo.qr_url}
+                    src={qrCodeUrl}
                     alt="QR Code"
                     className="w-full h-auto rounded"
                   />
@@ -524,8 +836,8 @@ const DepositPaymentPage: React.FC = () => {
                 </div>
 
                 <a
-                  href={bankInfo.qr_url}
-                  download={`deposit-qr-${booking.booking_number}.jpg`}
+                  href={qrCodeUrl}
+                  download={`deposit-qr-${booking?.booking_number || 'pending'}.jpg`}
                   className="mt-4 w-full inline-flex items-center justify-center 
                     gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 
                     text-gray-700 rounded-lg transition-colors"

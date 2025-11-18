@@ -45,6 +45,9 @@ export interface Booking {
   requires_deposit?: boolean;
   notes?: string;
   special_requests?: string;
+  cancellation_reason?: string;
+  cancellation_details?: string;
+  cancelled_at?: string;
   guest_info?: {
     full_name: string;
     email: string;
@@ -187,10 +190,13 @@ export const getBookingById = async (
  * PATCH /api/bookings/:id/cancel
  */
 export const cancelBooking = async (
-  id: number
+  id: number,
+  reason?: string,
+  details?: string
 ): Promise<BookingResponse> => {
   const response = await apiClient.patch<BookingResponse>(
-    `/bookings/${id}/cancel`
+    `/bookings/${id}/cancel`,
+    { reason, details }
   );
   return response.data;
 };

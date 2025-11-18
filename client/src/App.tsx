@@ -45,6 +45,8 @@ import BookingDetailPage from
   './pages/customer/BookingDetailPage';
 import DepositPaymentPage from 
   './pages/customer/DepositPaymentPage';
+import VNPayReturnPage from
+  './pages/customer/VNPayReturnPage';
 import PaymentConfirmationPage from 
   './pages/customer/PaymentConfirmationPage';
 import PaymentResultPage from 
@@ -196,6 +198,10 @@ function App() {
                 <DepositPaymentPage />
               </ProtectedRoute>
             } 
+          />
+          <Route 
+            path="payment/vnpay-return" 
+            element={<VNPayReturnPage />} 
           />
           <Route 
             path="bookings" 

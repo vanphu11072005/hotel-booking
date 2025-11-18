@@ -26,6 +26,8 @@ import {
 import useAuthStore from '../../store/useAuthStore';
 import Loading from '../../components/common/Loading';
 import EmptyState from '../../components/common/EmptyState';
+import SlideOver from '../../components/common/SlideOver';
+import CancelBookingPanel from '../../components/booking/CancelBookingPanel';
 
 const MyBookingsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,6 +43,10 @@ const MyBookingsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = 
     useState<string>('all');
+  const [showCancelPanel, setShowCancelPanel] = 
+    useState(false);
+  const [selectedBooking, setSelectedBooking] = 
+    useState<Booking | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -117,38 +123,47 @@ const MyBookingsPage: React.FC = () => {
     }
   };
 
-  const handleCancelBooking = async (
-    bookingId: number,
-    bookingNumber: string
-  ) => {
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn hủy đặt phòng ${bookingNumber}?\n\n` +
-      `⚠️ Lưu ý:\n` +
-      `- Bạn sẽ bị giữ 20% giá trị đơn\n` +
-      `- 80% còn lại sẽ được hoàn trả\n` +
-      `- Trạng thái phòng sẽ được cập nhật về "available"`
-    );
+  const handleOpenCancelPanel = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setShowCancelPanel(true);
+  };
 
-    if (!confirmed) return;
+  const handleCloseCancelPanel = () => {
+    setShowCancelPanel(false);
+    setSelectedBooking(null);
+  };
+
+  const handleCancelBooking = async (
+    reason: string,
+    details?: string
+  ) => {
+    if (!selectedBooking) return;
 
     try {
-      setCancellingId(bookingId);
+      setCancellingId(selectedBooking.id);
 
-      const response = await cancelBooking(bookingId);
+      const response = await cancelBooking(
+        selectedBooking.id,
+        reason,
+        details
+      );
 
       if (response.success) {
         toast.success(
-          `✅ Đã hủy đặt phòng ${bookingNumber} thành công!`
+          `✅ Đã hủy đặt phòng ${selectedBooking.booking_number} thành công!`
         );
         
         // Update local state
         setBookings((prev) =>
           prev.map((b) =>
-            b.id === bookingId
+            b.id === selectedBooking.id
               ? { ...b, status: 'cancelled' }
               : b
           )
         );
+
+        // Close panel
+        handleCloseCancelPanel();
       } else {
         throw new Error(
           response.message || 
@@ -646,12 +661,7 @@ const MyBookingsPage: React.FC = () => {
                           {/* Cancel Booking */}
                           {canCancelBooking(booking) && (
                             <button
-                              onClick={() =>
-                                handleCancelBooking(
-                                  booking.id,
-                                  booking.booking_number
-                                )
-                              }
+                              onClick={() => handleOpenCancelPanel(booking)}
                               disabled={
                                 cancellingId === booking.id
                               }
@@ -663,22 +673,10 @@ const MyBookingsPage: React.FC = () => {
                                 text-sm disabled:bg-gray-400 
                                 disabled:cursor-not-allowed"
                             >
-                              {cancellingId === booking.id ? (
-                                <>
-                                  <Loader2 
-                                    className="w-4 h-4 
-                                      animate-spin" 
-                                  />
-                                  Đang hủy...
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle 
-                                    className="w-4 h-4" 
-                                  />
-                                  Hủy đặt phòng
-                                </>
-                              )}
+                              <XCircle 
+                                className="w-4 h-4" 
+                              />
+                              Hủy đặt phòng
                             </button>
                           )}
                         </div>
@@ -691,6 +689,22 @@ const MyBookingsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Cancel Booking Slide-over Panel */}
+      <SlideOver
+        isOpen={showCancelPanel}
+        onClose={handleCloseCancelPanel}
+        title="Hủy đặt phòng"
+      >
+        {selectedBooking && (
+          <CancelBookingPanel
+            bookingNumber={selectedBooking.booking_number}
+            onCancel={handleCancelBooking}
+            onClose={handleCloseCancelPanel}
+            isLoading={cancellingId === selectedBooking.id}
+          />
+        )}
+      </SlideOver>
     </div>
   );
 };

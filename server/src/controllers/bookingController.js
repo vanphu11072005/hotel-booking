@@ -244,6 +244,7 @@ const getBookingById = async (req, res, next) => {
 const cancelBooking = async (req, res, next) => {
 	try {
 		const { id } = req.params;
+		const { reason, details } = req.body;
 		const booking = await Booking.findByPk(id);
 
 		if (!booking) {
@@ -258,7 +259,11 @@ const cancelBooking = async (req, res, next) => {
 			return res.status(400).json({ status: 'error', message: 'Booking already cancelled' });
 		}
 
+		// Update booking with cancellation info
 		booking.status = 'cancelled';
+		booking.cancellation_reason = reason || null;
+		booking.cancellation_details = details || null;
+		booking.cancelled_at = new Date();
 		await booking.save();
 
 		res.status(200).json({ success: true, data: { booking } });
