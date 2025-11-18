@@ -25,7 +25,7 @@ const StaffRoute: React.FC<StaffRouteProps> = ({ children }) => {
   }
 
   // Kiểm tra role: chỉ cho phép staff và admin
-  const allowedRoles = ['staff', 'admin'];
+  const allowedRoles = ['staff'];
   if (!allowedRoles.includes(userInfo.role.toLowerCase())) {
     return <Navigate to="/" replace />;
   }

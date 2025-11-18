@@ -210,6 +210,20 @@ const Header: React.FC<HeaderProps> = ({
                         <span>Quản trị</span>
                       </NavLink>
                     )}
+                    {userInfo?.role === 'staff' && (
+                      <NavLink
+                        to="/staff"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className={({ isActive }) =>
+                          `flex items-center space-x-2 px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors ${
+                            isActive ? 'font-semibold' : ''
+                          }`
+                        }
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Nhân viên</span>
+                      </NavLink>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center 
@@ -368,6 +382,19 @@ const Header: React.FC<HeaderProps> = ({
                       >
                         <User className="w-4 h-4" />
                         <span>Quản trị</span>
+                      </Link>
+                    )}
+                    {userInfo?.role === 'staff' && (
+                      <Link
+                        to="/staff"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center 
+                          space-x-2 px-4 py-2 
+                          text-gray-700 hover:bg-gray-100 
+                          rounded-lg transition-colors"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>Nhân viên</span>
                       </Link>
                     )}
                     <button

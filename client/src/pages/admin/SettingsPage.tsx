@@ -33,6 +33,7 @@ const SettingsPage: React.FC = () => {
     enableVNPay: false,
     vnpayTmnCode: '',
     vnpayHashSecret: '',
+    vnpayRegCode: '', // Thêm mã đăng ký VNPAY
     enableMomo: false,
     momoPartnerCode: '',
     momoAccessKey: '',

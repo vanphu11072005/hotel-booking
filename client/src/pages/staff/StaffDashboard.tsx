@@ -64,18 +64,18 @@ const StaffDashboard: React.FC = () => {
         limit: 1,
       });
 
-      // Lấy thanh toán chưa hoàn tất (filter bằng search)
+      // Lấy thanh toán chưa hoàn tất (filter bằng trạng thái)
       const pendingPaymentsResponse = await paymentService.getPayments({
-        search: 'pending',
+        payment_status: 'pending',
         page: 1,
         limit: 1,
       });
 
-      // Lấy doanh thu hôm nay (filter bằng search)
+      // Lấy doanh thu hôm nay (filter bằng trạng thái)
       const revenueResponse = await paymentService.getPayments({
         from: today,
         to: today,
-        search: 'completed',
+        payment_status: 'completed',
         page: 1,
         limit: 100,
       });
@@ -231,13 +231,6 @@ const StaffDashboard: React.FC = () => {
           >
             <LogOutIcon className="w-6 h-6 text-purple-600" />
             <span className="font-medium text-gray-700">Check-out khách</span>
-          </a>
-          <a
-            href="/staff/payments"
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <DollarSign className="w-6 h-6 text-emerald-600" />
-            <span className="font-medium text-gray-700">Quản lý thanh toán</span>
           </a>
         </div>
       </div>
