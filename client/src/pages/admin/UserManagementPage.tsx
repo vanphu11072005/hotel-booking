@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import useDebounce from '../../hooks/useDebounce';
 import { Plus, Search, Edit, Trash2, X } from 'lucide-react';
 import { userService, User } from '../../services/api';
 import { toast } from 'react-toastify';
@@ -17,6 +18,7 @@ const UserManagementPage: React.FC = () => {
     role: '',
     status: '',
   });
+  const debouncedSearch = useDebounce(filters.search, 500);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -33,11 +35,11 @@ const UserManagementPage: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [filters.role, filters.status]);
 
   useEffect(() => {
     fetchUsers();
-  }, [filters, currentPage]);
+  }, [filters.role, filters.status, debouncedSearch, currentPage]);
 
   const fetchUsers = async () => {
     try {
@@ -45,6 +47,7 @@ const UserManagementPage: React.FC = () => {
       console.log('Fetching users with filters:', filters, 'page:', currentPage);
       const response = await userService.getUsers({
         ...filters,
+        search: debouncedSearch,
         page: currentPage,
         limit: itemsPerPage,
       });
@@ -169,6 +172,19 @@ const UserManagementPage: React.FC = () => {
     );
   };
 
+  const getStatusBadge = (status: string) => {
+    const badges: Record<string, { bg: string; text: string; label: string }> = {
+      active: { bg: 'bg-green-100', text: 'text-green-800', label: 'Hoạt động' },
+      inactive: { bg: 'bg-gray-200', text: 'text-gray-700', label: 'Tạm khóa' },
+    };
+    const badge = badges[status] || badges.active;
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.text}`}>
+        {badge.label}
+      </span>
+    );
+  };
+
   if (loading) {
     return <Loading />;
   }
@@ -243,6 +259,9 @@ const UserManagementPage: React.FC = () => {
                 Vai trò
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Trạng thái
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Ngày tạo
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
@@ -264,6 +283,9 @@ const UserManagementPage: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {getRoleBadge(user.role)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {getStatusBadge(user.status || 'active')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-500">

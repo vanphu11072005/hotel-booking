@@ -50,7 +50,6 @@
 /admin/services    → Quản lý dịch vụ
 /admin/promotions  → Quản lý khuyến mãi
 /admin/banners     → Quản lý banner
-/admin/reports     → Báo cáo
 /admin/settings    → Cài đặt
 ```
 

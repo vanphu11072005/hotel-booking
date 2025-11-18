@@ -5,8 +5,7 @@ import {
   Users, 
   Hotel, 
   Settings, 
-  FileText, 
-  BarChart3,
+  FileText,
   Tag,
   Image,
   ChevronLeft,
@@ -81,11 +80,6 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({
       path: '/admin/banners', 
       icon: Image, 
       label: 'Banner' 
-    },
-    { 
-      path: '/admin/reports', 
-      icon: BarChart3, 
-      label: 'Báo cáo' 
     },
     { 
       path: '/admin/settings', 
