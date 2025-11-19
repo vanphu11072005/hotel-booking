@@ -1,185 +1,28 @@
-const { 
-  Booking, 
-  Room, 
-  RoomType, 
-  Payment, 
-  User, 
-  Service,
-  ServiceUsage,
-  sequelize, 
-  Sequelize 
-} = require('../databases/models');
-const { Op } = require('sequelize');
-
-// Defensive attribute list for RoomType to avoid selecting a possibly
-// missing `images` column on older DB schemas.
-const roomTypeAttributes = [
-	'id',
-	'name',
-	'description',
-	'base_price',
-	'capacity',
-	'amenities',
-	'created_at',
-	'updated_at',
-];
-
-// Helper to generate a simple booking number
-const generateBookingNumber = () => {
-	const prefix = 'BK';
-	const ts = Date.now();
-	const rand = Math.floor(Math.random() * 9000) + 1000;
-	return `${prefix}-${ts}-${rand}`;
-};
+const bookingService = require('../services/bookingService');
 
 /**
  * Create a new booking
  * POST /api/bookings
  */
 const createBooking = async (req, res, next) => {
-	const t = await sequelize.transaction();
 	try {
-		const user = req.user;
-		const {
-			room_id,
-			check_in_date,
-			check_out_date,
-			guest_count,
-			total_price,
-			notes,
-			payment_method = 'cash',
-			services = [],
-		} = req.body;
-
-		if (!room_id || !check_in_date || !check_out_date || !total_price) {
-			return res.status(400).json({
-				status: 'error',
-				message: 'Missing required booking fields',
-			});
-		}
-
-		// Ensure room exists
-		const room = await Room.findByPk(room_id, {
-			include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }],
-		});
-
-		if (!room) {
-			await t.rollback();
-			return res.status(404).json({ status: 'error', message: 'Room not found' });
-		}
-
-		// Check for overlapping bookings (exclude cancelled)
-		const overlapping = await Booking.findOne({
-			where: {
-				room_id,
-				status: { [Op.ne]: 'cancelled' },
-				[Op.and]: [
-					{ check_in_date: { [Op.lt]: new Date(check_out_date) } },
-					{ check_out_date: { [Op.gt]: new Date(check_in_date) } },
-				],
-			},
-		});
-
-		if (overlapping) {
-			await t.rollback();
-			return res.status(409).json({
-				status: 'error',
-				message: 'Room already booked for the selected dates',
-			});
-		}
-
-		const bookingNumber = generateBookingNumber();
-
-		// Determine if deposit is required (cash payment requires 20% deposit)
-		const requiresDeposit = payment_method === 'cash';
-		const depositPercentage = requiresDeposit ? 20 : 0;
-		const depositAmount = requiresDeposit ? (total_price * depositPercentage) / 100 : 0;
-
-		const booking = await Booking.create(
-			{
-				booking_number: bookingNumber,
-				user_id: user.id,
-				room_id,
-				check_in_date: new Date(check_in_date),
-				check_out_date: new Date(check_out_date),
-				num_guests: guest_count || 1,
-				total_price,
-				special_requests: notes || null,
-				status: 'pending',
-				requires_deposit: requiresDeposit,
-				deposit_paid: false,
-			},
-			{ transaction: t }
+		const result = await bookingService.createBooking(
+			req.user.id,
+			req.body
 		);
-
-		// Create deposit payment record if required
-		if (requiresDeposit) {
-			await Payment.create(
-				{
-					booking_id: booking.id,
-					amount: depositAmount,
-					payment_method: 'bank_transfer', // Deposit must be paid online
-					payment_type: 'deposit',
-					deposit_percentage: depositPercentage,
-					payment_status: 'pending',
-					notes: `Deposit payment (${depositPercentage}%) for booking ${bookingNumber}`,
-				},
-				{ transaction: t }
-			);
-		}
-
-		// Create service usage records if services are selected
-		if (services && services.length > 0) {
-			for (const serviceItem of services) {
-				const { service_id, quantity } = serviceItem;
-				
-				// Get service details to store the price
-				const service = await Service.findByPk(service_id);
-				if (service && service.is_active) {
-					const unitPrice = parseFloat(service.price);
-					const totalServicePrice = unitPrice * quantity;
-					
-					await ServiceUsage.create(
-						{
-							booking_id: booking.id,
-							service_id,
-							quantity,
-							unit_price: unitPrice,
-							total_price: totalServicePrice,
-							usage_date: new Date(check_in_date),
-						},
-						{ transaction: t }
-					);
-				}
-			}
-		}
-
-		await t.commit();
-
-		// Fetch booking with payment info and services
-		const bookingWithPayments = await Booking.findByPk(booking.id, {
-			include: [
-				{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }] },
-				{ model: Payment, as: 'payments' },
-				{ 
-					model: ServiceUsage, 
-					as: 'service_usages',
-					include: [{ model: Service, as: 'service' }]
-				},
-			],
-		});
 
 		return res.status(201).json({
 			success: true,
-			data: {
-				booking: bookingWithPayments,
-			},
-			message: requiresDeposit
-				? `Booking created. Please pay ${depositPercentage}% deposit to confirm.`
-				: 'Booking created successfully',
+			data: { booking: result.booking },
+			message: result.message,
 		});
 	} catch (error) {
-		await t.rollback();
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({
+				status: 'error',
+				message: error.message,
+			});
+		}
 		next(error);
 	}
 };
@@ -190,19 +33,7 @@ const createBooking = async (req, res, next) => {
  */
 const getMyBookings = async (req, res, next) => {
 	try {
-		const user = req.user;
-		const bookings = await Booking.findAll({
-			where: { user_id: user.id },
-			include: [
-				{
-					model: Room,
-					as: 'room',
-					include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }],
-				},
-			],
-			order: [['created_at', 'DESC']],
-		});
-
+		const bookings = await bookingService.getMyBookings(req.user.id);
 		res.status(200).json({ success: true, data: { bookings } });
 	} catch (error) {
 		next(error);
@@ -216,23 +47,18 @@ const getMyBookings = async (req, res, next) => {
 const getBookingById = async (req, res, next) => {
 	try {
 		const { id } = req.params;
-	const booking = await Booking.findByPk(id, {
-		include: [
-			{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type', attributes: roomTypeAttributes }] },
-			{ model: Payment, as: 'payments' },
-			{ model: ServiceUsage, as: 'service_usages', include: [{ model: Service, as: 'service' }] },
-		],
-	});			if (!booking) {
-				return res.status(404).json({ success: false, message: 'Booking not found' });
-			}
-
-		// If user is not owner, restrict access (admins may be allowed later)
-		if (req.user && booking.user_id !== req.user.id) {
-			return res.status(403).json({ status: 'error', message: 'Forbidden' });
-		}
-
+		const booking = await bookingService.getBookingById(
+			id,
+			req.user?.id
+		);
 		res.status(200).json({ success: true, data: { booking } });
 	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({
+				status: 'error',
+				message: error.message,
+			});
+		}
 		next(error);
 	}
 };
@@ -244,30 +70,19 @@ const getBookingById = async (req, res, next) => {
 const cancelBooking = async (req, res, next) => {
 	try {
 		const { id } = req.params;
-		const { reason, details } = req.body;
-		const booking = await Booking.findByPk(id);
-
-		if (!booking) {
-			return res.status(404).json({ success: false, message: 'Booking not found' });
-		}
-
-		if (booking.user_id !== req.user.id) {
-			return res.status(403).json({ status: 'error', message: 'Forbidden' });
-		}
-
-		if (booking.status === 'cancelled') {
-			return res.status(400).json({ status: 'error', message: 'Booking already cancelled' });
-		}
-
-		// Update booking with cancellation info
-		booking.status = 'cancelled';
-		booking.cancellation_reason = reason || null;
-		booking.cancellation_details = details || null;
-		booking.cancelled_at = new Date();
-		await booking.save();
-
+		const booking = await bookingService.cancelBooking(
+			id,
+			req.user.id,
+			req.body
+		);
 		res.status(200).json({ success: true, data: { booking } });
 	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({
+				status: 'error',
+				message: error.message,
+			});
+		}
 		next(error);
 	}
 };
@@ -279,17 +94,17 @@ const cancelBooking = async (req, res, next) => {
 const checkBookingByNumber = async (req, res, next) => {
 	try {
 		const { bookingNumber } = req.params;
-		const booking = await Booking.findOne({
-			where: { booking_number: bookingNumber },
-			include: [{ model: Room, as: 'room' }],
-		});
-
-		if (!booking) {
-			return res.status(404).json({ status: 'error', message: 'Booking not found' });
-		}
-
+		const booking = await bookingService.checkBookingByNumber(
+			bookingNumber
+		);
 		res.status(200).json({ status: 'success', data: { booking } });
 	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({
+				status: 'error',
+				message: error.message,
+			});
+		}
 		next(error);
 	}
 };
@@ -300,72 +115,10 @@ const checkBookingByNumber = async (req, res, next) => {
  */
 const getAllBookings = async (req, res, next) => {
 	try {
-		const {
-			search,
-			status,
-			startDate,
-			endDate,
-			page = 1,
-			limit = 10,
-		} = req.query;
-
-		const whereClause = {};
-
-		// Filter by search (booking_number or user name/email)
-		if (search) {
-			whereClause[Op.or] = [
-				{ booking_number: { [Op.like]: `%${search}%` } },
-			];
-		}
-
-		// Filter by status
-		if (status) {
-			whereClause.status = status;
-		}
-
-		// Filter by date range
-		if (startDate || endDate) {
-			whereClause.check_in_date = {};
-			if (startDate) {
-				whereClause.check_in_date[Op.gte] = new Date(startDate);
-			}
-			if (endDate) {
-				whereClause.check_in_date[Op.lte] = new Date(endDate);
-			}
-		}
-
-		const offset = (parseInt(page) - 1) * parseInt(limit);
-
-		const { count, rows: bookings } = await Booking.findAndCountAll({
-			where: whereClause,
-			include: [
-				{
-					model: User,
-					as: 'user',
-					attributes: ['id', 'full_name', 'email', 'phone'],
-				},
-				{
-					model: Room,
-					as: 'room',
-					attributes: ['id', 'room_number', 'floor'],
-				},
-			],
-			limit: parseInt(limit),
-			offset: offset,
-			order: [['created_at', 'DESC']],
-		});
-
+		const result = await bookingService.getAllBookings(req.query);
 		res.status(200).json({
 			status: 'success',
-			data: {
-				bookings,
-				pagination: {
-					total: count,
-					page: parseInt(page),
-					limit: parseInt(limit),
-					totalPages: Math.ceil(count / parseInt(limit)),
-				},
-			},
+			data: result,
 		});
 	} catch (error) {
 		next(error);
@@ -380,33 +133,22 @@ const updateBooking = async (req, res, next) => {
 	try {
 		const { id } = req.params;
 		const { status } = req.body;
-
-		const booking = await Booking.findByPk(id);
-		if (!booking) {
-			return res.status(404).json({
-				status: 'error',
-				message: 'Booking not found',
-			});
-		}
-
-		// Validate status transition
-		const validStatuses = ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'completed'];
-		if (!validStatuses.includes(status)) {
-			return res.status(400).json({
-				status: 'error',
-				message: 'Invalid status',
-			});
-		}
-
-		// Update booking
-		await booking.update({ status });
-
+		const booking = await bookingService.updateBookingStatus(
+			id,
+			status
+		);
 		res.status(200).json({
 			status: 'success',
 			message: 'Booking updated successfully',
 			data: { booking },
 		});
 	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({
+				status: 'error',
+				message: error.message,
+			});
+		}
 		next(error);
 	}
 };
