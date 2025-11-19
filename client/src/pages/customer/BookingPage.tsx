@@ -263,6 +263,14 @@ const BookingPage: React.FC = () => {
         
         setShowBankModal(true);
         toast.info('Vui lòng xác nhận thông tin chuyển khoản');
+      } else if (bookingData.payment_method === 'vnpay') {
+        // For VNPay payment, create booking and redirect to VNPay payment page
+        sessionStorage.setItem('pendingBookingData', JSON.stringify(bookingData));
+        
+        toast.info('Đang chuyển đến cổng thanh toán VNPay...');
+        
+        // Redirect to VNPay payment page (use room_id as placeholder)
+        navigate(`/vnpay-payment/${room.id}?pending=true`);
       } else {
         // For cash payment, save booking data and redirect to deposit payment page
         // Store booking data in sessionStorage
@@ -918,29 +926,50 @@ const BookingPage: React.FC = () => {
                     </div>
                   </label>
 
+                  {/* VNPay */}
+                  <label 
+                    className="flex items-start p-4 
+                      border-2 border-gray-200 
+                      rounded-lg cursor-pointer 
+                      hover:border-indigo-500 
+                      transition-colors"
+                  >
+                    <input
+                      {...register('paymentMethod')}
+                      type="radio"
+                      value="vnpay"
+                      className="mt-1 mr-3"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center 
+                        gap-2 mb-1"
+                      >
+                        <CreditCard 
+                          className="w-5 h-5 
+                            text-blue-600" 
+                        />
+                        <span className="font-medium 
+                          text-gray-900"
+                        >
+                          Thanh toán qua VNPay
+                        </span>
+                        <span className="text-xs bg-blue-100 
+                          text-blue-700 px-2 py-0.5 rounded"
+                        >
+                          Nhanh chóng & An toàn
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        Thanh toán bằng thẻ ATM, Visa, 
+                        Mastercard qua cổng VNPay
+                      </p>
+                    </div>
+                  </label>
+
                   {errors.paymentMethod && (
                     <p className="text-sm text-red-600">
                       {errors.paymentMethod.message}
                     </p>
-                  )}
-
-                  {/* Bank Transfer Info */}
-                  {paymentMethod === 'bank_transfer' && (
-                    <div 
-                      className="bg-blue-50 border 
-                        border-blue-200 rounded-lg 
-                        p-4 mt-3"
-                    >
-                      <p className="text-sm text-blue-800 
-                        font-medium mb-2"
-                      >
-                        📌 Thông tin chuyển khoản
-                      </p>
-                      <p className="text-sm text-blue-700">
-                        Quét mã QR hoặc chuyển khoản theo 
-                        thông tin sau khi xác nhận đặt phòng.
-                      </p>
-                    </div>
                   )}
                 </div>
               </div>
@@ -1136,6 +1165,8 @@ const BookingPage: React.FC = () => {
                 className={`border rounded-lg p-3 mt-4 ${
                   paymentMethod === 'cash'
                     ? 'bg-orange-50 border-orange-200'
+                    : paymentMethod === 'vnpay'
+                    ? 'bg-blue-50 border-blue-200'
                     : 'bg-yellow-50 border-yellow-200'
                 }`}
               >
@@ -1145,6 +1176,12 @@ const BookingPage: React.FC = () => {
                     qua chuyển khoản sau khi đặt phòng. 
                     Phần còn lại ({formatPrice(totalPrice * 0.8)}) 
                     thanh toán khi nhận phòng.
+                  </p>
+                ) : paymentMethod === 'vnpay' ? (
+                  <p className="text-xs text-blue-800">
+                    💳 <strong>VNPay:</strong> Bạn sẽ được chuyển đến 
+                    cổng thanh toán VNPay để hoàn tất giao dịch 
+                    một cách nhanh chóng và an toàn.
                   </p>
                 ) : (
                   <p className="text-xs text-yellow-800">

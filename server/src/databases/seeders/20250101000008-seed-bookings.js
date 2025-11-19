@@ -33,6 +33,7 @@ module.exports = {
     await queryInterface.bulkInsert('bookings', [
       // Past booking (checked out)
       {
+        id: 1,
         booking_number: 'BK2025010001',
         user_id: 4,
         room_id: pickRoom(0),
@@ -47,6 +48,7 @@ module.exports = {
       },
       // Current booking (checked in)
       {
+        id: 2,
         booking_number: 'BK2025010002',
         user_id: 5,
         room_id: pickRoom(1),
@@ -61,6 +63,7 @@ module.exports = {
       },
       // Upcoming confirmed booking
       {
+        id: 3,
         booking_number: 'BK2025010003',
         user_id: 6,
         room_id: pickRoom(2),
@@ -75,6 +78,7 @@ module.exports = {
       },
       // Pending booking
       {
+        id: 4,
         booking_number: 'BK2025010004',
         user_id: 4,
         room_id: pickRoom(3),
@@ -89,6 +93,7 @@ module.exports = {
       },
       // Upcoming booking for next week
       {
+        id: 5,
         booking_number: 'BK2025010005',
         user_id: 5,
         room_id: pickRoom(4),
@@ -103,6 +108,7 @@ module.exports = {
       },
       // Cancelled booking
       {
+        id: 6,
         booking_number: 'BK2025010006',
         user_id: 6,
         room_id: pickRoom(5),

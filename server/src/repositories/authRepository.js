@@ -14,10 +14,14 @@ class AuthRepository {
   /**
    * Tìm user theo email
    */
-  async findUserByEmail(email, includeRole = false) {
+  async findUserByEmail(email, includeRole = false, includePassword = false) {
     const options = { 
       where: { email } 
     };
+
+    if (!includePassword) {
+      options.attributes = { exclude: ['password'] };
+    }
 
     if (includeRole) {
       options.include = [{
@@ -165,6 +169,68 @@ class AuthRepository {
   async isEmailExists(email) {
     const user = await User.findOne({ where: { email } });
     return !!user;
+  }
+
+  /**
+   * Cập nhật số lần đăng nhập thất bại (không khóa)
+   */
+  async updateLoginAttempts(userId, attempts, lockedUntil, lastFailedLogin) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return await user.update({
+      login_attempts: attempts,
+      locked_until: lockedUntil,
+      last_failed_login: lastFailedLogin
+    });
+  }
+
+  /**
+   * Cập nhật số lần đăng nhập thất bại với lock count
+   */
+  async updateLoginAttemptsWithLock(userId, attempts, lockedUntil, lastFailedLogin, lockCount) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return await user.update({
+      login_attempts: attempts,
+      locked_until: lockedUntil,
+      last_failed_login: lastFailedLogin,
+      lock_count: lockCount
+    });
+  }
+
+  /**
+   * Reset chỉ login attempts (giữ lock_count)
+   */
+  async resetLoginAttemptsOnly(userId) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return await user.update({
+      login_attempts: 0,
+      locked_until: null,
+      last_failed_login: null
+    });
+  }
+
+  /**
+   * Reset tất cả (login attempts + lock_count)
+   */
+  async resetLoginAttempts(userId) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return await user.update({
+      login_attempts: 0,
+      locked_until: null,
+      last_failed_login: null,
+      lock_count: 0
+    });
   }
 }
 

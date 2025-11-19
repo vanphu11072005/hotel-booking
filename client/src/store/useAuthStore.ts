@@ -77,6 +77,13 @@ const useAuthStore = create<AuthState>((set, get) => ({
         // Lưu vào localStorage (chỉ access token)
         localStorage.setItem('token', token);
         localStorage.setItem('userInfo', JSON.stringify(user));
+        
+        // Lưu rememberMe preference
+        if (credentials.rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        } else {
+          localStorage.removeItem('rememberMe');
+        }
 
         // Cập nhật state
         set({
@@ -100,7 +107,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
         isAuthenticated: false 
       });
       
-      toast.error(errorMessage);
+      // Không hiển thị toast, chỉ set error vào state
       throw error;
     }
   },
@@ -125,7 +132,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
         'Đăng ký thất bại. Vui lòng thử lại.';
       
       set({ isLoading: false, error: errorMessage });
-      toast.error(errorMessage);
+      // Không hiển thị toast, chỉ set error vào state
       throw error;
     }
   },
@@ -143,6 +150,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
       // Xóa localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('userInfo');
+      localStorage.removeItem('rememberMe');
 
       // Reset state
       set({

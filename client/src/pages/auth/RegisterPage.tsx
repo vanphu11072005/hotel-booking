@@ -121,17 +121,6 @@ const RegisterPage: React.FC = () => {
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-5"
           >
-            {/* Error Message */}
-            {error && (
-              <div
-                className="bg-red-50 border border-red-200 
-                  text-red-700 px-4 py-3 rounded-lg 
-                  text-sm"
-              >
-                {error}
-              </div>
-            )}
-
             {/* Name Field */}
             <div>
               <label
@@ -199,7 +188,7 @@ const RegisterPage: React.FC = () => {
                     border rounded-lg focus:outline-none 
                     focus:ring-2 transition-colors
                     ${
-                      errors.email
+                      errors.email || error
                         ? 'border-red-300 focus:ring-red-500'
                         : 'border-gray-300 ' +
                           'focus:ring-purple-500'
@@ -210,6 +199,11 @@ const RegisterPage: React.FC = () => {
               {errors.email && (
                 <p className="mt-1 text-sm text-red-600">
                   {errors.email.message}
+                </p>
+              )}
+              {error && !errors.email && (
+                <p className="mt-1 text-sm text-red-600">
+                  {error}
                 </p>
               )}
             </div>

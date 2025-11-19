@@ -104,6 +104,24 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: true
+      },
+      login_attempts: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+      },
+      locked_until: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
+      last_failed_login: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
+      lock_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
       }
     },
     {

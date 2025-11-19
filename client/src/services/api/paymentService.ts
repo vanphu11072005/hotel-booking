@@ -179,7 +179,6 @@ export const getPayments = async (
   return response.data;
 };
 
-
 /**
  * Create VNPay payment URL
  * POST /api/payments/vnpay/create
@@ -192,13 +191,10 @@ export const createVNPayPayment = async (
   data: { payment_url: string; payment_id: number };
   message?: string;
 }> => {
-  const response = await apiClient.post(
-    '/payments/vnpay/create',
-    {
-      payment_id: paymentId,
-      return_url: returnUrl,
-    }
-  );
+  const response = await apiClient.post('/payments/vnpay/create', {
+    payment_id: paymentId,
+    return_url: returnUrl,
+  });
   return response.data;
 };
 
@@ -214,9 +210,7 @@ export const verifyVNPayReturn = async (
   message?: string;
   code?: string;
 }> => {
-  const response = await apiClient.get(
-    `/payments/vnpay/return${queryParams}`
-  );
+  const response = await apiClient.get(`/payments/vnpay/return${queryParams}`);
   return response.data;
 };
 

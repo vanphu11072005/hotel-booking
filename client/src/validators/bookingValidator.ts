@@ -33,10 +33,10 @@ export const bookingValidationSchema = yup.object().shape({
     .optional(),
 
   paymentMethod: yup
-    .mixed<'cash' | 'bank_transfer'>()
+    .mixed<'cash' | 'bank_transfer' | 'vnpay'>()
     .required('Vui lòng chọn phương thức thanh toán')
     .oneOf(
-      ['cash', 'bank_transfer'],
+      ['cash', 'bank_transfer', 'vnpay'],
       'Phương thức thanh toán không hợp lệ'
     ),
 

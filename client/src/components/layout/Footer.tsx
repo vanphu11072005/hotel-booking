@@ -157,7 +157,7 @@ const Footer: React.FC = () => {
                   flex-shrink-0 mt-0.5" 
                 />
                 <span className="text-sm">
-                  123 Đường ABC, Quận 1, TP.HCM
+                  123 Đường Võ Nguyên Giáp, Quận Sơn Trà, Đà Nẵng
                 </span>
               </li>
               <li className="flex items-center space-x-3">
@@ -165,7 +165,7 @@ const Footer: React.FC = () => {
                   flex-shrink-0" 
                 />
                 <span className="text-sm">
-                  (028) 1234 5678
+                  (0236) 3847 333
                 </span>
               </li>
               <li className="flex items-center space-x-3">
