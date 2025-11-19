@@ -4,10 +4,18 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     const rooms = [];
+    // Base timestamp (30 days ago)
+    const baseTime = new Date();
+    baseTime.setDate(baseTime.getDate() - 30);
+    let roomIndex = 0;
     
     // Standard Single Rooms (Floor 1-2)
     for (let floor = 1; floor <= 2; floor++) {
       for (let room = 1; room <= 5; room++) {
+        // Each room created 1 day after previous
+        const createdAt = new Date(baseTime);
+        createdAt.setDate(createdAt.getDate() + roomIndex);
+        
         rooms.push({
           room_type_id: 1,
           room_number: `${floor}0${room}`,
@@ -24,15 +32,20 @@ module.exports = {
           ]),
           description: 
             `Standard single room on floor ${floor}`,
-          created_at: new Date(),
-          updated_at: new Date()
+          created_at: createdAt,
+          updated_at: createdAt
         });
+        
+        roomIndex++;
       }
     }
 
     // Standard Double Rooms (Floor 3-4)
     for (let floor = 3; floor <= 4; floor++) {
       for (let room = 1; room <= 8; room++) {
+        const createdAt = new Date(baseTime);
+        createdAt.setDate(createdAt.getDate() + roomIndex);
+        
         rooms.push({
           room_type_id: 2,
           room_number: `${floor}0${room}`,
@@ -49,15 +62,20 @@ module.exports = {
           ]),
           description: 
             `Standard double room on floor ${floor}`,
-          created_at: new Date(),
-          updated_at: new Date()
+          created_at: createdAt,
+          updated_at: createdAt
         });
+        
+        roomIndex++;
       }
     }
 
     // Deluxe Rooms (Floor 5-7)
     for (let floor = 5; floor <= 7; floor++) {
       for (let room = 1; room <= 6; room++) {
+        const createdAt = new Date(baseTime);
+        createdAt.setDate(createdAt.getDate() + roomIndex);
+        
         rooms.push({
           room_type_id: 3,
           room_number: `${floor}0${room}`,
@@ -73,15 +91,20 @@ module.exports = {
           ]),
           description: 
             `Deluxe room on floor ${floor} with city view`,
-          created_at: new Date(),
-          updated_at: new Date()
+          created_at: createdAt,
+          updated_at: createdAt
         });
+        
+        roomIndex++;
       }
     }
 
     // Family Suites (Floor 8-9)
     for (let floor = 8; floor <= 9; floor++) {
       for (let room = 1; room <= 4; room++) {
+        const createdAt = new Date(baseTime);
+        createdAt.setDate(createdAt.getDate() + roomIndex);
+        
         rooms.push({
           room_type_id: 4,
           room_number: `${floor}0${room}`,
@@ -98,14 +121,19 @@ module.exports = {
           ]),
           description: 
             `Family suite on floor ${floor}`,
-          created_at: new Date(),
-          updated_at: new Date()
+          created_at: createdAt,
+          updated_at: createdAt
         });
+        
+        roomIndex++;
       }
     }
 
     // Presidential Suites (Floor 10)
     for (let room = 1; room <= 2; room++) {
+      const createdAt = new Date(baseTime);
+      createdAt.setDate(createdAt.getDate() + roomIndex);
+      
       rooms.push({
         room_type_id: 5,
         room_number: `100${room}`,
@@ -123,9 +151,11 @@ module.exports = {
         ]),
         description: 
           'Presidential suite with panoramic city view',
-        created_at: new Date(),
-        updated_at: new Date()
+        created_at: createdAt,
+        updated_at: createdAt
       });
+      
+      roomIndex++;
     }
 
     // Mark some rooms as occupied for realism
@@ -134,39 +164,30 @@ module.exports = {
     rooms[12].status = 'cleaning';
     rooms[20].status = 'maintenance';
 
-    // Ensure there are always 10 featured rooms in the seed data.
-    // Strategy: prefer higher-tier room types first (presidential ->
-    // family -> deluxe -> double -> single) and mark rooms until
-    // we reach `desiredFeaturedCount`.
-    const desiredFeaturedCount = 10;
-    let featuredMarked = 0;
-
-    // Helper: mark room at index if exists and not already featured
-    const markIf = (idx) => {
-      if (idx >= 0 && idx < rooms.length && !rooms[idx].featured) {
+    // Randomly select 3 room types from 5 available types
+    // Each selected type will have 3 featured rooms
+    const allRoomTypes = [1, 2, 3, 4, 5];
+    
+    // Shuffle array and pick first 3
+    const shuffled = allRoomTypes.sort(() => Math.random() - 0.5);
+    const selectedTypes = shuffled.slice(0, 3);
+    
+    console.log('Selected featured room types:', selectedTypes);
+    
+    // Mark 3 rooms as featured for each selected type
+    for (const typeId of selectedTypes) {
+      const roomsOfType = rooms
+        .map((room, idx) => ({ room, idx }))
+        .filter(({ room }) => room.room_type_id === typeId);
+      
+      // Randomly select 3 rooms of this type
+      const shuffledRooms = roomsOfType.sort(() => Math.random() - 0.5);
+      const selectedRooms = shuffledRooms.slice(0, 3);
+      
+      // Mark them as featured
+      selectedRooms.forEach(({ idx }) => {
         rooms[idx].featured = true;
-        featuredMarked += 1;
-      }
-    };
-
-    // Priority order by room_type_id (higher-tier first)
-    const priority = [5, 4, 3, 2, 1];
-
-    for (const typeId of priority) {
-      if (featuredMarked >= desiredFeaturedCount) break;
-
-      // iterate rooms and pick the first ones of this type
-      for (let i = 0; i < rooms.length; i++) {
-        if (rooms[i].room_type_id === typeId) {
-          markIf(i);
-          if (featuredMarked >= desiredFeaturedCount) break;
-        }
-      }
-    }
-
-    // If still not enough, mark remaining rooms starting from end
-    for (let i = rooms.length - 1; i >= 0 && featuredMarked < desiredFeaturedCount; i--) {
-      markIf(i);
+      });
     }
 
     await queryInterface.bulkInsert('rooms', rooms);

@@ -27,6 +27,7 @@ import {
 // Pages
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/customer/AboutPage';
+import ServicesPage from './pages/ServicesPage';
 import RoomListPage from 
   './pages/customer/RoomListPage';
 import RoomDetailPage from 
@@ -45,12 +46,12 @@ import BookingDetailPage from
   './pages/customer/BookingDetailPage';
 import DepositPaymentPage from 
   './pages/customer/DepositPaymentPage';
-import VNPayReturnPage from
-  './pages/customer/VNPayReturnPage';
 import PaymentConfirmationPage from 
   './pages/customer/PaymentConfirmationPage';
 import PaymentResultPage from 
   './pages/customer/PaymentResultPage';
+import VNPayReturnPage from
+  './pages/customer/VNPayReturnPage';
 import { 
   LoginPage, 
   RegisterPage,
@@ -98,7 +99,8 @@ function App() {
     isAuthenticated, 
     userInfo, 
     logout, 
-    initializeAuth 
+    initializeAuth,
+    refreshAuthToken
   } = useAuthStore();
   
   const { 
@@ -111,6 +113,19 @@ function App() {
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
+
+  // Auto-refresh token mỗi 50 phút nếu rememberMe enabled
+  useEffect(() => {
+    if (isAuthenticated && localStorage.getItem('rememberMe') === 'true') {
+      const interval = setInterval(() => {
+        refreshAuthToken().catch((err) => {
+          console.error('Auto refresh token failed:', err);
+        });
+      }, 50 * 60 * 1000); // 50 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, refreshAuthToken]);
 
   // Load favorites when authenticated or load guest favorites
   useEffect(() => {
@@ -171,8 +186,16 @@ function App() {
             element={<PaymentResultPage />} 
           />
           <Route 
+            path="payment/vnpay-return" 
+            element={<VNPayReturnPage />} 
+          />
+          <Route 
             path="about" 
             element={<AboutPage />} 
+          />
+          <Route 
+            path="services" 
+            element={<ServicesPage />} 
           />
           
           <Route 
@@ -198,10 +221,6 @@ function App() {
                 <DepositPaymentPage />
               </ProtectedRoute>
             } 
-          />
-          <Route 
-            path="payment/vnpay-return" 
-            element={<VNPayReturnPage />} 
           />
           <Route 
             path="bookings" 

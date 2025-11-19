@@ -80,7 +80,7 @@ class AuthService {
     // Check if email exists
     const emailExists = await authRepository.isEmailExists(email);
     if (emailExists) {
-      throw new Error('Email already registered');
+      throw new Error('Email đã được đăng ký');
     }
 
     // Hash password
@@ -170,19 +170,68 @@ class AuthService {
   }
 
   /**
+   * Calculate lock duration based on consecutive locks
+   * First lock: 5 minutes
+   * Second lock (within same session): 15 minutes
+   * Third lock: 30 minutes
+   * Fourth+ lock: 60 minutes
+   */
+  calculateLockDuration(lockCount) {
+    if (lockCount === 1) return 5 * 60 * 1000; // 5 minutes
+    if (lockCount === 2) return 15 * 60 * 1000; // 15 minutes
+    if (lockCount === 3) return 30 * 60 * 1000; // 30 minutes
+    return 60 * 60 * 1000; // 60 minutes
+  }
+
+  /**
+   * Format lock duration for display
+   */
+  formatLockDuration(milliseconds) {
+    const minutes = Math.ceil(milliseconds / (60 * 1000));
+    if (minutes < 60) {
+      return `${minutes} phút`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) {
+      return `${hours} giờ`;
+    }
+    return `${hours} giờ ${remainingMinutes} phút`;
+  }
+
+  /**
    * Login user
    */
   async login(data) {
     const { email, password, rememberMe } = data;
 
-    // Find user with role
+    // Find user with role (include password for verification)
     const user = await authRepository.findUserByEmail(
       email, 
-      true
+      true,
+      true // include password
     );
 
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new Error('Email hoặc mật khẩu không đúng');
+    }
+
+    // Check if account is locked
+    if (user.locked_until && new Date() < user.locked_until) {
+      const remainingTime = user.locked_until - new Date();
+      const duration = this.formatLockDuration(remainingTime);
+      throw new Error(
+        `Tài khoản đã bị khóa do nhập sai mật khẩu quá nhiều lần. ` +
+        `Vui lòng thử lại sau ${duration}.|${user.locked_until.toISOString()}`
+      );
+    }
+
+    // Reset login attempts if lock has expired
+    // Keep lock_count to track consecutive locks
+    if (user.locked_until && new Date() >= user.locked_until) {
+      await authRepository.resetLoginAttemptsOnly(user.id);
+      user.login_attempts = 0;
+      user.locked_until = null;
     }
 
     // Check password
@@ -192,7 +241,64 @@ class AuthService {
     );
     
     if (!isPasswordValid) {
-      throw new Error('Invalid email or password');
+      // Increment login attempts
+      const newAttempts = (user.login_attempts || 0) + 1;
+      const now = new Date();
+
+      // First attempt - just show generic error without counting down
+      if (newAttempts === 1) {
+        await authRepository.updateLoginAttempts(
+          user.id,
+          newAttempts,
+          null,
+          now
+        );
+        throw new Error('Email hoặc mật khẩu không đúng');
+      }
+
+      // From 2nd attempt onwards, show remaining tries (5,4,3,2,1)
+      // Lock after 6th attempt (when remaining = 0)
+      if (newAttempts >= 7) {
+        // Increment lock count for progressive locking
+        const newLockCount = (user.lock_count || 0) + 1;
+        const lockDuration = this.calculateLockDuration(newLockCount);
+        const lockedUntil = new Date(now.getTime() + lockDuration);
+        
+        await authRepository.updateLoginAttemptsWithLock(
+          user.id,
+          newAttempts,
+          lockedUntil,
+          now,
+          newLockCount
+        );
+
+        const duration = this.formatLockDuration(lockDuration);
+        throw new Error(
+          `Tài khoản đã bị khóa do nhập sai mật khẩu quá nhiều lần. ` +
+          `Vui lòng thử lại sau ${duration}.|${lockedUntil.toISOString()}`
+        );
+      } else {
+        // Show countdown from 2nd to 6th attempt
+        await authRepository.updateLoginAttempts(
+          user.id,
+          newAttempts,
+          null,
+          now
+        );
+
+        // Calculate remaining attempts (7 total - current attempts)
+        // newAttempts=2 → 5 remaining, newAttempts=3 → 4 remaining, etc.
+        const remainingAttempts = 7 - newAttempts;
+        throw new Error(
+          `Email hoặc mật khẩu không đúng. ` +
+          `Còn ${remainingAttempts} lần thử trước khi tài khoản bị khóa.`
+        );
+      }
+    }
+
+    // Reset login attempts AND lock_count on successful login
+    if (user.login_attempts > 0 || user.lock_count > 0) {
+      await authRepository.resetLoginAttempts(user.id);
     }
 
     // Generate tokens

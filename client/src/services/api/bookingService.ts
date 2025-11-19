@@ -7,7 +7,7 @@ export interface BookingData {
   check_out_date: string; // YYYY-MM-DD
   guest_count: number;
   notes?: string;
-  payment_method: 'cash' | 'bank_transfer';
+  payment_method: 'cash' | 'bank_transfer' | 'vnpay';
   total_price: number;
   guest_info: {
     full_name: string;
@@ -36,7 +36,7 @@ export interface Booking {
     | 'cancelled' 
     | 'checked_in' 
     | 'checked_out';
-  payment_method: 'cash' | 'bank_transfer';
+  payment_method: 'cash' | 'bank_transfer' | 'vnpay';
   payment_status: 
     | 'unpaid' 
     | 'paid' 

@@ -143,7 +143,7 @@ const notifyPayment = async (req, res, next) => {
 };
 
 /**
- * Create VNPay payment URL
+ * Tạo URL thanh toán VNPay
  * POST /api/payments/vnpay/create
  */
 const createVNPayPayment = async (req, res, next) => {
@@ -152,9 +152,9 @@ const createVNPayPayment = async (req, res, next) => {
 		const { payment_id, return_url } = req.body;
 
 		if (!payment_id) {
-			return res.status(400).json({ 
-				success: false, 
-				message: 'Missing payment_id' 
+			return res.status(400).json({
+				success: false,
+				message: 'Missing payment_id',
 			});
 		}
 
@@ -163,40 +163,65 @@ const createVNPayPayment = async (req, res, next) => {
 		});
 
 		if (!payment) {
-			return res.status(404).json({ 
-				success: false, 
-				message: 'Payment not found' 
+			return res.status(404).json({
+				success: false,
+				message: 'Payment not found',
 			});
 		}
 
 		if (!payment.booking || payment.booking.user_id !== user.id) {
-			return res.status(403).json({ 
-				success: false, 
-				message: 'Unauthorized' 
+			return res.status(403).json({
+				success: false,
+				message: 'Unauthorized',
 			});
 		}
 
 		if (payment.payment_status === 'completed') {
-			return res.status(400).json({ 
-				success: false, 
-				message: 'Payment already completed' 
+			return res.status(400).json({
+				success: false,
+				message: 'Payment already completed',
 			});
 		}
 
 		// Get client IP
-		const ipAddr = req.headers['x-forwarded-for'] || 
-		               req.connection.remoteAddress || 
-		               req.socket.remoteAddress || 
-		               '127.0.0.1';
+		let ipAddr =
+			req.headers['x-forwarded-for'] ||
+			req.connection.remoteAddress ||
+			req.socket.remoteAddress ||
+			'127.0.0.1';
 
-		// Create VNPay payment URL
+		// Extract IPv4 address
+		if (ipAddr.includes(':')) {
+			ipAddr = ipAddr.split(':').pop();
+		}
+
+		// Validate IPv4 format
+		const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+		if (!ipv4Regex.test(ipAddr)) {
+			ipAddr = '127.0.0.1';
+		}
+
+		// Create VNPay payment URL using vnpay library
+		const orderId = `${payment.id}${Date.now()}`;
+		const orderInfo = `Deposit payment for booking ${payment.booking.booking_number}`;
+		const amount = parseFloat(payment.amount);
+
+		if (isNaN(amount) || amount <= 0) {
+			return res.status(400).json({
+				success: false,
+				message: 'Invalid payment amount',
+			});
+		}
+
 		const paymentUrl = vnpayService.createPaymentUrl({
-			amount: parseFloat(payment.amount),
-			orderInfo: `Thanh toan dat coc ${payment.booking.booking_number}`,
-			orderId: `${payment.booking.booking_number}-${payment.id}`,
-			ipAddr: ipAddr.split(':').pop(), // Remove IPv6 prefix if present
-			returnUrl: return_url,
+			amount: amount,
+			orderInfo: orderInfo,
+			orderId: orderId,
+			ipAddr: ipAddr,
+			returnUrl: return_url || process.env.VNP_RETURN_URL,
 		});
+
+		console.log('VNPay Payment URL created:', paymentUrl);
 
 		return res.status(200).json({
 			success: true,
@@ -212,7 +237,7 @@ const createVNPayPayment = async (req, res, next) => {
 };
 
 /**
- * Handle VNPay return
+ * Xử lý callback từ VNPay
  * GET /api/payments/vnpay/return
  */
 const handleVNPayReturn = async (req, res, next) => {
@@ -229,10 +254,11 @@ const handleVNPayReturn = async (req, res, next) => {
 			});
 		}
 
-		const { orderId, responseCode, transactionNo, amount } = verifyResult.data;
+		const { vnp_TxnRef, vnp_ResponseCode, vnp_TransactionNo, vnp_Amount } =
+			vnpParams;
 
-		// Extract payment_id from orderId (format: BOOKING_NUMBER-PAYMENT_ID)
-		const paymentId = orderId.split('-').pop();
+		// Extract payment_id from orderId
+		const paymentId = vnp_TxnRef.replace(/\d{13}$/, ''); // Remove timestamp
 
 		const payment = await Payment.findByPk(paymentId, {
 			include: [{ model: Booking, as: 'booking' }],
@@ -246,11 +272,11 @@ const handleVNPayReturn = async (req, res, next) => {
 		}
 
 		// Check response code (00 = success)
-		if (responseCode === '00') {
+		if (vnp_ResponseCode === '00') {
 			// Payment successful
 			payment.payment_status = 'completed';
 			payment.payment_date = new Date();
-			payment.transaction_id = transactionNo;
+			payment.transaction_id = vnp_TransactionNo;
 			payment.payment_method = 'vnpay';
 			await payment.save();
 
@@ -271,13 +297,13 @@ const handleVNPayReturn = async (req, res, next) => {
 		} else {
 			// Payment failed
 			payment.payment_status = 'failed';
-			payment.notes = `VNPay error: ${responseCode}`;
+			payment.notes = `VNPay error: ${vnp_ResponseCode}`;
 			await payment.save();
 
 			return res.status(400).json({
 				success: false,
 				message: 'Payment failed',
-				code: responseCode,
+				code: vnp_ResponseCode,
 				data: { payment },
 			});
 		}

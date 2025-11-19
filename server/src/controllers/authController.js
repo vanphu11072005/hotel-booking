@@ -34,7 +34,7 @@ const register = async (req, res, next) => {
       data: dataWithoutRefreshToken
     });
   } catch (error) {
-    if (error.message === 'Email already registered') {
+    if (error.message === 'Email đã được đăng ký') {
       return res.status(400).json({
         status: 'error',
         message: error.message
@@ -79,7 +79,12 @@ const login = async (req, res, next) => {
       data: dataWithoutRefreshToken
     });
   } catch (error) {
-    if (error.message === 'Invalid email or password') {
+    // Handle login errors (wrong password, account locked, etc.)
+    if (
+      error.message.includes('Email hoặc mật khẩu không đúng') ||
+      error.message.includes('Tài khoản đã bị khóa') ||
+      error.message.includes('Còn') && error.message.includes('lần thử')
+    ) {
       return res.status(401).json({
         status: 'error',
         message: error.message

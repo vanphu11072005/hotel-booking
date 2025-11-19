@@ -48,10 +48,10 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - Xử lý lỗi chung
+// Response interceptor - Xử lý lỗi chung và auto-refresh token
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     // Handle network errors
     if (!error.response) {
       console.error('Network error:', error);
@@ -63,11 +63,44 @@ apiClient.interceptors.response.use(
       });
     }
 
-    if (error.response?.status === 401) {
-      // Token hết hạn hoặc không hợp lệ
-      localStorage.removeItem('token');
-      localStorage.removeItem('userInfo');
-      window.location.href = '/login';
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Không redirect nếu đang ở trang login/register
+      const isAuthEndpoint = error.config?.url?.includes('/auth/login') || 
+                             error.config?.url?.includes('/auth/register') ||
+                             error.config?.url?.includes('/auth/refresh');
+      
+      if (!isAuthEndpoint && localStorage.getItem('rememberMe') === 'true') {
+        // Try to refresh token
+        originalRequest._retry = true;
+
+        try {
+          const response = await apiClient.post('/auth/refresh');
+          
+          if (response.data?.data?.token) {
+            const newToken = response.data.data.token;
+            localStorage.setItem('token', newToken);
+            
+            // Retry original request with new token
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            return apiClient(originalRequest);
+          }
+        } catch (refreshError) {
+          // Refresh failed, logout user
+          localStorage.removeItem('token');
+          localStorage.removeItem('userInfo');
+          localStorage.removeItem('rememberMe');
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        }
+      } else if (!isAuthEndpoint) {
+        // Token hết hạn và không có rememberMe
+        localStorage.removeItem('token');
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('rememberMe');
+        window.location.href = '/login';
+      }
     }
 
     // Handle other HTTP errors

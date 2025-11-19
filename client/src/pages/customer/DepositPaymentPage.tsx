@@ -197,6 +197,68 @@ const DepositPaymentPage: React.FC = () => {
     }
   }, [selectedPaymentMethod, depositPayment, booking, pendingBookingData]);
 
+  // Handler for VNPay payment
+  const handleVNPayPayment = async () => {
+    try {
+      setLoading(true);
+
+      // Case 1: Pending booking - create booking first
+      if (pendingBookingData) {
+        const bookingResponse = await createBooking(pendingBookingData);
+
+        if (bookingResponse.success && bookingResponse.data) {
+          const newBooking = bookingResponse.data.booking;
+
+          // Find deposit payment from payments array
+          const depositPayment = newBooking.payments?.find(
+            (p: any) => p.payment_type === 'deposit'
+          );
+
+          if (depositPayment) {
+            // Create VNPay payment URL
+            const vnpayResponse = await createVNPayPayment(
+              depositPayment.id
+            );
+
+            if (vnpayResponse.success && vnpayResponse.data.payment_url) {
+              // Redirect to VNPay
+              window.location.href = vnpayResponse.data.payment_url;
+            } else {
+              toast.error(vnpayResponse.message || 
+                'Không thể tạo thanh toán VNPay');
+            }
+          } else {
+            toast.error('Không tìm thấy thông tin thanh toán');
+          }
+        } else {
+          toast.error(bookingResponse.message || 
+            'Không thể tạo booking');
+        }
+      }
+      // Case 2: Existing booking
+      else if (depositPayment) {
+        // Create VNPay payment URL
+        const vnpayResponse = await createVNPayPayment(
+          depositPayment.id
+        );
+
+        if (vnpayResponse.success && vnpayResponse.data.payment_url) {
+          // Redirect to VNPay
+          window.location.href = vnpayResponse.data.payment_url;
+        } else {
+          toast.error(vnpayResponse.message || 
+            'Không thể tạo thanh toán VNPay');
+        }
+      }
+    } catch (err: any) {
+      console.error('VNPay payment error:', err);
+      toast.error(err.response?.data?.message || 
+        'Có lỗi xảy ra khi tạo thanh toán VNPay');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // No auto-redirect payment methods. Default to bank transfer.
 
   const handleNotifyPayment = async () => {
@@ -264,82 +326,6 @@ const DepositPaymentPage: React.FC = () => {
       setNotifying(false);
     }
   };
-
-  const handleVNPayPayment = async () => {
-    try {
-      setNotifying(true);
-
-      // Case 1: Pending booking - create booking first
-      if (pendingBookingData) {
-        const bookingResponse = await createBooking(pendingBookingData);
-
-        if (bookingResponse.success && bookingResponse.data) {
-          const newBooking = bookingResponse.data.booking;
-          const newBookingId = newBooking.id;
-
-          // Find deposit payment from payments array
-          const depositPayment = newBooking.payments?.find(
-            (p: any) => p.payment_type === 'deposit'
-          );
-
-          if (!depositPayment) {
-            throw new Error('Không tìm thấy thông tin thanh toán đặt cọc');
-          }
-
-          // Clear pending data
-          sessionStorage.removeItem('pendingBookingData');
-
-          // Create VNPay payment URL
-          const returnUrl = `${window.location.origin}/payment/vnpay-return?booking_id=${newBookingId}&payment_id=${depositPayment.id}`;
-
-          const response = await createVNPayPayment(
-            depositPayment.id,
-            returnUrl
-          );
-
-          if (response.success && response.data.payment_url) {
-            toast.info('Đang chuyển đến cổng thanh toán VNPay...');
-            window.location.href = response.data.payment_url;
-          } else {
-            throw new Error(
-              response.message || 'Không thể tạo thanh toán VNPay'
-            );
-          }
-        } else {
-          throw new Error(
-            bookingResponse.message || 'Không thể tạo đặt phòng'
-          );
-        }
-      }
-      // Case 2: Existing booking - create VNPay payment
-      else if (depositPayment) {
-        const returnUrl = `${window.location.origin}/payment/vnpay-return?booking_id=${bookingId}&payment_id=${depositPayment.id}`;
-
-        const response = await createVNPayPayment(
-          depositPayment.id,
-          returnUrl
-        );
-
-        if (response.success && response.data.payment_url) {
-          toast.info('Đang chuyển đến cổng thanh toán VNPay...');
-          window.location.href = response.data.payment_url;
-        } else {
-          throw new Error(
-            response.message || 'Không thể tạo thanh toán VNPay'
-          );
-        }
-      }
-    } catch (err: any) {
-      console.error('Error creating VNPay payment:', err);
-      const message =
-        err.response?.data?.message ||
-        'Không thể tạo thanh toán VNPay. Vui lòng thử lại.';
-      toast.error(message);
-      setNotifying(false);
-    }
-  };
-
-  // VNPay removed: no online redirect handler
 
   if (loading) {
     return <Loading fullScreen text="Đang tải..." />;
@@ -784,10 +770,15 @@ const DepositPaymentPage: React.FC = () => {
 
                   <button
                     onClick={handleVNPayPayment}
-                    disabled={notifying}
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-blue-600 
+                      to-blue-700 text-white py-3 rounded-lg 
+                      transition-all font-semibold shadow-lg 
+                      flex items-center justify-center gap-2
+                      hover:from-blue-700 hover:to-blue-800
+                      disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {notifying ? (
+                    {loading ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
                         Đang xử lý...
@@ -801,7 +792,7 @@ const DepositPaymentPage: React.FC = () => {
                   </button>
 
                   <p className="text-xs text-center text-gray-500">
-                    Bạn sẽ được chuyển đến cổng thanh toán VNPay để hoàn tất giao dịch
+                    Hỗ trợ thẻ ATM, thẻ tín dụng, ví điện tử
                   </p>
                 </div>
               </div>

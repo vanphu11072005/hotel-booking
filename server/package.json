@@ -36,7 +36,8 @@
     "nodemailer": "^7.0.10",
     "qrcode": "^1.5.4",
     "sequelize": "^6.35.1",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "vnpay": "^2.4.4"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",

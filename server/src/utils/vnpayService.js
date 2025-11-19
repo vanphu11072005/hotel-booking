@@ -1,132 +1,116 @@
-const crypto = require('crypto');
-const querystring = require('querystring');
+const { VNPay, ignoreLogger } = require('vnpay');
 
-// Helper function to format date as yyyyMMddHHmmss
-function formatDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  return `${year}${month}${day}${hours}${minutes}${seconds}`;
-}
+// Khởi tạo VNPay instance
+const vnpay = new VNPay({
+  // Cấu hình bắt buộc
+  tmnCode: process.env.VNP_TMN_CODE || '2QXUI4B4',
+  secureSecret: process.env.VNP_HASH_SECRET || 'your-secret-key',
+  vnpayHost: 'https://sandbox.vnpayment.vn',
 
-// VNPay configuration
-const vnpayConfig = {
-  vnp_TmnCode: process.env.VNP_TMN_CODE || 'YOUR_TMN_CODE',
-  vnp_HashSecret: process.env.VNP_HASH_SECRET || 'YOUR_HASH_SECRET',
-  vnp_Url: process.env.VNP_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
-  vnp_ReturnUrl: process.env.VNP_RETURN_URL || 'http://localhost:5173/payment/vnpay-return',
+  // Cấu hình tùy chọn
+  testMode: true, // Chế độ sandbox
+  hashAlgorithm: 'SHA512',
+  enableLog: true,
+  loggerFn: ignoreLogger,
+});
+
+/**
+ * Tạo URL thanh toán VNPay
+ */
+const createPaymentUrl = ({ amount, orderInfo, orderId, ipAddr, returnUrl }) => {
+  try {
+    const paymentUrl = vnpay.buildPaymentUrl({
+      vnp_Amount: amount, // Số tiền (VND)
+      vnp_IpAddr: ipAddr,
+      vnp_TxnRef: orderId, // Mã đơn hàng
+      vnp_OrderInfo: orderInfo, // Thông tin đơn hàng
+      vnp_OrderType: 'other',
+      vnp_ReturnUrl: returnUrl || process.env.VNP_RETURN_URL,
+      vnp_Locale: 'vn', // Ngôn ngữ (vn/en)
+    });
+
+    return paymentUrl;
+  } catch (error) {
+    console.error('Error creating VNPay payment URL:', error);
+    throw error;
+  }
 };
 
 /**
- * Sort object by keys
+ * Xác thực callback từ VNPay
  */
-function sortObject(obj) {
-  const sorted = {};
-  const keys = Object.keys(obj).sort();
-  keys.forEach((key) => {
-    sorted[key] = obj[key];
-  });
-  return sorted;
-}
+const verifyReturn = (query) => {
+  try {
+    const verify = vnpay.verifyReturnUrl(query);
+    return {
+      isValid: verify.isSuccess,
+      isVerified: verify.isVerified,
+      message: verify.message,
+      data: query,
+    };
+  } catch (error) {
+    console.error('Error verifying VNPay return URL:', error);
+    throw error;
+  }
+};
 
 /**
- * Create HMAC SHA512 signature
+ * Query thông tin giao dịch
  */
-function createSignature(data, secretKey) {
-  const hmac = crypto.createHmac('sha512', secretKey);
-  const signed = hmac.update(Buffer.from(data, 'utf-8')).digest('hex');
-  return signed;
-}
+const queryTransaction = async ({
+  transactionNo,
+  txnRef,
+  transDate,
+  orderId,
+  ipAddr,
+}) => {
+  try {
+    const result = await vnpay.queryDr({
+      vnp_TransactionNo: transactionNo,
+      vnp_TxnRef: txnRef,
+      vnp_TransDate: transDate,
+      vnp_OrderInfo: orderId,
+      vnp_IpAddr: ipAddr,
+    });
+    return result;
+  } catch (error) {
+    console.error('Error querying VNPay transaction:', error);
+    throw error;
+  }
+};
 
 /**
- * Create VNPay payment URL
- * @param {Object} params - Payment parameters
- * @param {number} params.amount - Amount in VND
- * @param {string} params.orderInfo - Order description
- * @param {string} params.orderId - Order ID (booking number)
- * @param {string} params.ipAddr - Client IP address
- * @param {string} params.returnUrl - Custom return URL (optional)
- * @returns {string} Payment URL
+ * Hoàn tiền giao dịch
  */
-function createPaymentUrl(params) {
-  const {
-    amount,
-    orderInfo,
-    orderId,
-    ipAddr,
-    returnUrl,
-  } = params;
-
-  const createDate = formatDate(new Date());
-  const expireDate = formatDate(new Date(Date.now() + 15 * 60 * 1000)); // 15 minutes
-
-  let vnpParams = {
-    vnp_Version: '2.1.0',
-    vnp_Command: 'pay',
-    vnp_TmnCode: vnpayConfig.vnp_TmnCode,
-    vnp_Locale: 'vn',
-    vnp_CurrCode: 'VND',
-    vnp_TxnRef: String(orderId),
-    vnp_OrderInfo: String(orderInfo),
-    vnp_OrderType: 'other',
-    vnp_Amount: Math.round(amount * 100), // VNPay expects amount as integer in smallest unit (xu)
-    vnp_ReturnUrl: returnUrl || vnpayConfig.vnp_ReturnUrl,
-    vnp_IpAddr: String(ipAddr),
-    vnp_CreateDate: createDate,
-    vnp_ExpireDate: expireDate,
-  };
-
-  vnpParams = sortObject(vnpParams);
-
-  const signData = querystring.stringify(vnpParams, { encode: false });
-  const secureHash = createSignature(signData, vnpayConfig.vnp_HashSecret);
-  vnpParams.vnp_SecureHash = secureHash;
-
-  const paymentUrl = vnpayConfig.vnp_Url + '?' + querystring.stringify(vnpParams, { encode: false });
-  
-  return paymentUrl;
-}
-
-/**
- * Verify VNPay return/IPN data
- * @param {Object} vnpParams - Query parameters from VNPay
- * @returns {Object} { isValid: boolean, data: Object }
- */
-function verifyReturn(vnpParams) {
-  const secureHash = vnpParams.vnp_SecureHash;
-  
-  // Remove hash params
-  delete vnpParams.vnp_SecureHash;
-  delete vnpParams.vnp_SecureHashType;
-
-  // Sort params
-  const sortedParams = sortObject(vnpParams);
-  const signData = querystring.stringify(sortedParams, { encode: false });
-  const checkSum = createSignature(signData, vnpayConfig.vnp_HashSecret);
-
-  const isValid = secureHash === checkSum;
-
-  return {
-    isValid,
-    data: {
-      orderId: vnpParams.vnp_TxnRef,
-      amount: parseInt(vnpParams.vnp_Amount) / 100,
-      orderInfo: vnpParams.vnp_OrderInfo,
-      responseCode: vnpParams.vnp_ResponseCode,
-      transactionNo: vnpParams.vnp_TransactionNo,
-      bankCode: vnpParams.vnp_BankCode,
-      payDate: vnpParams.vnp_PayDate,
-      transactionStatus: vnpParams.vnp_TransactionStatus,
-    },
-  };
-}
+const refundTransaction = async ({
+  transactionNo,
+  amount,
+  txnRef,
+  transDate,
+  createBy,
+  ipAddr,
+}) => {
+  try {
+    const result = await vnpay.refund({
+      vnp_Amount: amount,
+      vnp_TransactionNo: transactionNo,
+      vnp_TxnRef: txnRef,
+      vnp_TransDate: transDate,
+      vnp_TransactionType: '02', // 02: Hoàn trả toàn phần, 03: Hoàn trả một phần
+      vnp_CreateBy: createBy,
+      vnp_IpAddr: ipAddr,
+    });
+    return result;
+  } catch (error) {
+    console.error('Error refunding VNPay transaction:', error);
+    throw error;
+  }
+};
 
 module.exports = {
+  vnpay,
   createPaymentUrl,
   verifyReturn,
-  sortObject,
-  createSignature,
+  queryTransaction,
+  refundTransaction,
 };
