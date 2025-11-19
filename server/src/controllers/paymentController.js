@@ -1,4 +1,4 @@
-const { Payment, Booking, Room, RoomType } = require('../databases/models');
+const { Payment, Booking, Room, RoomType, User } = require('../databases/models');
 const vnpayService = require('../utils/vnpayService');
 
 // Remove diacritics and non-ASCII characters from strings
@@ -19,7 +19,19 @@ const getPaymentByBookingId = async (req, res, next) => {
 		const user = req.user;
 
 		const booking = await Booking.findByPk(bookingId, {
-			include: [{ model: Payment, as: 'payments' }],
+			include: [
+				{ model: Payment, as: 'payments' },
+				{
+					model: require('../databases/models').ServiceUsage,
+					as: 'service_usages',
+					include: [
+						{
+							model: require('../databases/models').Service,
+							as: 'service'
+						}
+					]
+				}
+			],
 		});
 
 		if (!booking) return res.status(404).json({ success: false });
@@ -29,7 +41,10 @@ const getPaymentByBookingId = async (req, res, next) => {
 
 		return res.status(200).json({
 			success: true,
-			data: { payments: booking.payments },
+			data: {
+				payments: booking.payments,
+				service_usages: booking.service_usages
+			},
 		});
 	} catch (error) {
 		next(error);
@@ -304,8 +319,9 @@ module.exports = {
 			const offset = (parseInt(page) - 1) * parseInt(limit);
 			const where = {};
 
+			const { Op } = require('sequelize');
 			if (search) {
-				where["$booking.booking_number$"] = { $like: `%${search}%` };
+				where["$booking.booking_number$"] = { [Op.like]: `%${search}%` };
 			}
 			if (method) {
 				where.payment_method = method;
@@ -324,7 +340,8 @@ module.exports = {
 						model: Booking,
 						as: 'booking',
 						include: [
-							{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type' }] }
+							{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type' }] },
+							{ model: User, as: 'user' }
 						]
 					}
 				],
@@ -345,6 +362,7 @@ module.exports = {
 				}
 			});
 		} catch (error) {
+			console.error('getAllPayments error:', error);
 			next(error);
 		}
 	},

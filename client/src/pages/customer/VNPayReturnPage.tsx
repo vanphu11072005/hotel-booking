@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle, XCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { verifyVNPayReturn } from '../../services/api/paymentService';
 import Loading from '../../components/common/Loading';

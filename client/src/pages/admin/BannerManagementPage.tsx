@@ -130,6 +130,9 @@ const BannerManagementPage: React.FC = () => {
       const file = e.target.files[0];
       setSelectedFile(file);
       setPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setSelectedFile(null);
+      setPreviewUrl('');
     }
   };
 
@@ -397,32 +400,39 @@ const BannerManagementPage: React.FC = () => {
             </form>
 
             {/* Image Upload Section */}
-            {editingBanner && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold mb-4">Hình ảnh banner</h3>
-                
-                {previewUrl && (
-                  <div className="mb-4">
-                    <p className="text-sm text-gray-600 mb-2">Ảnh hiện tại:</p>
-                    <img
-                      src={previewUrl}
-                      alt="Banner preview"
-                      className="w-full h-48 object-cover rounded-lg"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tải ảnh mới:
-                  </label>
-                  <div className="flex gap-3">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-semibold mb-4">Hình ảnh banner</h3>
+              {previewUrl ? (
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-2">Ảnh xem trước:</p>
+                  <img
+                    src={previewUrl}
+                    alt="Banner preview"
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedFile(null); setPreviewUrl(''); }}
+                    className="mt-2 px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
+                  >
+                    Xóa ảnh
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-4 text-gray-400 text-sm">Chưa chọn ảnh</div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tải ảnh mới:
+                </label>
+                <div className="flex gap-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  {editingBanner && (
                     <button
                       type="button"
                       onClick={handleUploadImage}
@@ -432,10 +442,10 @@ const BannerManagementPage: React.FC = () => {
                       <Upload className="w-4 h-4" />
                       {uploadingImage ? 'Đang tải...' : 'Upload'}
                     </button>
-                  </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}

@@ -25,8 +25,10 @@ export interface Payment {
   booking?: {
     booking_number?: string;
     user?: {
+      full_name?: string;
       name?: string;
-    }
+      email?: string;
+    };
   };
 }
 
@@ -70,7 +72,7 @@ export const getPaymentByBookingId = async (
   bookingId: number
 ): Promise<PaymentResponse> => {
   const response = await apiClient.get<PaymentResponse>(
-    `/payments/${bookingId}`
+    `/payments/booking/${bookingId}`
   );
   return response.data;
 };

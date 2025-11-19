@@ -21,7 +21,6 @@ import {
   XCircle,
   DoorOpen,
   DoorClosed,
-  Loader2,
   Copy,
   Check,
 } from 'lucide-react';

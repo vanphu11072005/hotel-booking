@@ -145,6 +145,7 @@ const updateService = async (req, res, next) => {
       price,
       unit,
       status,
+      category,
     } = req.body;
 
     const service = await Service.findByPk(id);
@@ -175,6 +176,8 @@ const updateService = async (req, res, next) => {
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (price !== undefined) updateData.price = price;
+    if (unit !== undefined) updateData.unit = unit;
+    if (category !== undefined) updateData.category = category;
     if (status !== undefined) updateData.is_active = status === 'active' ? true : false;
 
     await service.update(updateData);

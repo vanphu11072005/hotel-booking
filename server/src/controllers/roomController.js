@@ -1,3 +1,20 @@
+/**
+ * Get all room types
+ */
+const getRoomTypes = async (req, res, next) => {
+  try {
+    const roomTypes = await RoomType.findAll({
+      attributes: ['id', 'name', 'description', 'base_price', 'capacity', 'amenities', 'created_at', 'updated_at'],
+      order: [['id', 'ASC']],
+    });
+    res.status(200).json({
+      status: 'success',
+      data: { room_types: roomTypes },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 const { Room, RoomType, Review, sequelize, Sequelize } = require('../databases/models');
 const { Op } = require('sequelize');
 const path = require('path');
@@ -545,6 +562,7 @@ const createRoom = async (req, res, next) => {
       floor,
       status,
       featured,
+      price,
     } = req.body;
 
     // Check if room type exists
@@ -574,6 +592,7 @@ const createRoom = async (req, res, next) => {
       floor,
       status: status || 'available',
       featured: featured || false,
+      price,
     });
 
     res.status(201).json({
@@ -818,4 +837,5 @@ module.exports = {
   deleteRoom,
   uploadRoomImages,
   deleteRoomImage,
+  getRoomTypes,
 };

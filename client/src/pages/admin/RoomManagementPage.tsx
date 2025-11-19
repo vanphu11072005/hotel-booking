@@ -16,6 +16,28 @@ const RoomManagementPage: React.FC = () => {
     status: '',
     type: '',
   });
+  const [roomTypes, setRoomTypes] = useState<{ id: number; name: string }[]>([]);
+    // Lấy danh sách loại phòng từ backend
+    useEffect(() => {
+      const fetchRoomTypes = async () => {
+        try {
+          const res = await roomService.getRoomTypes?.();
+          if (res?.data?.room_types) {
+            setRoomTypes(res.data.room_types);
+          }
+        } catch (err) {
+          // Nếu không có API getRoomTypes thì giữ nguyên option cứng
+          setRoomTypes([
+            { id: 1, name: 'Phòng Tiêu chuẩn' },
+            { id: 2, name: 'Phòng 2 giường đơn' },
+            { id: 3, name: 'Phòng Cao cấp' },
+            { id: 4, name: 'Phòng Gia đình' },
+            { id: 5, name: 'Phòng Hạng sang' },
+          ]);
+        }
+      };
+      fetchRoomTypes();
+    }, []);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -25,6 +47,7 @@ const RoomManagementPage: React.FC = () => {
     room_number: '',
     floor: 1,
     room_type_id: 1,
+    price: 0,
     status: 'available' as 'available' | 'occupied' | 'maintenance',
     featured: false,
   });
@@ -49,20 +72,25 @@ const RoomManagementPage: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [filters.search, filters.status, filters.type]);
 
   useEffect(() => {
     fetchRooms();
-  }, [filters, currentPage]);
+  }, [filters.search, filters.status, filters.type, currentPage]);
 
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const response = await roomService.getRooms({
-        ...filters,
+      const params: any = {
+        search: filters.search,
+        status: filters.status,
         page: currentPage,
         limit: itemsPerPage,
-      });
+      };
+      if (filters.type) {
+        params.type = filters.type;
+      }
+      const response = await roomService.getRooms(params);
       console.log('=== ROOM DEBUG ===');
       console.log('First room:', response.data.rooms[0]);
       console.log('Room type:', response.data.rooms[0]?.room_type);
@@ -82,6 +110,12 @@ const RoomManagementPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Kiểm tra giá phòng
+    const priceValue = Number(formData.price);
+    if (!priceValue || priceValue <= 0 || isNaN(priceValue)) {
+      toast.error('Giá phòng phải lớn hơn 0');
+      return;
+    }
     try {
       let newRoomId = null;
       if (editingRoom) {
@@ -121,6 +155,7 @@ const RoomManagementPage: React.FC = () => {
       room_number: room.room_number,
       floor: room.floor,
       room_type_id: room.room_type_id,
+      price: room.price || 0,
       status: room.status,
       featured: room.featured,
     });
@@ -145,6 +180,7 @@ const RoomManagementPage: React.FC = () => {
       room_number: '',
       floor: 1,
       room_type_id: 1,
+      price: 0,
       status: 'available',
       featured: false,
     });
@@ -287,9 +323,9 @@ const RoomManagementPage: React.FC = () => {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Tất cả loại phòng</option>
-            <option value="1">Standard</option>
-            <option value="2">Deluxe</option>
-            <option value="3">Suite</option>
+            {roomTypes.map(rt => (
+              <option key={rt.id} value={rt.id}>{rt.name}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -431,7 +467,7 @@ const RoomManagementPage: React.FC = () => {
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Số phòng
@@ -457,8 +493,21 @@ const RoomManagementPage: React.FC = () => {
                     min="1"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Giá phòng (VND)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                    min="0"
+                  />
+                </div>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Loại phòng
@@ -469,12 +518,12 @@ const RoomManagementPage: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 >
-                  <option value="1">Standard</option>
-                  <option value="2">Deluxe</option>
-                  <option value="3">Suite</option>
+                  {roomTypes.map(rt => (
+                    <option key={rt.id} value={rt.id}>{rt.name}</option>
+                  ))}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Trạng thái
@@ -490,7 +539,7 @@ const RoomManagementPage: React.FC = () => {
                   <option value="maintenance">Bảo trì</option>
                 </select>
               </div>
-              
+
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -503,7 +552,30 @@ const RoomManagementPage: React.FC = () => {
                   Phòng nổi bật
                 </label>
               </div>
-              
+
+              {/* Thêm mục upload ảnh khi thêm phòng */}
+              {!editingRoom && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Thêm ảnh phòng (tối đa 5 ảnh):
+                  </label>
+                  <div className="flex gap-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                  </div>
+                  {selectedFiles.length > 0 && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      {selectedFiles.length} file đã chọn
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
                   type="button"
@@ -536,22 +608,40 @@ const RoomManagementPage: React.FC = () => {
                     <div className="mb-4">
                       <p className="text-sm text-gray-600 mb-2">Ảnh hiện tại:</p>
                       <div className="grid grid-cols-3 gap-3">
-                        {images.map((img, index) => (
-                          <div key={index} className="relative group">
-                            <img
-                              src={`http://localhost:3000${img}`}
-                              alt={`Room ${index + 1}`}
-                              className="w-full h-24 object-cover rounded-lg"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteImage(img)}
-                              className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
+                        {images.map((img, index) => {
+                          // Xử lý đường dẫn tuyệt đối và tương đối
+                          let src = '';
+                          if (img.startsWith('http')) {
+                            src = img;
+                          } else if (img.startsWith('/')) {
+                            src = `http://localhost:3000${img}`;
+                          } else {
+                            src = `http://localhost:3000/uploads/rooms/${img}`;
+                          }
+                          return (
+                            <div key={index} className="relative group">
+                              <img
+                                src={src}
+                                alt={`Room ${index + 1}`}
+                                className="w-full h-24 object-cover rounded-lg"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  const errorDiv = document.createElement('div');
+                                  errorDiv.innerText = 'Không load được ảnh';
+                                  errorDiv.className = 'text-xs text-red-500 mt-1';
+                                  (e.target as HTMLImageElement).parentElement?.appendChild(errorDiv);
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteImage(img)}
+                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ) : null;

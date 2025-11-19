@@ -27,7 +27,11 @@ const getPromotions = async (req, res, next) => {
 
     // Filter by status
     if (status) {
-      whereClause.status = status;
+      if (status === 'active') {
+        whereClause.is_active = true;
+      } else if (status === 'inactive') {
+        whereClause.is_active = false;
+      }
     }
 
     // Filter by type
@@ -138,7 +142,7 @@ const createPromotion = async (req, res, next) => {
       end_date,
       usage_limit,
       used_count: 0,
-      status,
+      is_active: status === 'active' ? true : false,
     });
 
     res.status(201).json({
@@ -217,7 +221,7 @@ const updatePromotion = async (req, res, next) => {
     if (start_date !== undefined) updateData.start_date = start_date;
     if (end_date !== undefined) updateData.end_date = end_date;
     if (usage_limit !== undefined) updateData.usage_limit = usage_limit;
-    if (status !== undefined) updateData.status = status;
+    if (status !== undefined) updateData.is_active = status === 'active' ? true : false;
 
     await promotion.update(updateData);
 

@@ -26,6 +26,7 @@ const ServiceManagementPage: React.FC = () => {
     price: 0,
     unit: 'lần',
     status: 'active' as 'active' | 'inactive',
+    category: '',
   });
 
   useEffect(() => {
@@ -87,6 +88,7 @@ const ServiceManagementPage: React.FC = () => {
       price: service.price,
       unit: service.unit || 'lần',
       status: service.status || 'active',
+      category: service.category || '',
     });
     setShowModal(true);
   };
@@ -111,6 +113,7 @@ const ServiceManagementPage: React.FC = () => {
       price: 0,
       unit: 'lần',
       status: 'active',
+      category: '',
     });
   };
 
@@ -302,6 +305,24 @@ const ServiceManagementPage: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="VD: lần, giờ, ngày..."
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Loại dịch vụ
+                </label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Chọn loại dịch vụ</option>
+                  <option value="Ăn uống">Ăn uống</option>
+                  <option value="Giặt ủi">Giặt ủi</option>
+                  <option value="Spa & Sức khỏe">Spa & Sức khỏe</option>
+                  <option value="Vận chuyển">Vận chuyển</option>
+                  <option value="Tiện ích phòng">Tiện ích phòng</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
