@@ -19,6 +19,11 @@ const ReviewManagementPage: React.FC = () => {
     setCurrentPage(1);
   }, [filters]);
 
+  // Reset filter về mặc định khi mount
+  useEffect(() => {
+    setFilters({ status: '' });
+  }, []);
+
   useEffect(() => {
     fetchReviews();
   }, [filters, currentPage]);
@@ -146,11 +151,14 @@ const ReviewManagementPage: React.FC = () => {
             {reviews.map((review) => (
               <tr key={review.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{review.user?.name}</div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {review.user?.full_name || review.user?.name || review.user?.email || 'Ẩn danh'}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    Phòng {review.room?.room_number} - {review.room?.room_type?.name}
+                    Phòng {review.room?.room_number}
+                    {review.room?.room_type?.name ? ` - ${review.room.room_type.name}` : ''}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">

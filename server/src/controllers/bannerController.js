@@ -221,7 +221,6 @@ const deleteBanner = async (req, res, next) => {
 const uploadBannerImage = async (req, res, next) => {
   try {
     const { id } = req.params;
-    
     const banner = await Banner.findByPk(id);
     if (!banner) {
       return res.status(404).json({
@@ -229,26 +228,26 @@ const uploadBannerImage = async (req, res, next) => {
         message: 'Banner không tồn tại',
       });
     }
-
     if (!req.file) {
       return res.status(400).json({
         success: false,
         message: 'Vui lòng chọn file ảnh',
       });
     }
-
-    // Delete old image if exists
+    // Delete old image if exists (async, log warning if error)
     if (banner.image_url) {
       const oldImagePath = path.join(__dirname, '../../', banner.image_url);
       if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
+        fs.unlink(oldImagePath, (err) => {
+          if (err) {
+            console.warn('Không thể xóa ảnh cũ:', oldImagePath, err);
+          }
+        });
       }
     }
-
     // Update banner with new image URL
     const imageUrl = `/uploads/banners/${req.file.filename}`;
     await banner.update({ image_url: imageUrl });
-
     res.status(200).json({
       success: true,
       message: 'Upload ảnh thành công',
@@ -257,6 +256,7 @@ const uploadBannerImage = async (req, res, next) => {
       },
     });
   } catch (error) {
+    console.error('uploadBannerImage error:', error);
     // Clean up uploaded file on error
     if (req.file) {
       const filePath = path.join(__dirname, '../../uploads/banners', req.file.filename);

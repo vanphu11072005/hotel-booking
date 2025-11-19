@@ -38,6 +38,7 @@ export interface CreateServiceData {
   price: number;
   unit?: string;
   status?: 'active' | 'inactive';
+  category?: string;
 }
 
 export interface UpdateServiceData {
@@ -46,6 +47,7 @@ export interface UpdateServiceData {
   price?: number;
   unit?: string;
   status?: 'active' | 'inactive';
+  category?: string;
 }
 
 export interface ServiceSearchParams {

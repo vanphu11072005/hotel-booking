@@ -79,6 +79,14 @@ export const getPromotions = async (
   params: PromotionSearchParams = {}
 ): Promise<PromotionListResponse> => {
   const response = await apiClient.get('/promotions', { params });
+  // Map is_active to status for frontend
+  if (response.data.data?.promotions) {
+    response.data.data.promotions = response.data.data.promotions.map((promotion: any) => ({
+      ...promotion,
+      status: promotion.is_active ? 'active' : 'inactive',
+      discount_type: promotion.discount_type === 'fixed_amount' ? 'fixed' : promotion.discount_type,
+    }));
+  }
   return response.data;
 };
 
@@ -98,7 +106,12 @@ export const getPromotionById = async (
 export const createPromotion = async (
   data: CreatePromotionData
 ): Promise<{ success: boolean; data: { promotion: Promotion }; message: string }> => {
-  const response = await apiClient.post('/promotions', data);
+  // Map 'fixed' to 'fixed_amount' for backend
+  const mappedData = {
+    ...data,
+    discount_type: data.discount_type === 'fixed' ? 'fixed_amount' : data.discount_type,
+  };
+  const response = await apiClient.post('/promotions', mappedData);
   return response.data;
 };
 
@@ -109,7 +122,12 @@ export const updatePromotion = async (
   id: number,
   data: UpdatePromotionData
 ): Promise<{ success: boolean; data: { promotion: Promotion }; message: string }> => {
-  const response = await apiClient.put(`/promotions/${id}`, data);
+  // Map 'fixed' to 'fixed_amount' for backend
+  const mappedData = {
+    ...data,
+    discount_type: data.discount_type === 'fixed' ? 'fixed_amount' : data.discount_type,
+  };
+  const response = await apiClient.put(`/promotions/${id}`, mappedData);
   return response.data;
 };
 

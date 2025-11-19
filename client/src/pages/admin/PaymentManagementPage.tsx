@@ -23,6 +23,11 @@ const PaymentManagementPage: React.FC = () => {
     setCurrentPage(1);
   }, [filters]);
 
+  // Reset filter về mặc định khi mount
+  useEffect(() => {
+    setFilters({ search: '', method: '', from: '', to: '' });
+  }, []);
+
   useEffect(() => {
     fetchPayments();
   }, [filters, currentPage]);
@@ -149,10 +154,15 @@ const PaymentManagementPage: React.FC = () => {
                   <div className="text-sm font-medium text-gray-900">{payment.transaction_id || `PAY-${payment.id}`}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                   {/* <div className="text-sm text-blue-600">{payment.booking?.booking_number}</div> */}
+                  <div className="text-sm text-blue-600">
+                    {((payment as any).booking?.booking_number
+                      || `BK${payment.booking_id?.toString().padStart(6, '0')}`)}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                   {/* <div className="text-sm text-gray-900">{payment.booking?.user?.name}</div> */}
+                  <div className="text-sm text-gray-900">
+                    {((payment as any).booking?.user?.full_name || '')}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {getMethodBadge(payment.payment_method)}

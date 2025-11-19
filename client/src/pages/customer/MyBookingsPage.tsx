@@ -12,7 +12,6 @@ import {
   Clock,
   DoorOpen,
   DoorClosed,
-  Loader2,
   Search,
   Filter,
   ArrowLeft,

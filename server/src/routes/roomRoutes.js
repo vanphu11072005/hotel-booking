@@ -1,3 +1,4 @@
+// Public: Get all room types
 const express = require('express');
 const router = express.Router();
 const roomController = require('../controllers/roomController');
@@ -13,6 +14,7 @@ const upload = require('../middlewares/upload');
 router.get('/', roomController.getRooms);
 router.get('/amenities', roomController.getAmenities);
 router.get('/available', roomController.searchAvailableRooms);
+router.get('/room-types', roomController.getRoomTypes);
 router.get('/:id', roomController.getRoomById);
 
 // Public: Get reviews for a specific room (support /api/rooms/:id/reviews)

@@ -36,9 +36,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       image_url: {
         type: DataTypes.STRING(255),
-        allowNull: false,
+        allowNull: true,
         validate: {
-          notEmpty: true
+          // allow empty string or null
         }
       },
       link_url: {
