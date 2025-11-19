@@ -1,13 +1,4 @@
-const { Payment, Booking, Room, RoomType, User } = require('../databases/models');
-const vnpayService = require('../utils/vnpayService');
-
-// Remove diacritics and non-ASCII characters from strings
-const asciiOnly = (str = '') =>
-	str
-		.normalize('NFD')
-		.replace(/[-]/g, (m) => m)
-		.replace(/[-]/g, '')
-		.trim();
+const paymentService = require('../services/paymentService');
 
 /**
  * Get payment details for a booking
@@ -16,37 +7,22 @@ const asciiOnly = (str = '') =>
 const getPaymentByBookingId = async (req, res, next) => {
 	try {
 		const { bookingId } = req.params;
-		const user = req.user;
-
-		const booking = await Booking.findByPk(bookingId, {
-			include: [
-				{ model: Payment, as: 'payments' },
-				{
-					model: require('../databases/models').ServiceUsage,
-					as: 'service_usages',
-					include: [
-						{
-							model: require('../databases/models').Service,
-							as: 'service'
-						}
-					]
-				}
-			],
-		});
-
-		if (!booking) return res.status(404).json({ success: false });
-
-		if (booking.user_id !== user.id)
-			return res.status(403).json({ success: false });
+		const result = await paymentService.getPaymentByBookingId(
+			bookingId,
+			req.user.id
+		);
 
 		return res.status(200).json({
 			success: true,
-			data: {
-				payments: booking.payments,
-				service_usages: booking.service_usages
-			},
+			data: result,
 		});
 	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({ 
+				success: false,
+				message: error.message 
+			});
+		}
 		next(error);
 	}
 };
@@ -57,33 +33,19 @@ const getPaymentByBookingId = async (req, res, next) => {
  */
 const confirmDepositPayment = async (req, res, next) => {
 	try {
-		const user = req.user;
-		const { payment_id, transaction_id } = req.body;
+		const result = await paymentService.confirmDepositPayment(
+			req.user.id,
+			req.body
+		);
 
-		if (!payment_id)
-			return res.status(400).json({ success: false, message: 'Missing id' });
-
-		const payment = await Payment.findByPk(payment_id, {
-			include: [{ model: Booking, as: 'booking' }],
-		});
-
-		if (!payment) return res.status(404).json({ success: false });
-
-		const booking = payment.booking;
-		if (!booking || booking.user_id !== user.id)
-			return res.status(403).json({ success: false });
-
-		payment.transaction_id = transaction_id || payment.transaction_id;
-		payment.payment_status = 'completed';
-		payment.payment_date = new Date();
-		await payment.save();
-
-		// mark booking deposit as paid
-		booking.deposit_paid = true;
-		await booking.save();
-
-		return res.status(200).json({ success: true, data: { payment, booking } });
+		return res.status(200).json({ success: true, data: result });
 	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({ 
+				success: false,
+				message: error.message 
+			});
+		}
 		next(error);
 	}
 };
@@ -94,34 +56,20 @@ const confirmDepositPayment = async (req, res, next) => {
  */
 const getBankTransferInfo = async (req, res, next) => {
 	try {
-		const user = req.user;
 		const paymentId = parseInt(req.params.paymentId, 10);
+		const result = await paymentService.getBankTransferInfo(
+			paymentId,
+			req.user.id
+		);
 
-		const payment = await Payment.findByPk(paymentId, {
-			include: [{ model: Booking, as: 'booking' }],
-		});
-
-		if (!payment) return res.status(404).json({ success: false });
-		if (!payment.booking || payment.booking.user_id !== user.id)
-			return res.status(403).json({ success: false });
-
-		const content = `DEP:${payment.booking.booking_number}:${payment.id}`;
-		const amount = parseFloat(payment.amount);
-
-		const bankInfo = {
-			bank_name: process.env.BANK_NAME || 'Example Bank',
-			bank_code: process.env.BANK_CODE || 'EXB',
-			account_number: process.env.BANK_ACCOUNT || '0123456789',
-			account_name: process.env.BANK_ACCOUNT_NAME || 'Hotel Booking',
-			amount,
-			content,
-			qr_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-				content
-			)}`,
-		};
-
-		return res.status(200).json({ success: true, data: { payment, bank_info: bankInfo } });
+		return res.status(200).json({ success: true, data: result });
 	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({ 
+				success: false,
+				message: error.message 
+			});
+		}
 		next(error);
 	}
 };
@@ -132,27 +80,15 @@ const getBankTransferInfo = async (req, res, next) => {
  */
 const notifyPayment = async (req, res, next) => {
 	try {
-		const user = req.user;
-		const { payment_id, notes } = req.body;
-
-		if (!payment_id)
-			return res.status(400).json({ success: false, message: 'Missing id' });
-
-		const payment = await Payment.findByPk(payment_id, {
-			include: [{ model: Booking, as: 'booking' }],
-		});
-
-		if (!payment) return res.status(404).json({ success: false });
-		if (!payment.booking || payment.booking.user_id !== user.id)
-			return res.status(403).json({ success: false });
-
-		payment.notes = notes || payment.notes;
-		payment.payment_status = 'pending';
-		await payment.save();
-
-		// In a real app we would enqueue a notification for staff here
+		await paymentService.notifyPayment(req.user.id, req.body);
 		return res.status(200).json({ success: true, message: 'Notified' });
 	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({ 
+				success: false,
+				message: error.message 
+			});
+		}
 		next(error);
 	}
 };
@@ -163,89 +99,23 @@ const notifyPayment = async (req, res, next) => {
  */
 const createVNPayPayment = async (req, res, next) => {
 	try {
-		const user = req.user;
-		const { payment_id, return_url } = req.body;
-
-		if (!payment_id) {
-			return res.status(400).json({
-				success: false,
-				message: 'Missing payment_id',
-			});
-		}
-
-		const payment = await Payment.findByPk(payment_id, {
-			include: [{ model: Booking, as: 'booking' }],
-		});
-
-		if (!payment) {
-			return res.status(404).json({
-				success: false,
-				message: 'Payment not found',
-			});
-		}
-
-		if (!payment.booking || payment.booking.user_id !== user.id) {
-			return res.status(403).json({
-				success: false,
-				message: 'Unauthorized',
-			});
-		}
-
-		if (payment.payment_status === 'completed') {
-			return res.status(400).json({
-				success: false,
-				message: 'Payment already completed',
-			});
-		}
-
-		// Get client IP
-		let ipAddr =
-			req.headers['x-forwarded-for'] ||
-			req.connection.remoteAddress ||
-			req.socket.remoteAddress ||
-			'127.0.0.1';
-
-		// Extract IPv4 address
-		if (ipAddr.includes(':')) {
-			ipAddr = ipAddr.split(':').pop();
-		}
-
-		// Validate IPv4 format
-		const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
-		if (!ipv4Regex.test(ipAddr)) {
-			ipAddr = '127.0.0.1';
-		}
-
-		// Create VNPay payment URL using vnpay library
-		const orderId = `${payment.id}${Date.now()}`;
-		const orderInfo = `Deposit payment for booking ${payment.booking.booking_number}`;
-		const amount = parseFloat(payment.amount);
-
-		if (isNaN(amount) || amount <= 0) {
-			return res.status(400).json({
-				success: false,
-				message: 'Invalid payment amount',
-			});
-		}
-
-		const paymentUrl = vnpayService.createPaymentUrl({
-			amount: amount,
-			orderInfo: orderInfo,
-			orderId: orderId,
-			ipAddr: ipAddr,
-			returnUrl: return_url || process.env.VNP_RETURN_URL,
-		});
-
-		console.log('VNPay Payment URL created:', paymentUrl);
+		const result = await paymentService.createVNPayPayment(
+			req.user.id,
+			req.body,
+			req
+		);
 
 		return res.status(200).json({
 			success: true,
-			data: {
-				payment_url: paymentUrl,
-				payment_id: payment.id,
-			},
+			data: result,
 		});
 	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({
+				success: false,
+				message: error.message,
+			});
+		}
 		console.error('Error creating VNPay payment:', error);
 		next(error);
 	}
@@ -257,73 +127,44 @@ const createVNPayPayment = async (req, res, next) => {
  */
 const handleVNPayReturn = async (req, res, next) => {
 	try {
-		const vnpParams = req.query;
+		const result = await paymentService.handleVNPayReturn(req.query);
 
-		// Verify signature
-		const verifyResult = vnpayService.verifyReturn(vnpParams);
-
-		if (!verifyResult.isValid) {
-			return res.status(400).json({
-				success: false,
-				message: 'Invalid signature',
-			});
-		}
-
-		const { vnp_TxnRef, vnp_ResponseCode, vnp_TransactionNo, vnp_Amount } =
-			vnpParams;
-
-		// Extract payment_id from orderId
-		const paymentId = vnp_TxnRef.replace(/\d{13}$/, ''); // Remove timestamp
-
-		const payment = await Payment.findByPk(paymentId, {
-			include: [{ model: Booking, as: 'booking' }],
+		return res.status(200).json({
+			success: true,
+			message: result.message,
+			data: {
+				payment: result.payment,
+				booking: result.booking,
+			},
 		});
-
-		if (!payment) {
-			return res.status(404).json({
-				success: false,
-				message: 'Payment not found',
-			});
-		}
-
-		// Check response code (00 = success)
-		if (vnp_ResponseCode === '00') {
-			// Payment successful
-			payment.payment_status = 'completed';
-			payment.payment_date = new Date();
-			payment.transaction_id = vnp_TransactionNo;
-			payment.payment_method = 'vnpay';
-			await payment.save();
-
-			// Mark booking deposit as paid
-			if (payment.booking) {
-				payment.booking.deposit_paid = true;
-				await payment.booking.save();
-			}
-
-			return res.status(200).json({
-				success: true,
-				message: 'Payment successful',
-				data: {
-					payment,
-					booking: payment.booking,
-				},
-			});
-		} else {
-			// Payment failed
-			payment.payment_status = 'failed';
-			payment.notes = `VNPay error: ${vnp_ResponseCode}`;
-			await payment.save();
-
-			return res.status(400).json({
-				success: false,
-				message: 'Payment failed',
-				code: vnp_ResponseCode,
-				data: { payment },
-			});
-		}
 	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({
+				success: false,
+				message: error.message,
+				code: error.code,
+				data: error.payment ? { payment: error.payment } : undefined,
+			});
+		}
 		console.error('Error handling VNPay return:', error);
+		next(error);
+	}
+};
+
+/**
+ * Lấy danh sách tất cả payment (cho admin)
+ * GET /api/payments?search=&method=&from=&to=&page=1&limit=5
+ */
+const getAllPayments = async (req, res, next) => {
+	try {
+		const result = await paymentService.getAllPayments(req.query);
+
+		return res.status(200).json({
+			success: true,
+			data: result,
+		});
+	} catch (error) {
+		console.error('getAllPayments error:', error);
 		next(error);
 	}
 };
@@ -335,61 +176,5 @@ module.exports = {
 	notifyPayment,
 	createVNPayPayment,
 	handleVNPayReturn,
-	/**
-	 * Lấy danh sách tất cả payment (cho admin)
-	 * GET /api/payments?search=&method=&from=&to=&page=1&limit=5
-	 */
-	getAllPayments: async (req, res, next) => {
-		try {
-			const { search = '', method = '', from = '', to = '', payment_status = '', page = 1, limit = 5 } = req.query;
-			const offset = (parseInt(page) - 1) * parseInt(limit);
-			const where = {};
-
-			const { Op } = require('sequelize');
-			if (search) {
-				where["$booking.booking_number$"] = { [Op.like]: `%${search}%` };
-			}
-			if (method) {
-				where.payment_method = method;
-			}
-			if (from && to) {
-				where.payment_date = { $between: [new Date(from), new Date(to)] };
-			}
-			if (payment_status) {
-				where.payment_status = payment_status;
-			}
-
-			const { rows, count } = await Payment.findAndCountAll({
-				where,
-				include: [
-					{
-						model: Booking,
-						as: 'booking',
-						include: [
-							{ model: Room, as: 'room', include: [{ model: RoomType, as: 'room_type' }] },
-							{ model: User, as: 'user' }
-						]
-					}
-				],
-				order: [['payment_date', 'DESC']],
-				offset,
-				limit: parseInt(limit)
-			});
-
-			return res.status(200).json({
-				success: true,
-				data: {
-					payments: rows,
-					pagination: {
-						total: count,
-						totalPages: Math.ceil(count / limit),
-						currentPage: parseInt(page)
-					}
-				}
-			});
-		} catch (error) {
-			console.error('getAllPayments error:', error);
-			next(error);
-		}
-	},
+	getAllPayments,
 };

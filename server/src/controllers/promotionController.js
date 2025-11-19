@@ -1,5 +1,4 @@
-const { Promotion } = require('../databases/models');
-const { Op } = require('sequelize');
+const promotionService = require('../services/promotionService');
 
 /**
  * Get all promotions with filters and pagination
@@ -7,58 +6,11 @@ const { Op } = require('sequelize');
  */
 const getPromotions = async (req, res, next) => {
   try {
-    const {
-      search,
-      status,
-      type,
-      page = 1,
-      limit = 10,
-    } = req.query;
-
-    const whereClause = {};
-
-    // Filter by search (code or name)
-    if (search) {
-      whereClause[Op.or] = [
-        { code: { [Op.like]: `%${search}%` } },
-        { name: { [Op.like]: `%${search}%` } },
-      ];
-    }
-
-    // Filter by status
-    if (status) {
-      if (status === 'active') {
-        whereClause.is_active = true;
-      } else if (status === 'inactive') {
-        whereClause.is_active = false;
-      }
-    }
-
-    // Filter by type
-    if (type) {
-      whereClause.discount_type = type;
-    }
-
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-
-    const { count, rows: promotions } = await Promotion.findAndCountAll({
-      where: whereClause,
-      limit: parseInt(limit),
-      offset: offset,
-      order: [['created_at', 'DESC']],
-    });
+    const result = await promotionService.getPromotions(req.query);
 
     res.status(200).json({
       status: 'success',
-      data: {
-        promotions,
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / parseInt(limit)),
-        },
-      },
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -72,23 +24,19 @@ const getPromotions = async (req, res, next) => {
 const getPromotionById = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    const promotion = await Promotion.findByPk(id);
-
-    if (!promotion) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Promotion not found',
-      });
-    }
+    const promotion = await promotionService.getPromotionById(id);
 
     res.status(200).json({
       status: 'success',
-      data: {
-        promotion,
-      },
+      data: { promotion },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -99,60 +47,20 @@ const getPromotionById = async (req, res, next) => {
  */
 const createPromotion = async (req, res, next) => {
   try {
-    const {
-      code,
-      name,
-      description,
-      discount_type,
-      discount_value,
-      min_booking_amount,
-      max_discount_amount,
-      start_date,
-      end_date,
-      usage_limit,
-      status = 'active',
-    } = req.body;
-
-    // Check if promotion code already exists
-    const existingPromotion = await Promotion.findOne({ where: { code } });
-    if (existingPromotion) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Promotion code already exists',
-      });
-    }
-
-    // Validate discount value
-    if (discount_type === 'percentage' && discount_value > 100) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Percentage discount cannot exceed 100%',
-      });
-    }
-
-    const promotion = await Promotion.create({
-      code,
-      name,
-      description,
-      discount_type,
-      discount_value,
-      min_booking_amount,
-      max_discount_amount,
-      start_date,
-      end_date,
-      usage_limit,
-      used_count: 0,
-      is_active: status === 'active' ? true : false,
-    });
+    const promotion = await promotionService.createPromotion(req.body);
 
     res.status(201).json({
       status: 'success',
       message: 'Promotion created successfully',
-      data: {
-        promotion,
-      },
+      data: { promotion },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -164,75 +72,23 @@ const createPromotion = async (req, res, next) => {
 const updatePromotion = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const {
-      code,
-      name,
-      description,
-      discount_type,
-      discount_value,
-      min_booking_amount,
-      max_discount_amount,
-      start_date,
-      end_date,
-      usage_limit,
-      status,
-    } = req.body;
-
-    const promotion = await Promotion.findByPk(id);
-    if (!promotion) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Promotion not found',
-      });
-    }
-
-    // Check if new code already exists (excluding current promotion)
-    if (code && code !== promotion.code) {
-      const existingPromotion = await Promotion.findOne({
-        where: {
-          code,
-          id: { [Op.ne]: id },
-        },
-      });
-      if (existingPromotion) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Promotion code already exists',
-        });
-      }
-    }
-
-    // Validate discount value
-    if (discount_type === 'percentage' && discount_value > 100) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Percentage discount cannot exceed 100%',
-      });
-    }
-
-    const updateData = {};
-    if (code !== undefined) updateData.code = code;
-    if (name !== undefined) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
-    if (discount_type !== undefined) updateData.discount_type = discount_type;
-    if (discount_value !== undefined) updateData.discount_value = discount_value;
-    if (min_booking_amount !== undefined) updateData.min_booking_amount = min_booking_amount;
-    if (max_discount_amount !== undefined) updateData.max_discount_amount = max_discount_amount;
-    if (start_date !== undefined) updateData.start_date = start_date;
-    if (end_date !== undefined) updateData.end_date = end_date;
-    if (usage_limit !== undefined) updateData.usage_limit = usage_limit;
-    if (status !== undefined) updateData.is_active = status === 'active' ? true : false;
-
-    await promotion.update(updateData);
+    const promotion = await promotionService.updatePromotion(
+      id,
+      req.body
+    );
 
     res.status(200).json({
       status: 'success',
       message: 'Promotion updated successfully',
-      data: {
-        promotion,
-      },
+      data: { promotion },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -244,22 +100,19 @@ const updatePromotion = async (req, res, next) => {
 const deletePromotion = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    const promotion = await Promotion.findByPk(id);
-    if (!promotion) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Promotion not found',
-      });
-    }
-
-    await promotion.destroy();
+    await promotionService.deletePromotion(id);
 
     res.status(200).json({
       status: 'success',
       message: 'Promotion deleted successfully',
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -270,79 +123,19 @@ const deletePromotion = async (req, res, next) => {
  */
 const validatePromotion = async (req, res, next) => {
   try {
-    const { code, booking_amount } = req.body;
-
-    const promotion = await Promotion.findOne({ where: { code } });
-
-    if (!promotion) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Promotion code not found',
-      });
-    }
-
-    // Check if promotion is active
-    if (promotion.status !== 'active') {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Promotion is not active',
-      });
-    }
-
-    // Check date validity
-    const now = new Date();
-    if (now < new Date(promotion.start_date) || now > new Date(promotion.end_date)) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Promotion is not valid at this time',
-      });
-    }
-
-    // Check usage limit
-    if (promotion.usage_limit && promotion.used_count >= promotion.usage_limit) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Promotion usage limit reached',
-      });
-    }
-
-    // Check minimum booking amount
-    if (booking_amount < promotion.min_booking_amount) {
-      return res.status(400).json({
-        status: 'error',
-        message: `Minimum booking amount is ${promotion.min_booking_amount}`,
-      });
-    }
-
-    // Calculate discount
-    let discount_amount = 0;
-    if (promotion.discount_type === 'percentage') {
-      discount_amount = (booking_amount * promotion.discount_value) / 100;
-    } else {
-      discount_amount = promotion.discount_value;
-    }
-
-    // Apply max discount limit
-    if (promotion.max_discount_amount && discount_amount > promotion.max_discount_amount) {
-      discount_amount = promotion.max_discount_amount;
-    }
-
-    const final_amount = booking_amount - discount_amount;
+    const result = await promotionService.validatePromotion(req.body);
 
     res.status(200).json({
       status: 'success',
-      data: {
-        promotion: {
-          id: promotion.id,
-          code: promotion.code,
-          name: promotion.name,
-        },
-        original_amount: booking_amount,
-        discount_amount,
-        final_amount,
-      },
+      data: result,
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };

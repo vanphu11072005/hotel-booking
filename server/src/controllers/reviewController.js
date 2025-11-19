@@ -1,6 +1,4 @@
-const { Review, User, Room, Booking } = 
-  require('../databases/models');
-const { Op } = require('sequelize');
+const reviewService = require('../services/reviewService');
 
 /**
  * Get reviews for a specific room
@@ -9,36 +7,19 @@ const getRoomReviews = async (req, res, next) => {
   try {
     // Support both routes: /api/reviews/room/:roomId and /api/rooms/:id/reviews
     const roomId = req.params.roomId || req.params.id;
-
-    if (!roomId) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'roomId is required',
-      });
-    }
-
-    const reviews = await Review.findAll({
-      where: {
-        room_id: parseInt(roomId, 10),
-        status: 'approved',
-      },
-      include: [
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'full_name', 'email'],
-        },
-      ],
-      order: [['created_at', 'DESC']],
-    });
+    const reviews = await reviewService.getRoomReviews(roomId);
 
     res.status(200).json({
       status: 'success',
-      data: {
-        reviews,
-      },
+      data: { reviews },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -48,65 +29,23 @@ const getRoomReviews = async (req, res, next) => {
  */
 const createReview = async (req, res, next) => {
   try {
-    const { room_id, rating, comment } = req.body;
-    const userId = req.user.id;
-
-    // Check if room exists
-    const room = await Room.findByPk(room_id);
-    if (!room) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Room not found',
-      });
-    }
-
-    // Optional: Check if user has booked this room
-    // const hasBooked = await Booking.findOne({
-    //   where: {
-    //     user_id: userId,
-    //     room_id: room_id,
-    //     status: 'completed',
-    //   },
-    // });
-    // if (!hasBooked) {
-    //   return res.status(403).json({
-    //     status: 'error',
-    //     message: 'You can only review rooms you have booked',
-    //   });
-    // }
-
-    // Check if user already reviewed this room
-    const existingReview = await Review.findOne({
-      where: {
-        user_id: userId,
-        room_id: room_id,
-      },
-    });
-
-    if (existingReview) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'You have already reviewed this room',
-      });
-    }
-
-    // Create review
-    const review = await Review.create({
-      user_id: userId,
-      room_id,
-      rating,
-      comment,
-      status: 'pending', // Admin will approve
-    });
+    const review = await reviewService.createReview(
+      req.user.id,
+      req.body
+    );
 
     res.status(201).json({
       status: 'success',
       message: 'Review submitted successfully and is pending approval',
-      data: {
-        review,
-      },
+      data: { review },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -117,25 +56,20 @@ const createReview = async (req, res, next) => {
 const approveReview = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    const review = await Review.findByPk(id);
-    if (!review) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Review not found',
-      });
-    }
-
-    await review.update({ status: 'approved' });
+    const review = await reviewService.approveReview(id);
 
     res.status(200).json({
       status: 'success',
       message: 'Review approved successfully',
-      data: {
-        review,
-      },
+      data: { review },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -146,25 +80,20 @@ const approveReview = async (req, res, next) => {
 const rejectReview = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    const review = await Review.findByPk(id);
-    if (!review) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Review not found',
-      });
-    }
-
-    await review.update({ status: 'rejected' });
+    const review = await reviewService.rejectReview(id);
 
     res.status(200).json({
       status: 'success',
       message: 'Review rejected successfully',
-      data: {
-        review,
-      },
+      data: { review },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -174,49 +103,11 @@ const rejectReview = async (req, res, next) => {
  */
 const getAllReviews = async (req, res, next) => {
   try {
-    const {
-      status,
-      page = 1,
-      limit = 10,
-    } = req.query;
-
-    const whereClause = {};
-    if (status) {
-      whereClause.status = status;
-    }
-
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-
-    const { count, rows: reviews } = await Review.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'full_name', 'email', 'phone'],
-        },
-        {
-          model: Room,
-          as: 'room',
-          attributes: ['id', 'room_number'],
-        },
-      ],
-      limit: parseInt(limit),
-      offset: offset,
-      order: [['created_at', 'DESC']],
-    });
+    const result = await reviewService.getAllReviews(req.query);
 
     res.status(200).json({
       status: 'success',
-      data: {
-        reviews,
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / parseInt(limit)),
-        },
-      },
+      data: result,
     });
   } catch (error) {
     console.error('Error in getAllReviews:', error);

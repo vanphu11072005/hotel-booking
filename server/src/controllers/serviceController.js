@@ -1,5 +1,4 @@
-const { Service, ServiceUsage, Booking, sequelize } = require('../databases/models');
-const { Op } = require('sequelize');
+const serviceService = require('../services/serviceService');
 
 /**
  * Get all services with filters and pagination
@@ -7,54 +6,11 @@ const { Op } = require('sequelize');
  */
 const getServices = async (req, res, next) => {
   try {
-    const {
-      search,
-      status,
-      category,
-      page = 1,
-      limit = 10,
-    } = req.query;
-
-    const whereClause = {};
-
-    // Filter by search (name or description)
-    if (search) {
-      whereClause[Op.or] = [
-        { name: { [Op.like]: `%${search}%` } },
-        { description: { [Op.like]: `%${search}%` } },
-      ];
-    }
-
-    // Filter by status (is_active)
-    if (status) {
-      whereClause.is_active = status === 'active' ? true : false;
-    }
-
-    // Filter by category
-    if (category) {
-      whereClause.category = category;
-    }
-
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-
-    const { count, rows: services } = await Service.findAndCountAll({
-      where: whereClause,
-      limit: parseInt(limit),
-      offset: offset,
-      order: [['created_at', 'DESC']],
-    });
+    const result = await serviceService.getServices(req.query);
 
     res.status(200).json({
       status: 'success',
-      data: {
-        services,
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / parseInt(limit)),
-        },
-      },
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -68,23 +24,19 @@ const getServices = async (req, res, next) => {
 const getServiceById = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    const service = await Service.findByPk(id);
-
-    if (!service) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Service not found',
-      });
-    }
+    const service = await serviceService.getServiceById(id);
 
     res.status(200).json({
       status: 'success',
-      data: {
-        service,
-      },
+      data: { service },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -95,39 +47,20 @@ const getServiceById = async (req, res, next) => {
  */
 const createService = async (req, res, next) => {
   try {
-    const {
-      name,
-      description,
-      price,
-      category,
-      status = 'active',
-    } = req.body;
-
-    // Check if service name already exists
-    const existingService = await Service.findOne({ where: { name } });
-    if (existingService) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Service name already exists',
-      });
-    }
-
-    const service = await Service.create({
-      name,
-      description,
-      price,
-      category,
-      is_active: status === 'active' ? true : false,
-    });
+    const service = await serviceService.createService(req.body);
 
     res.status(201).json({
       status: 'success',
       message: 'Service created successfully',
-      data: {
-        service,
-      },
+      data: { service },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -139,57 +72,20 @@ const createService = async (req, res, next) => {
 const updateService = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const {
-      name,
-      description,
-      price,
-      unit,
-      status,
-      category,
-    } = req.body;
-
-    const service = await Service.findByPk(id);
-    if (!service) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Service not found',
-      });
-    }
-
-    // Check if new name already exists (excluding current service)
-    if (name && name !== service.name) {
-      const existingService = await Service.findOne({
-        where: {
-          name,
-          id: { [Op.ne]: id },
-        },
-      });
-      if (existingService) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'Service name already exists',
-        });
-      }
-    }
-
-    const updateData = {};
-    if (name !== undefined) updateData.name = name;
-    if (description !== undefined) updateData.description = description;
-    if (price !== undefined) updateData.price = price;
-    if (unit !== undefined) updateData.unit = unit;
-    if (category !== undefined) updateData.category = category;
-    if (status !== undefined) updateData.is_active = status === 'active' ? true : false;
-
-    await service.update(updateData);
+    const service = await serviceService.updateService(id, req.body);
 
     res.status(200).json({
       status: 'success',
       message: 'Service updated successfully',
-      data: {
-        service,
-      },
+      data: { service },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -201,43 +97,19 @@ const updateService = async (req, res, next) => {
 const deleteService = async (req, res, next) => {
   try {
     const { id } = req.params;
-
-    const service = await Service.findByPk(id);
-    if (!service) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Service not found',
-      });
-    }
-
-    // Check if service is used in any active bookings
-    const activeUsage = await ServiceUsage.count({
-      where: { service_id: id },
-      include: [
-        {
-          model: Booking,
-          as: 'booking',
-          where: {
-            status: { [Op.in]: ['pending', 'confirmed', 'checked_in'] },
-          },
-        },
-      ],
-    });
-
-    if (activeUsage > 0) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Cannot delete service that is used in active bookings',
-      });
-    }
-
-    await service.destroy();
+    await serviceService.deleteService(id);
 
     res.status(200).json({
       status: 'success',
       message: 'Service deleted successfully',
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
@@ -248,50 +120,20 @@ const deleteService = async (req, res, next) => {
  */
 const useService = async (req, res, next) => {
   try {
-    const {
-      booking_id,
-      service_id,
-      quantity = 1,
-    } = req.body;
-
-    // Check if booking exists
-    const booking = await Booking.findByPk(booking_id);
-    if (!booking) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Booking not found',
-      });
-    }
-
-    // Check if service exists
-    const service = await Service.findByPk(service_id);
-    if (!service || !service.is_active) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Service not found or inactive',
-      });
-    }
-
-    // Calculate total price
-    const total_price = service.price * quantity;
-
-    // Add service to booking
-    const bookingService = await ServiceUsage.create({
-      booking_id,
-      service_id,
-      quantity,
-      unit_price: service.price,
-      total_price,
-    });
+    const bookingService = await serviceService.useService(req.body);
 
     res.status(201).json({
       status: 'success',
       message: 'Service added to booking successfully',
-      data: {
-        bookingService,
-      },
+      data: { bookingService },
     });
   } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
     next(error);
   }
 };
