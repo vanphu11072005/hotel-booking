@@ -248,6 +248,23 @@ export const deleteRoom = async (
   return response.data;
 };
 
+/**
+ * Get available room count for specific dates
+ */
+export const getAvailableRoomCount = async (
+  roomId: number,
+  checkInDate?: string,
+  checkOutDate?: string
+): Promise<{ success: boolean; data: { available_count: number } }> => {
+  const response = await apiClient.get(`/rooms/${roomId}/available-count`, {
+    params: {
+      check_in_date: checkInDate,
+      check_out_date: checkOutDate,
+    },
+  });
+  return response.data;
+};
+
 export default {
   getFeaturedRooms,
   getRooms,
@@ -258,4 +275,5 @@ export default {
   updateRoom,
   deleteRoom,
   getRoomTypes,
+  getAvailableRoomCount,
 };

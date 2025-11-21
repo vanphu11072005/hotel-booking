@@ -307,61 +307,33 @@ const BookingDetailPage: React.FC = () => {
       (1000 * 60 * 60 * 24)
   );
 
+  // Get all rooms (from booking_rooms if available, fallback to single room)
+  const bookingRooms = booking.booking_rooms && booking.booking_rooms.length > 0
+    ? booking.booking_rooms
+    : room ? [{ room, quantity: booking.room_quantity || 1 }] : [];
+
+  // Calculate total room count
+  const totalRoomCount = bookingRooms.reduce(
+    (sum: number, br: any) => sum + (br.quantity || 1), 
+    0
+  );
+
   // Calculate room price and services price
-  const roomPrice = roomType?.base_price || room?.price || 0;
-  const roomTotalPrice = numberOfNights * roomPrice;
+  const roomTotalPrice = booking.total_price - (booking.service_usages?.reduce(
+    (sum, usage) => sum + parseFloat(usage.total_price.toString()),
+    0
+  ) || 0); // Total price minus services
   const servicesTotal = booking.service_usages?.reduce(
     (sum, usage) => sum + parseFloat(usage.total_price.toString()),
     0
   ) || 0;
 
-  // Resolve room image with SERVER_URL
+  // Server URL and placeholder for images
   const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
     .replace(/\/api\/?$/i, '')
     .replace(/\/$/, '');
   
   const PLACEHOLDER = '/images/room-placeholder.jpg';
-  
-  const resolveRoomImage = (): string => {
-    const imagesField = room?.images as any;
-    let firstImage: string | undefined;
-
-    if (Array.isArray(imagesField)) {
-      firstImage = imagesField[0];
-    } else if (typeof imagesField === 'string') {
-      try {
-        const parsed = JSON.parse(imagesField);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          firstImage = parsed[0];
-        } else if (typeof parsed === 'string') {
-          firstImage = parsed;
-        }
-      } catch {
-        const s = imagesField as string;
-        if (s.includes(',')) {
-          firstImage = s.split(',')[0].trim();
-        } else {
-          firstImage = s.trim();
-        }
-      }
-    }
-
-    if (firstImage) {
-      if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
-        return firstImage;
-      } else if (firstImage.startsWith('/uploads')) {
-        return `${SERVER_URL}${firstImage}`;
-      } else if (firstImage.startsWith('/')) {
-        return firstImage;
-      } else {
-        return `${SERVER_URL}/uploads/rooms/${firstImage}`;
-      }
-    }
-    
-    return PLACEHOLDER;
-  };
-
-  const roomImageSrc = resolveRoomImage();
 
   const qrCodeUrl = generateQRCode(
     booking.booking_number,
@@ -454,48 +426,98 @@ const BookingDetailPage: React.FC = () => {
           </div>
 
           <div className="space-y-6">
-            {/* Room Information with Image */}
-            {roomType && (
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
-                <div className="flex items-start gap-4">
-                  <img
-                    src={roomImageSrc}
-                    alt={roomType?.name || 'Room'}
-                    className="w-32 h-32 object-cover rounded-xl shadow-md"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = PLACEHOLDER;
-                    }}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-bold text-xl text-gray-900 mb-1">
-                          {roomType.name}
-                        </h3>
-                        {room && (
-                          <p className="text-gray-600 text-sm flex items-center gap-1 mb-2">
-                            <MapPin className="w-4 h-4" />
-                            Phòng {room.room_number} • Tầng {room.floor}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-baseline gap-2 mt-2">
-                      <span className="text-2xl font-bold text-indigo-600">
-                        {formatPrice(roomPrice)}
-                      </span>
-                      <span className="text-sm text-gray-500">/đêm</span>
-                    </div>
-                    {roomType.capacity && (
-                      <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        Sức chứa: {roomType.capacity} người
-                      </p>
-                    )}
-                  </div>
+            {/* Rooms Information */}
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-5 border border-indigo-100">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-xl text-gray-900 flex items-center gap-2">
+                  <Building2 className="w-6 h-6 text-indigo-600" />
+                  Phòng đã đặt
+                </h3>
+                <div className="bg-indigo-600 text-white px-4 py-2 rounded-full font-bold">
+                  {totalRoomCount} phòng
                 </div>
               </div>
-            )}
+
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-indigo-300 scrollbar-track-indigo-50">
+                {bookingRooms.map((bookingRoom: any, index: number) => {
+                  const roomData = bookingRoom.room || room;
+                  const roomTypeData = roomData?.room_type || roomType;
+                  const quantity = bookingRoom.quantity || 1;
+                  
+                  // Resolve image
+                  const imagesField = roomData?.images as any;
+                  let firstImage: string | undefined;
+                  if (Array.isArray(imagesField)) {
+                    firstImage = imagesField[0];
+                  } else if (typeof imagesField === 'string') {
+                    try {
+                      const parsed = JSON.parse(imagesField);
+                      if (Array.isArray(parsed) && parsed.length > 0) {
+                        firstImage = parsed[0];
+                      }
+                    } catch {
+                      firstImage = imagesField.split(',')[0]?.trim();
+                    }
+                  }
+                  
+                  let imageSrc = PLACEHOLDER;
+                  if (firstImage) {
+                    if (firstImage.startsWith('http')) {
+                      imageSrc = firstImage;
+                    } else if (firstImage.startsWith('/uploads')) {
+                      imageSrc = `${SERVER_URL}${firstImage}`;
+                    } else {
+                      imageSrc = `${SERVER_URL}/uploads/rooms/${firstImage}`;
+                    }
+                  }
+
+                  return (
+                    <div key={index} className="bg-white rounded-xl p-4 shadow-md border border-gray-200">
+                      <div className="flex items-start gap-4">
+                        <img
+                          src={imageSrc}
+                          alt={roomTypeData?.name || 'Room'}
+                          className="w-24 h-24 object-cover rounded-lg shadow-sm"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = PLACEHOLDER;
+                          }}
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-bold text-lg text-gray-900">
+                                {roomTypeData?.name || 'Phòng'}
+                              </h4>
+                              {roomData && (
+                                <p className="text-gray-600 text-sm flex items-center gap-1 mt-1">
+                                  <MapPin className="w-4 h-4" />
+                                  Phòng {roomData.room_number} • Tầng {roomData.floor}
+                                </p>
+                              )}
+                            </div>
+                            <div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-sm">
+                              × {quantity}
+                            </div>
+                          </div>
+                          <div className="flex items-baseline gap-2 mt-2">
+                            <span className="text-xl font-bold text-indigo-600">
+                              {formatPrice(roomTypeData?.base_price || 0)}
+                            </span>
+                            <span className="text-xs text-gray-500">/đêm</span>
+                          </div>
+                          {roomTypeData?.capacity && (
+                            <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                              <Users className="w-4 h-4" />
+                              Tối đa {roomTypeData.capacity} người
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Check-in/Check-out Timeline */}
             <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
@@ -610,13 +632,37 @@ const BookingDetailPage: React.FC = () => {
               </h3>
               
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    Tiền phòng ({numberOfNights} đêm x {formatPrice(roomPrice)})
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {formatPrice(roomTotalPrice)}
-                  </span>
+                {/* Room breakdown by type */}
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                    Tiền phòng ({numberOfNights} đêm):
+                  </p>
+                  <div className="space-y-2 pl-2">
+                    {bookingRooms.map((bookingRoom: any, index: number) => {
+                      const roomData = bookingRoom.room || room;
+                      const roomTypeData = roomData?.room_type || roomType;
+                      const quantity = bookingRoom.quantity || 1;
+                      const pricePerNight = roomTypeData?.base_price || 0;
+                      const subtotal = numberOfNights * pricePerNight * quantity;
+                      
+                      return (
+                        <div key={index} className="flex justify-between text-sm">
+                          <span className="text-gray-600">
+                            • {roomTypeData?.name || 'Phòng'} × {quantity} × {numberOfNights} đêm
+                          </span>
+                          <span className="font-medium text-gray-900">
+                            {formatPrice(subtotal)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold pt-2 border-t border-gray-300 mt-2">
+                    <span className="text-gray-700">Tổng tiền phòng:</span>
+                    <span className="text-gray-900">
+                      {formatPrice(roomTotalPrice)}
+                    </span>
+                  </div>
                 </div>
                 
                 {booking.service_usages && booking.service_usages.length > 0 && (

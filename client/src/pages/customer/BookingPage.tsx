@@ -21,12 +21,17 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { getRoomById, type Room } from 
-  '../../services/api/roomService';
+import { 
+  getRoomById,
+  getRooms,
+  getAvailableRoomCount,
+  type Room 
+} from '../../services/api/roomService';
 import { 
   createBooking,
-  checkRoomAvailability,
+  createMultiRoomTypeBooking,
   type BookingData,
+  type MultiRoomTypeBookingData,
 } from '../../services/api/bookingService';
 import { getServices, type Service } from 
   '../../services/api/serviceService';
@@ -57,7 +62,19 @@ const BookingPage: React.FC = () => {
   >(null);
   const [showBankModal, setShowBankModal] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const [pendingBookingData, setPendingBookingData] = useState<BookingData | null>(null);
+  const [pendingBookingData, setPendingBookingData] = useState<BookingData | MultiRoomTypeBookingData | null>(null);
+  
+  // Multi-room type booking state
+  interface SelectedRoomType {
+    id: string; // unique ID for each selection
+    room: Room;
+    quantity: number;
+    availableCount: number | null;
+    loading: boolean;
+  }
+  const [selectedRoomTypes, setSelectedRoomTypes] = useState<SelectedRoomType[]>([]);
+  const [showRoomTypeSelector, setShowRoomTypeSelector] = useState(false);
+  const [availableRoomTypes, setAvailableRoomTypes] = useState<Room[]>([]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -78,6 +95,19 @@ const BookingPage: React.FC = () => {
       fetchServices();
     }
   }, [id, isAuthenticated]);
+
+  // Initialize first room type when room is loaded
+  useEffect(() => {
+    if (room && selectedRoomTypes.length === 0) {
+      setSelectedRoomTypes([{
+        id: `room-${Date.now()}`,
+        room: room,
+        quantity: 1,
+        availableCount: null,
+        loading: false
+      }]);
+    }
+  }, [room]);
   const fetchRoomDetails = async (roomId: number) => {
     try {
       setLoading(true);
@@ -104,6 +134,17 @@ const BookingPage: React.FC = () => {
       toast.error(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAvailableRoomTypes = async () => {
+    try {
+      const response = await getRooms({ limit: 100 });
+      if (response.data && response.data.rooms) {
+        setAvailableRoomTypes(response.data.rooms);
+      }
+    } catch (err) {
+      console.error('Error fetching available rooms:', err);
     }
   };
 
@@ -149,6 +190,69 @@ const BookingPage: React.FC = () => {
   const checkOutDate = watch('checkOutDate');
   const paymentMethod = watch('paymentMethod');
 
+  // Fetch available count for each room type when dates change
+  useEffect(() => {
+    const updateAvailability = async () => {
+      if (!checkInDate || !checkOutDate || 
+        selectedRoomTypes.length === 0
+      ) {
+        return;
+      }
+
+      const checkInStr = checkInDate.toISOString().split('T')[0];
+      const checkOutStr = checkOutDate.toISOString().split('T')[0];
+
+      // Update each room type's availability
+      const updatedRoomTypes = await Promise.all(
+        selectedRoomTypes.map(async (roomType) => {
+          // Skip if already loading or recently fetched
+          if (roomType.loading || 
+            (roomType.availableCount !== null && 
+              checkInDate && checkOutDate)
+          ) {
+            return roomType;
+          }
+
+          try {
+            const response = await getAvailableRoomCount(
+              roomType.room.id,
+              checkInStr,
+              checkOutStr
+            );
+            return {
+              ...roomType,
+              availableCount: response.data.available_count,
+              loading: false
+            };
+          } catch (error) {
+            console.error(
+              `Error fetching availability for room ${roomType.room.id}:`,
+              error
+            );
+            return {
+              ...roomType,
+              availableCount: null,
+              loading: false
+            };
+          }
+        })
+      );
+
+      // Only update if something changed
+      const hasChanges = updatedRoomTypes.some(
+        (updated, idx) => 
+          updated.availableCount !== 
+          selectedRoomTypes[idx].availableCount
+      );
+      
+      if (hasChanges) {
+        setSelectedRoomTypes(updatedRoomTypes);
+      }
+    };
+
+    updateAvailability();
+  }, [checkInDate, checkOutDate, selectedRoomTypes.length]);
+
   // Calculate number of nights and total price
   const numberOfNights =
     checkInDate && checkOutDate
@@ -159,9 +263,11 @@ const BookingPage: React.FC = () => {
         )
       : 0;
 
-  const roomPrice = 
-    room?.room_type?.base_price || 0;
-  const roomTotalPrice = numberOfNights * roomPrice;
+  // Calculate total price for all selected room types
+  const roomTotalPrice = selectedRoomTypes.reduce((sum, roomType) => {
+    const price = roomType.room.room_type?.base_price || 0;
+    return sum + (numberOfNights * price * roomType.quantity);
+  }, 0);
   
   // Calculate services total
   const servicesTotalPrice = Object.entries(selectedServices).reduce(
@@ -184,6 +290,70 @@ const BookingPage: React.FC = () => {
     }).format(price);
   };
 
+  // Handle room type quantity change
+  const handleRoomQuantityChange = (roomTypeId: string, newQuantity: number) => {
+    setSelectedRoomTypes(prev => 
+      prev.map(rt => 
+        rt.id === roomTypeId 
+          ? { ...rt, quantity: Math.max(1, Math.min(rt.availableCount || 10, newQuantity)) }
+          : rt
+      )
+    );
+  };
+
+  // Handle remove room type
+  const handleRemoveRoomType = (roomTypeId: string) => {
+    setSelectedRoomTypes(prev => prev.filter(rt => rt.id !== roomTypeId));
+  };
+
+  // Handle add new room type
+  const handleAddRoomType = async (selectedRoom: Room) => {
+    const newRoomType: SelectedRoomType = {
+      id: `room-${Date.now()}-${selectedRoom.id}`,
+      room: selectedRoom,
+      quantity: 1,
+      availableCount: null,
+      loading: true
+    };
+    setSelectedRoomTypes(prev => [...prev, newRoomType]);
+    setShowRoomTypeSelector(false);
+
+    // Fetch availability for new room type
+    if (checkInDate && checkOutDate) {
+      try {
+        const checkInStr = checkInDate.toISOString().split('T')[0];
+        const checkOutStr = checkOutDate.toISOString().split('T')[0];
+        
+        const response = await getAvailableRoomCount(
+          selectedRoom.id,
+          checkInStr,
+          checkOutStr
+        );
+        
+        setSelectedRoomTypes(prev => 
+          prev.map(rt => 
+            rt.id === newRoomType.id
+              ? { 
+                  ...rt, 
+                  availableCount: response.data.available_count,
+                  loading: false 
+                }
+              : rt
+          )
+        );
+      } catch (error) {
+        console.error('Error fetching availability:', error);
+        setSelectedRoomTypes(prev => 
+          prev.map(rt => 
+            rt.id === newRoomType.id
+              ? { ...rt, availableCount: null, loading: false }
+              : rt
+          )
+        );
+      }
+    }
+  };
+
   // Handle form submission
   const onSubmit = async (data: BookingFormData) => {
     if (!room) return;
@@ -198,22 +368,7 @@ const BookingPage: React.FC = () => {
         .toISOString()
         .split('T')[0];
 
-      // Step 1: Check room availability
-      const availability = await checkRoomAvailability(
-        room.id,
-        checkInDateStr,
-        checkOutDateStr
-      );
-
-      if (!availability.available) {
-        toast.error(
-          availability.message || 
-          'Phòng đã được đặt trong thời gian này'
-        );
-        return;
-      }
-
-      // Step 2: Prepare booking data
+      // Step 1: Prepare services list
       const servicesList = Object.entries(selectedServices)
         .filter(([_, quantity]) => quantity > 0)
         .map(([serviceId, quantity]) => ({
@@ -221,21 +376,54 @@ const BookingPage: React.FC = () => {
           quantity,
         }));
 
-      const bookingData: BookingData = {
-        room_id: room.id,
-        check_in_date: checkInDateStr,
-        check_out_date: checkOutDateStr,
-        guest_count: data.guestCount,
-        notes: data.notes || '',
-        payment_method: data.paymentMethod,
-        total_price: totalPrice,
-        guest_info: {
-          full_name: data.fullName,
-          email: data.email,
-          phone: data.phone,
-        },
-        services: servicesList.length > 0 ? servicesList : undefined,
-      };
+      // Step 2: Check if multi-room booking (always use new API for multiple rooms)
+      const hasMultipleRooms = selectedRoomTypes.length > 1 || 
+        selectedRoomTypes.some(rt => rt.quantity > 1);
+
+      let bookingData: BookingData | MultiRoomTypeBookingData;
+
+      if (hasMultipleRooms) {
+        // Use multi-room-type API for any multi-room booking
+        bookingData = {
+          rooms: selectedRoomTypes.map(rt => ({
+            room_id: rt.room.id,
+            quantity: rt.quantity
+          })),
+          check_in_date: checkInDateStr,
+          check_out_date: checkOutDateStr,
+          guest_count: data.guestCount,
+          notes: data.notes || '',
+          payment_method: data.paymentMethod,
+          total_price: totalPrice,
+          guest_info: {
+            full_name: data.fullName,
+            email: data.email,
+            phone: data.phone,
+          },
+          services: servicesList.length > 0 ? servicesList : undefined,
+        } as MultiRoomTypeBookingData;
+      } else {
+        // Single room type (multiple quantity)
+        bookingData = {
+          room_id: room.id,
+          check_in_date: checkInDateStr,
+          check_out_date: checkOutDateStr,
+          guest_count: data.guestCount,
+          notes: data.notes || '',
+          payment_method: data.paymentMethod,
+          total_price: totalPrice,
+          room_quantity: selectedRoomTypes.reduce(
+            (sum, rt) => sum + rt.quantity, 
+            0
+          ),
+          guest_info: {
+            full_name: data.fullName,
+            email: data.email,
+            phone: data.phone,
+          },
+          services: servicesList.length > 0 ? servicesList : undefined,
+        } as BookingData;
+      }
 
       // Step 3: Create booking or show modal based on payment method
       if (bookingData.payment_method === 'bank_transfer') {
@@ -268,7 +456,9 @@ const BookingPage: React.FC = () => {
         // For VNPay payment, create booking first then redirect to VNPay
         toast.info('Đang tạo booking và chuyển đến VNPay...');
         
-        const bookingResponse = await createBooking(bookingData);
+        const bookingResponse = hasMultipleRooms
+          ? await createMultiRoomTypeBooking(bookingData as MultiRoomTypeBookingData)
+          : await createBooking(bookingData as BookingData);
 
         if (bookingResponse.success && bookingResponse.data) {
           const newBooking = bookingResponse.data.booking;
@@ -343,7 +533,11 @@ const BookingPage: React.FC = () => {
     try {
       setSubmitting(true);
 
-      const response = await createBooking(pendingBookingData);
+      // Check if multi-room-type booking
+      const isMultiType = 'rooms' in pendingBookingData;
+      const response = isMultiType
+        ? await createMultiRoomTypeBooking(pendingBookingData as MultiRoomTypeBookingData)
+        : await createBooking(pendingBookingData as BookingData);
 
       if (response.success && response.data?.booking) {
         const created = response.data.booking;
@@ -703,6 +897,123 @@ const BookingPage: React.FC = () => {
                     )}
                   </div>
 
+                  {/* Selected Room Types */}
+                  <div className="space-y-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Building2 className="w-4 h-4 inline mr-1" />
+                      Phòng bạn muốn đặt
+                      <span className="text-red-500">*</span>
+                    </label>
+
+                    {selectedRoomTypes.map((roomType, index) => (
+                      <div 
+                        key={roomType.id}
+                        className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                              🛏 Loại phòng {index + 1}
+                            </h4>
+                            <p className="text-sm text-gray-600 mt-1">
+                              <span className="font-medium">Loại phòng:</span>{' '}
+                              {roomType.room.room_type?.name || 'N/A'}
+                            </p>
+                          </div>
+                          {selectedRoomTypes.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveRoomType(roomType.id)}
+                              className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                              ✕ Xóa
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm">
+                            {roomType.loading ? (
+                              <span className="text-gray-500">
+                                <Loader2 className="w-3 h-3 inline animate-spin mr-1" />
+                                Đang kiểm tra...
+                              </span>
+                            ) : roomType.availableCount !== null ? (
+                              roomType.availableCount > 0 ? (
+                                <span className="text-green-600">
+                                  ✓ Còn trống: {roomType.availableCount}
+                                </span>
+                              ) : (
+                                <span className="text-red-600">
+                                  ✗ Hết phòng
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-gray-500">
+                                Chọn ngày để xem
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-600">Số lượng:</span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleRoomQuantityChange(
+                                  roomType.id, 
+                                  roomType.quantity - 1
+                                )}
+                                disabled={roomType.quantity <= 1}
+                                className="w-8 h-8 rounded-md border border-gray-300 
+                                  flex items-center justify-center
+                                  hover:bg-gray-100 disabled:opacity-50 
+                                  disabled:cursor-not-allowed"
+                              >
+                                −
+                              </button>
+                              <span className="w-12 text-center font-semibold">
+                                {roomType.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRoomQuantityChange(
+                                  roomType.id, 
+                                  roomType.quantity + 1
+                                )}
+                                disabled={
+                                  roomType.availableCount !== null && 
+                                  roomType.quantity >= roomType.availableCount
+                                }
+                                className="w-8 h-8 rounded-md border border-gray-300 
+                                  flex items-center justify-center
+                                  hover:bg-gray-100 disabled:opacity-50 
+                                  disabled:cursor-not-allowed"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add Room Type Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        fetchAvailableRoomTypes();
+                        setShowRoomTypeSelector(true);
+                      }}
+                      className="w-full py-3 border-2 border-dashed border-gray-300 
+                        rounded-lg text-gray-600 hover:border-indigo-500 
+                        hover:text-indigo-600 transition-colors flex items-center 
+                        justify-center gap-2"
+                    >
+                      ➕ Thêm loại phòng khác
+                    </button>
+                  </div>
+
                   {/* Notes */}
                   <div>
                     <label 
@@ -1008,7 +1319,12 @@ const BookingPage: React.FC = () => {
               <div className="border-t pt-6">
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={
+                    submitting || 
+                    selectedRoomTypes.length === 0 ||
+                    selectedRoomTypes.some(rt => rt.availableCount === 0) ||
+                    selectedRoomTypes.some(rt => rt.availableCount !== null && rt.quantity > rt.availableCount)
+                  }
                   className="w-full bg-indigo-600 
                     text-white py-4 rounded-lg 
                     hover:bg-indigo-700 
@@ -1066,17 +1382,6 @@ const BookingPage: React.FC = () => {
 
               {/* Pricing Breakdown */}
               <div className="border-t pt-4 space-y-2">
-                <div className="flex justify-between 
-                  text-sm"
-                >
-                  <span className="text-gray-600">
-                    Giá phòng/đêm
-                  </span>
-                  <span className="font-medium">
-                    {formatPrice(roomPrice)}
-                  </span>
-                </div>
-
                 {numberOfNights > 0 && (
                   <div className="flex justify-between 
                     text-sm"
@@ -1089,6 +1394,36 @@ const BookingPage: React.FC = () => {
                     </span>
                   </div>
                 )}
+
+                {/* Room types breakdown */}
+                <div className="space-y-1">
+                  <p className="text-sm font-medium 
+                    text-gray-700"
+                  >
+                    Phòng đã chọn
+                  </p>
+                  {selectedRoomTypes.map((roomType) => {
+                    const price = 
+                      roomType.room.room_type?.base_price || 0;
+                    const subtotal = 
+                      numberOfNights * price * roomType.quantity;
+                    return (
+                      <div
+                        key={roomType.id}
+                        className="flex justify-between 
+                          text-sm text-gray-600 pl-2"
+                      >
+                        <span>
+                          {roomType.room.room_type?.name} × 
+                          {roomType.quantity}
+                        </span>
+                        <span>
+                          {formatPrice(subtotal)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
 
                 {numberOfNights > 0 && (
                   <div className="flex justify-between 
@@ -1365,6 +1700,232 @@ const BookingPage: React.FC = () => {
                       Tôi đã chuyển khoản
                     </>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Room Type Selector Modal */}
+        {showRoomTypeSelector && (
+          <div className="fixed inset-0 z-50 flex 
+            items-center justify-center p-4 
+            bg-black/60 backdrop-blur-sm"
+          >
+            <div className="bg-white rounded-2xl shadow-2xl 
+              max-w-6xl w-full max-h-[90vh] overflow-hidden 
+              animate-fade-in"
+            >
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-indigo-600 
+                to-purple-600 px-6 py-5"
+              >
+                <div className="flex items-center 
+                  justify-between"
+                >
+                  <div>
+                    <h3 className="text-2xl font-bold 
+                      text-white flex items-center gap-3"
+                    >
+                      <Building2 className="w-7 h-7" />
+                      Chọn loại phòng
+                    </h3>
+                    <p className="text-indigo-100 text-sm mt-1">
+                      Chọn thêm loại phòng muốn đặt
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowRoomTypeSelector(false)}
+                    className="text-white/80 hover:text-white 
+                      transition-colors p-2 hover:bg-white/10 
+                      rounded-lg"
+                  >
+                    <svg className="w-6 h-6" fill="none" 
+                      stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" 
+                        strokeLinejoin="round" strokeWidth={2} 
+                        d="M6 18L18 6M6 6l12 12" 
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                {availableRoomTypes.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="w-12 h-12 animate-spin 
+                      text-indigo-500 mx-auto mb-4" 
+                    />
+                    <p className="text-gray-600">
+                      Đang tải danh sách phòng...
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 
+                    lg:grid-cols-3 gap-6"
+                  >
+                    {availableRoomTypes
+                      .filter(roomOption => 
+                        !selectedRoomTypes.some(
+                          rt => rt.room.id === roomOption.id
+                        )
+                      )
+                      .map(roomOption => {
+                        const roomType = 
+                          roomOption.room_type || 
+                          { name: 'N/A', base_price: 0 };
+                        const imageUrl = 
+                          roomOption.images?.[0] || 
+                          '/placeholder-room.jpg';
+                        
+                        return (
+                          <div
+                            key={roomOption.id}
+                            className="bg-white rounded-xl 
+                              border-2 border-gray-200 
+                              hover:border-indigo-500 
+                              transition-all hover:shadow-xl 
+                              cursor-pointer group"
+                            onClick={() => handleAddRoomType(roomOption)}
+                          >
+                            {/* Room Image */}
+                            <div className="relative h-48 
+                              overflow-hidden rounded-t-xl"
+                            >
+                              <img
+                                src={imageUrl}
+                                alt={roomType.name}
+                                className="w-full h-full 
+                                  object-cover 
+                                  group-hover:scale-110 
+                                  transition-transform 
+                                  duration-300"
+                              />
+                              <div className="absolute inset-0 
+                                bg-gradient-to-t 
+                                from-black/60 to-transparent"
+                              />
+                              <div className="absolute bottom-3 
+                                left-3 right-3"
+                              >
+                                <h4 className="text-white 
+                                  font-bold text-lg"
+                                >
+                                  {roomType.name}
+                                </h4>
+                                <p className="text-white/90 
+                                  text-sm"
+                                >
+                                  Phòng {roomOption.room_number}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Room Details */}
+                            <div className="p-4 space-y-3">
+                              <div className="flex items-center 
+                                justify-between"
+                              >
+                                <span className="text-sm 
+                                  text-gray-600"
+                                >
+                                  Giá/đêm
+                                </span>
+                                <span className="text-lg 
+                                  font-bold text-indigo-600"
+                                >
+                                  {formatPrice(roomType.base_price)}
+                                </span>
+                              </div>
+
+                              {roomOption.room_type?.capacity && (
+                                <div className="flex items-center 
+                                  gap-2 text-sm text-gray-600"
+                                >
+                                  <Users className="w-4 h-4" />
+                                  <span>
+                                    Tối đa {roomOption.room_type.capacity} người
+                                  </span>
+                                </div>
+                              )}
+
+                              {roomOption.status && (
+                                <div className="flex items-center 
+                                  gap-2"
+                                >
+                                  <div className={`w-2 h-2 
+                                    rounded-full 
+                                    ${roomOption.status === 'available' 
+                                      ? 'bg-green-500' 
+                                      : 'bg-gray-400'
+                                    }`}
+                                  />
+                                  <span className="text-xs 
+                                    text-gray-600"
+                                  >
+                                    {roomOption.status === 'available' 
+                                      ? 'Còn trống' 
+                                      : 'Đang bận'
+                                    }
+                                  </span>
+                                </div>
+                              )}
+
+                              <button
+                                type="button"
+                                className="w-full py-2.5 
+                                  bg-gradient-to-r 
+                                  from-indigo-600 to-purple-600 
+                                  text-white rounded-lg 
+                                  hover:from-indigo-700 
+                                  hover:to-purple-700 
+                                  transition-all font-semibold 
+                                  shadow-lg 
+                                  shadow-indigo-500/30"
+                              >
+                                Chọn phòng này
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+
+                {availableRoomTypes.length > 0 && 
+                  availableRoomTypes.filter(roomOption => 
+                    !selectedRoomTypes.some(
+                      rt => rt.room.id === roomOption.id
+                    )
+                  ).length === 0 && (
+                  <div className="text-center py-12">
+                    <AlertCircle className="w-12 h-12 
+                      text-gray-400 mx-auto mb-4" 
+                    />
+                    <p className="text-gray-600">
+                      Đã chọn tất cả các phòng có sẵn
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="bg-gray-50 px-6 py-4 
+                flex justify-end border-t border-gray-200"
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowRoomTypeSelector(false)}
+                  className="px-5 py-2.5 bg-white 
+                    border border-gray-300 text-gray-700 
+                    rounded-lg hover:bg-gray-50 
+                    transition-colors font-medium"
+                >
+                  Đóng
                 </button>
               </div>
             </div>

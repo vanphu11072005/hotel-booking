@@ -123,6 +123,21 @@ class PaymentService {
       deposit_paid: true,
     });
 
+    // Also update child bookings if this is a parent booking
+    const { Booking } = require('../databases/models');
+    const childBookings = await Booking.findAll({
+      where: { parent_booking_id: booking.id }
+    });
+    
+    if (childBookings.length > 0) {
+      console.log(`✅ Updating ${childBookings.length} child bookings`);
+      await Promise.all(
+        childBookings.map(child => 
+          paymentRepository.updateBooking(child, { deposit_paid: true })
+        )
+      );
+    }
+
     // Fetch full booking with relations for email
     const bookingWithDetails = await paymentRepository.findBookingWithPayments(
       booking.id
@@ -326,6 +341,21 @@ class PaymentService {
           payment.booking, 
           updateData
         );
+
+        // Also update child bookings
+        const { Booking } = require('../databases/models');
+        const childBookings = await Booking.findAll({
+          where: { parent_booking_id: payment.booking.id }
+        });
+        
+        if (childBookings.length > 0) {
+          console.log(`✅ Updating ${childBookings.length} child bookings`);
+          await Promise.all(
+            childBookings.map(child => 
+              paymentRepository.updateBooking(child, updateData)
+            )
+          );
+        }
 
         // Fetch full booking with relations for email
         const bookingWithDetails = await paymentRepository.findBookingWithPayments(

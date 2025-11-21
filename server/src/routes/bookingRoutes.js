@@ -16,6 +16,14 @@ router.get(
 // POST /api/bookings
 router.post('/', authenticateToken, bookingController.createBooking);
 
+// Create multi-room-type booking
+// POST /api/bookings/multi-room-type
+router.post(
+  '/multi-room-type', 
+  authenticateToken, 
+  bookingController.createMultiRoomTypeBooking
+);
+
 // Get bookings for current user
 // GET /api/bookings/me
 router.get('/me', authenticateToken, bookingController.getMyBookings);

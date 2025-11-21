@@ -16,6 +16,18 @@ module.exports = (sequelize, DataTypes) => {
         as: 'room'
       });
 
+      // Self-referencing: Booking has parent (for multi-room bookings)
+      Booking.belongsTo(models.Booking, {
+        foreignKey: 'parent_booking_id',
+        as: 'parent_booking'
+      });
+
+      // Booking has many child bookings
+      Booking.hasMany(models.Booking, {
+        foreignKey: 'parent_booking_id',
+        as: 'child_bookings'
+      });
+
       // Booking has many Payments
       Booking.hasMany(models.Payment, {
         foreignKey: 'booking_id',
@@ -32,6 +44,20 @@ module.exports = (sequelize, DataTypes) => {
       Booking.hasOne(models.CheckInCheckOut, {
         foreignKey: 'booking_id',
         as: 'checkin_checkout'
+      });
+
+      // Booking has many BookingRooms (junction table)
+      Booking.hasMany(models.BookingRoom, {
+        foreignKey: 'booking_id',
+        as: 'booking_rooms'
+      });
+
+      // Booking belongs to many Rooms through BookingRoom
+      Booking.belongsToMany(models.Room, {
+        through: models.BookingRoom,
+        foreignKey: 'booking_id',
+        otherKey: 'room_id',
+        as: 'rooms'
       });
     }
   }
@@ -135,6 +161,26 @@ module.exports = (sequelize, DataTypes) => {
       cancelled_at: {
         type: DataTypes.DATE,
         allowNull: true
+      },
+      parent_booking_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        comment: 'ID của booking cha (dùng để group multi-room bookings)'
+      },
+      room_quantity: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 1,
+        validate: {
+          min: 1
+        },
+        comment: 'Số lượng phòng cùng loại được đặt'
+      },
+      deposit_amount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        defaultValue: 0,
+        comment: 'Số tiền đặt cọc'
       },
       guest_count: {
         type: DataTypes.VIRTUAL,

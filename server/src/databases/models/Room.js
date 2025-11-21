@@ -15,6 +15,20 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'room_id',
         as: 'bookings'
       });
+
+      // Room has many BookingRooms
+      Room.hasMany(models.BookingRoom, {
+        foreignKey: 'room_id',
+        as: 'booking_rooms'
+      });
+
+      // Room belongs to many Bookings through BookingRoom
+      Room.belongsToMany(models.Booking, {
+        through: models.BookingRoom,
+        foreignKey: 'room_id',
+        otherKey: 'booking_id',
+        as: 'multi_bookings'
+      });
       
       // Room has many Reviews
       Room.hasMany(models.Review, {
