@@ -68,6 +68,7 @@ export interface UpdatePromotionData {
 export interface PromotionSearchParams {
   status?: string;
   search?: string;
+  type?: string;
   page?: number;
   limit?: number;
 }
@@ -78,7 +79,12 @@ export interface PromotionSearchParams {
 export const getPromotions = async (
   params: PromotionSearchParams = {}
 ): Promise<PromotionListResponse> => {
-  const response = await apiClient.get('/promotions', { params });
+  // Map 'fixed' to 'fixed_amount' for backend filter
+  const mappedParams = {
+    ...params,
+    type: params.type === 'fixed' ? 'fixed_amount' : params.type,
+  };
+  const response = await apiClient.get('/promotions', { params: mappedParams });
   // Map is_active to status for frontend
   if (response.data.data?.promotions) {
     response.data.data.promotions = response.data.data.promotions.map((promotion: any) => ({

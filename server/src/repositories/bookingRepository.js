@@ -33,14 +33,30 @@ class BookingRepository {
 
   /**
    * Find all bookings with filters
+   * Only return parent bookings (not children)
    */
   async findAllBookings(whereClause, limit, offset, includeUser = true) {
+    const { BookingRoom } = require('../databases/models');
+    
     const include = [
       {
         model: Room,
         as: 'room',
         attributes: ['id', 'room_number', 'floor'],
       },
+      {
+        model: BookingRoom,
+        as: 'booking_rooms',
+        include: [{
+          model: Room,
+          as: 'room',
+          include: [{
+            model: RoomType,
+            as: 'room_type',
+            attributes: this.getRoomTypeAttributes()
+          }]
+        }]
+      }
     ];
 
     if (includeUser) {
@@ -51,8 +67,14 @@ class BookingRepository {
       });
     }
 
+    // Add filter for parent bookings only
+    const finalWhereClause = {
+      ...whereClause,
+      parent_booking_id: null
+    };
+
     const { count, rows } = await Booking.findAndCountAll({
-      where: whereClause,
+      where: finalWhereClause,
       include,
       limit,
       offset,
@@ -64,10 +86,15 @@ class BookingRepository {
 
   /**
    * Find bookings by user ID
+   * Only return parent bookings (not children from old multi-booking system)
    */
   async findBookingsByUserId(userId) {
+    const { BookingRoom } = require('../databases/models');
     return await Booking.findAll({
-      where: { user_id: userId },
+      where: { 
+        user_id: userId,
+        parent_booking_id: null // Only get parent/standalone bookings
+      },
       include: [
         {
           model: Room,
@@ -80,6 +107,19 @@ class BookingRepository {
             }
           ],
         },
+        {
+          model: BookingRoom,
+          as: 'booking_rooms',
+          include: [{
+            model: Room,
+            as: 'room',
+            include: [{
+              model: RoomType,
+              as: 'room_type',
+              attributes: this.getRoomTypeAttributes()
+            }]
+          }]
+        }
       ],
       order: [['created_at', 'DESC']],
     });
@@ -89,6 +129,7 @@ class BookingRepository {
    * Find booking by ID with full details
    */
   async findBookingById(id) {
+    const { BookingRoom } = require('../databases/models');
     return await Booking.findByPk(id, {
       include: [
         { 
@@ -113,6 +154,19 @@ class BookingRepository {
           as: 'service_usages', 
           include: [{ model: Service, as: 'service' }] 
         },
+        {
+          model: BookingRoom,
+          as: 'booking_rooms',
+          include: [{
+            model: Room,
+            as: 'room',
+            include: [{
+              model: RoomType,
+              as: 'room_type',
+              attributes: this.getRoomTypeAttributes()
+            }]
+          }]
+        }
       ],
     });
   }

@@ -16,6 +16,7 @@ router.get('/amenities', roomController.getAmenities);
 router.get('/available', roomController.searchAvailableRooms);
 router.get('/room-types', roomController.getRoomTypes);
 router.get('/:id', roomController.getRoomById);
+router.get('/:id/available-count', roomController.getAvailableRoomCount);
 
 // Public: Get reviews for a specific room (support /api/rooms/:id/reviews)
 router.get('/:id/reviews', reviewController.getRoomReviews);

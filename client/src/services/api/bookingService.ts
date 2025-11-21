@@ -6,6 +6,30 @@ export interface BookingData {
   check_in_date: string; // YYYY-MM-DD
   check_out_date: string; // YYYY-MM-DD
   guest_count: number;
+  room_quantity?: number; // Number of rooms (same type)
+  notes?: string;
+  payment_method: 'cash' | 'bank_transfer' | 'vnpay';
+  total_price: number;
+  guest_info: {
+    full_name: string;
+    email: string;
+    phone: string;
+  };
+  services?: {
+    service_id: number;
+    quantity: number;
+  }[];
+}
+
+// Multi-room-type booking data
+export interface MultiRoomTypeBookingData {
+  rooms: {
+    room_id: number;
+    quantity: number;
+  }[];
+  check_in_date: string;
+  check_out_date: string;
+  guest_count: number;
   notes?: string;
   payment_method: 'cash' | 'bank_transfer' | 'vnpay';
   total_price: number;
@@ -29,6 +53,8 @@ export interface Booking {
   check_out_date: string;
   guest_count: number;
   num_guests?: number; // Backend alias
+  room_quantity?: number; // Number of rooms
+  parent_booking_id?: number; // For grouped bookings
   total_price: number;
   status: 
     | 'pending' 
@@ -77,10 +103,34 @@ export interface Booking {
   };
   payments?: Payment[];
   service_usages?: ServiceUsage[];
+  booking_rooms?: BookingRoom[]; // Multi-room bookings
   created_at: string;
   updated_at: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface BookingRoom {
+  id: number;
+  booking_id: number;
+  room_id: number;
+  quantity: number;
+  room?: {
+    id: number;
+    room_number: string;
+    floor: number;
+    status: string;
+    price?: number;
+    images?: string[];
+    room_type?: {
+      id: number;
+      name: string;
+      base_price: number;
+      capacity?: number;
+    };
+  };
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ServiceUsage {
@@ -155,6 +205,20 @@ export const createBooking = async (
 ): Promise<BookingResponse> => {
   const response = await apiClient.post<BookingResponse>(
     '/bookings',
+    bookingData
+  );
+  return response.data;
+};
+
+/**
+ * Create multi-room-type booking
+ * POST /api/bookings/multi-room-type
+ */
+export const createMultiRoomTypeBooking = async (
+  bookingData: MultiRoomTypeBookingData
+): Promise<BookingResponse> => {
+  const response = await apiClient.post<BookingResponse>(
+    '/bookings/multi-room-type',
     bookingData
   );
   return response.data;
