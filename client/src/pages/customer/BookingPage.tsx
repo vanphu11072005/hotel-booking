@@ -30,6 +30,7 @@ import {
 } from '../../services/api/bookingService';
 import { getServices, type Service } from 
   '../../services/api/serviceService';
+import { createVNPayPayment } from '../../services/api/paymentService';
 import useAuthStore from '../../store/useAuthStore';
 import { 
   bookingValidationSchema, 
@@ -264,13 +265,42 @@ const BookingPage: React.FC = () => {
         setShowBankModal(true);
         toast.info('Vui lòng xác nhận thông tin chuyển khoản');
       } else if (bookingData.payment_method === 'vnpay') {
-        // For VNPay payment, create booking and redirect to VNPay payment page
-        sessionStorage.setItem('pendingBookingData', JSON.stringify(bookingData));
+        // For VNPay payment, create booking first then redirect to VNPay
+        toast.info('Đang tạo booking và chuyển đến VNPay...');
         
-        toast.info('Đang chuyển đến cổng thanh toán VNPay...');
-        
-        // Redirect to VNPay payment page (use room_id as placeholder)
-        navigate(`/vnpay-payment/${room.id}?pending=true`);
+        const bookingResponse = await createBooking(bookingData);
+
+        if (bookingResponse.success && bookingResponse.data) {
+          const newBooking = bookingResponse.data.booking;
+
+          // Find payment from payments array (VNPay uses 'full' type, cash uses 'deposit')
+          const payment = newBooking.payments?.find(
+            (p: any) => p.payment_type === 'full' || p.payment_type === 'deposit'
+          );
+
+          if (payment) {
+            // Create VNPay payment URL
+            const vnpayResponse = await createVNPayPayment(
+              payment.id
+            );
+
+            if (vnpayResponse.success && vnpayResponse.data.payment_url) {
+              // Clear any pending data
+              sessionStorage.removeItem('pendingBookingData');
+              
+              // Redirect to VNPay
+              window.location.href = vnpayResponse.data.payment_url;
+            } else {
+              toast.error(vnpayResponse.message || 
+                'Không thể tạo thanh toán VNPay');
+            }
+          } else {
+            toast.error('Không tìm thấy thông tin thanh toán');
+          }
+        } else {
+          toast.error(bookingResponse.message || 
+            'Không thể tạo booking');
+        }
       } else {
         // For cash payment, save booking data and redirect to deposit payment page
         // Store booking data in sessionStorage
@@ -343,7 +373,7 @@ const BookingPage: React.FC = () => {
         setPendingBookingData(null);
         
         toast.success(
-          '🎉 Đặt phòng thành công! Vui lòng hoàn tất chuyển khoản.',
+          '🎉 Tạo đơn đặt phòng thành công!',
           { icon: <CheckCircle className="text-green-500" /> }
         );
         

@@ -41,15 +41,25 @@ const createPaymentUrl = ({ amount, orderInfo, orderId, ipAddr, returnUrl }) => 
  */
 const verifyReturn = (query) => {
   try {
+    console.log('=== Xác thực VNPay Return ===');
+    console.log('Tham số query:', query);
+    
     const verify = vnpay.verifyReturnUrl(query);
+    
+    console.log('Kết quả xác thực:', {
+      isSuccess: verify.isSuccess,
+      isVerified: verify.isVerified,
+      message: verify.message
+    });
+    
     return {
-      isValid: verify.isSuccess,
+      isValid: verify.isVerified, // Dùng isVerified thay vì isSuccess
       isVerified: verify.isVerified,
       message: verify.message,
       data: query,
     };
   } catch (error) {
-    console.error('Error verifying VNPay return URL:', error);
+    console.error('❌ Lỗi xác thực VNPay return URL:', error);
     throw error;
   }
 };
