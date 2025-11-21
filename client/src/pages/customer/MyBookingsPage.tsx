@@ -620,6 +620,8 @@ const MyBookingsPage: React.FC = () => {
                             >
                               {booking.payment_method === 'cash'
                                 ? 'Tại chỗ'
+                                : booking.payment_method === 'vnpay'
+                                ? 'VNPay'
                                 : 'Chuyển khoản'}
                             </p>
                           </div>

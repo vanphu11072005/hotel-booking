@@ -16,6 +16,7 @@ import useFavoritesStore from './store/useFavoritesStore';
 import { LayoutMain } from './components/layout';
 import AdminLayout from './pages/AdminLayout';
 import StaffLayout from './pages/StaffLayout';
+import ScrollToTop from './components/common/ScrollToTop';
 
 // Auth Components
 import { 
@@ -152,6 +153,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {/* Public Routes with Main Layout */}
         <Route 
@@ -207,7 +209,7 @@ function App() {
             } 
           />
           <Route 
-            path="booking-success/:id" 
+            path="/booking-success/:id" 
             element={
               <ProtectedRoute>
                 <BookingSuccessPage />
@@ -215,7 +217,7 @@ function App() {
             } 
           />
           <Route 
-            path="deposit-payment/:bookingId" 
+            path="/deposit-payment/:bookingId" 
             element={
               <ProtectedRoute>
                 <DepositPaymentPage />

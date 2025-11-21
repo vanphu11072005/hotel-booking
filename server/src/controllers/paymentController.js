@@ -135,6 +135,7 @@ const handleVNPayReturn = async (req, res, next) => {
 			data: {
 				payment: result.payment,
 				booking: result.booking,
+				booking_id: result.booking?.id,
 			},
 		});
 	} catch (error) {
@@ -143,7 +144,11 @@ const handleVNPayReturn = async (req, res, next) => {
 				success: false,
 				message: error.message,
 				code: error.code,
-				data: error.payment ? { payment: error.payment } : undefined,
+				data: {
+					payment: error.payment,
+					booking: error.booking,
+					booking_id: error.booking?.id,
+				},
 			});
 		}
 		console.error('Error handling VNPay return:', error);

@@ -262,16 +262,24 @@ const DepositPaymentPage: React.FC = () => {
   // No auto-redirect payment methods. Default to bank transfer.
 
   const handleNotifyPayment = async () => {
+    console.log('🔵 handleNotifyPayment called');
+    console.log('🔵 pendingBookingData:', pendingBookingData);
+    console.log('🔵 depositPayment:', depositPayment);
+    console.log('🔵 bookingId:', bookingId);
+
     try {
       setNotifying(true);
 
       // Case 1: Pending booking - create booking first
       if (pendingBookingData) {
+        console.log('✅ Case 1: Creating new booking');
         const bookingResponse = await createBooking(pendingBookingData);
+        console.log('✅ Booking response:', bookingResponse);
 
         if (bookingResponse.success && bookingResponse.data) {
           const newBooking = bookingResponse.data.booking;
           const newBookingId = newBooking.id;
+          console.log('✅ New booking created with ID:', newBookingId);
 
           // Find deposit payment from payments array
           const depositPayment = newBooking.payments?.find(
@@ -279,6 +287,7 @@ const DepositPaymentPage: React.FC = () => {
           );
 
           if (depositPayment) {
+            console.log('✅ Notifying payment completion for deposit:', depositPayment.id);
             await notifyPaymentCompletion(
               depositPayment.id,
               'Khách hàng đã chuyển khoản đặt cọc'
@@ -287,42 +296,47 @@ const DepositPaymentPage: React.FC = () => {
 
           // Clear pending data
           sessionStorage.removeItem('pendingBookingData');
+          console.log('✅ Navigating to:', `/booking-success/${newBookingId}`);
 
-          toast.success(
-            '✅ Đặt phòng thành công! ' +
-              'Chúng tôi sẽ xác nhận thanh toán trong vòng 24 giờ.'
-          );
-          navigate(`/bookings/${newBookingId}`);
+          // Navigate to success page
+          navigate(`/booking-success/${newBookingId}`);
         } else {
+          console.error('❌ Booking creation failed:', bookingResponse);
           throw new Error(
             bookingResponse.message || 'Không thể tạo đặt phòng'
           );
         }
       }
       // Case 2: Existing booking - just notify payment
-      else if (depositPayment) {
+      else if (depositPayment && bookingId) {
+        console.log('✅ Case 2: Notifying existing booking');
         const response = await notifyPaymentCompletion(
           depositPayment.id,
           'Khách hàng đã chuyển khoản đặt cọc'
         );
+        console.log('✅ Notify response:', response);
 
         if (response.success) {
-          toast.success(
-            '✅ Đã gửi thông báo thanh toán! ' +
-              'Chúng tôi sẽ xác nhận trong vòng 24 giờ.'
-          );
-          navigate(`/bookings/${bookingId}`);
+          console.log('✅ Navigating to:', `/booking-success/${bookingId}`);
+          // Navigate to success page for existing booking too
+          navigate(`/booking-success/${bookingId}`);
         } else {
+          console.error('❌ Notify failed:', response);
           throw new Error(response.message || 'Không thể gửi thông báo');
         }
+      } else {
+        console.error('❌ No valid data found');
+        toast.error('Không tìm thấy thông tin đặt phòng hoặc thanh toán');
       }
     } catch (err: any) {
-      console.error('Error notifying payment:', err);
+      console.error('❌ Error notifying payment:', err);
+      console.error('❌ Error details:', err.response?.data);
       const message =
         err.response?.data?.message ||
         'Không thể xử lý thanh toán. Vui lòng thử lại.';
       toast.error(message);
     } finally {
+      console.log('🔵 Setting notifying to false');
       setNotifying(false);
     }
   };

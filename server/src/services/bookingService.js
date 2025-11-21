@@ -16,16 +16,33 @@ class BookingService {
   }
 
   /**
-   * Calculate deposit amount and percentage
+   * Calculate payment amount based on payment method
    */
   calculateDeposit(totalPrice, paymentMethod) {
-    const requiresDeposit = paymentMethod === 'cash';
-    const depositPercentage = requiresDeposit ? 20 : 0;
-    const depositAmount = requiresDeposit 
-      ? (totalPrice * depositPercentage) / 100 
-      : 0;
-
-    return { requiresDeposit, depositPercentage, depositAmount };
+    // VNPay: pay full amount (100%)
+    // Cash: pay deposit only (20%)
+    // Bank transfer: pay full amount (100%)
+    
+    if (paymentMethod === 'vnpay') {
+      return {
+        requiresDeposit: true,
+        depositPercentage: 100,
+        depositAmount: totalPrice,
+      };
+    } else if (paymentMethod === 'cash') {
+      return {
+        requiresDeposit: true,
+        depositPercentage: 20,
+        depositAmount: (totalPrice * 20) / 100,
+      };
+    } else {
+      // bank_transfer or other
+      return {
+        requiresDeposit: false,
+        depositPercentage: 0,
+        depositAmount: 0,
+      };
+    }
   }
 
   /**
@@ -34,16 +51,25 @@ class BookingService {
   validateBookingDates(checkInDate, checkOutDate) {
     const checkIn = new Date(checkInDate);
     const checkOut = new Date(checkOutDate);
-    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day
+
+    console.log('📅 Validating dates:', { checkInDate, checkOutDate, today: today.toISOString() });
 
     if (checkIn >= checkOut) {
+      console.error('❌ Check-out phải sau check-in');
       throw {
         statusCode: 400,
         message: 'Check-out date must be after check-in date',
       };
     }
 
-    if (checkIn < now) {
+    // Allow booking from today onwards (not in the past)
+    const checkInDay = new Date(checkIn);
+    checkInDay.setHours(0, 0, 0, 0);
+    
+    if (checkInDay < today) {
+      console.error('❌ Ngày check-in không thể trong quá khứ');
       throw {
         statusCode: 400,
         message: 'Check-in date cannot be in the past',
@@ -55,11 +81,14 @@ class BookingService {
    * Create a new booking
    */
   async createBooking(userId, bookingData) {
+    console.log('📝 Tạo booking với data:', bookingData);
+    
     const {
       room_id,
       check_in_date,
       check_out_date,
       guest_count,
+      guest_info,
       total_price,
       notes,
       payment_method = 'cash',
@@ -68,6 +97,7 @@ class BookingService {
 
     // Validate required fields
     if (!room_id || !check_in_date || !check_out_date || !total_price) {
+      console.error('❌ Thiếu trường bắt buộc:', { room_id, check_in_date, check_out_date, total_price });
       throw {
         statusCode: 400,
         message: 'Missing required booking fields',
@@ -77,6 +107,7 @@ class BookingService {
     // Validate dates
     this.validateBookingDates(check_in_date, check_out_date);
 
+    console.log('💰 Payment method:', payment_method);
     const transaction = await bookingRepository.beginTransaction();
 
     try {
@@ -109,6 +140,8 @@ class BookingService {
         depositAmount 
       } = this.calculateDeposit(total_price, payment_method);
 
+      console.log('💳 Payment calculation:', { requiresDeposit, depositPercentage, depositAmount });
+
       // Create booking
       const booking = await bookingRepository.createBooking(
         {
@@ -118,8 +151,11 @@ class BookingService {
           check_in_date: new Date(check_in_date),
           check_out_date: new Date(check_out_date),
           num_guests: guest_count || 1,
+          guest_info: guest_info || null, // Store guest contact information
           total_price,
+          deposit_amount: depositAmount, // Store deposit amount
           special_requests: notes || null,
+          payment_method: payment_method, // Store payment method in booking
           status: 'pending',
           requires_deposit: requiresDeposit,
           deposit_paid: false,
@@ -127,17 +163,32 @@ class BookingService {
         transaction
       );
 
-      // Create deposit payment record if required
+      // Create payment record if required
       if (requiresDeposit) {
+        // Determine payment method and type
+        let paymentMethodToUse = 'bank_transfer';
+        let paymentType = 'deposit';
+        let paymentNotes = `Deposit payment (${depositPercentage}%) for booking ${bookingNumber}`;
+        
+        if (payment_method === 'vnpay') {
+          paymentMethodToUse = 'e_wallet';
+          paymentType = 'full'; // VNPay pays full amount
+          paymentNotes = `Full payment (100%) via VNPay for booking ${bookingNumber}`;
+        } else if (payment_method === 'cash') {
+          paymentMethodToUse = 'bank_transfer'; // Cash bookings pay deposit via bank transfer
+          paymentType = 'deposit';
+          paymentNotes = `Deposit payment (${depositPercentage}%) for booking ${bookingNumber}`;
+        }
+
         await bookingRepository.createPayment(
           {
             booking_id: booking.id,
             amount: depositAmount,
-            payment_method: 'bank_transfer',
-            payment_type: 'deposit',
+            payment_method: paymentMethodToUse,
+            payment_type: paymentType,
             deposit_percentage: depositPercentage,
             payment_status: 'pending',
-            notes: `Deposit payment (${depositPercentage}%) for booking ${bookingNumber}`,
+            notes: paymentNotes,
           },
           transaction
         );
@@ -184,6 +235,7 @@ class BookingService {
           : 'Booking created successfully',
       };
     } catch (error) {
+      console.error('❌ Lỗi tạo booking:', error);
       await transaction.rollback();
       throw error;
     }

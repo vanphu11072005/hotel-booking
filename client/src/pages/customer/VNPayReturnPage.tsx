@@ -23,18 +23,23 @@ const VNPayReturnPage: React.FC = () => {
 
       // Get all query params
       const queryParams = location.search;
-
-      // Extract booking_id from query params
-      const urlParams = new URLSearchParams(queryParams);
-      const bid = urlParams.get('booking_id');
-      setBookingId(bid);
+      console.log('=== Trang VNPay Return ===');
+      console.log('Tham số query:', queryParams);
 
       // Verify payment with backend
+      console.log('Đang gọi API backend để xác thực thanh toán...');
       const response = await verifyVNPayReturn(queryParams);
+      console.log('Phản hồi từ backend:', response);
 
       if (response.success) {
         setSuccess(true);
         setMessage('Thanh toán thành công! Đặt cọc của bạn đã được xác nhận.');
+        
+        // Get booking_id from response
+        const bid = response.data?.booking_id?.toString() || null;
+        console.log('ID Booking:', bid);
+        setBookingId(bid);
+        
         toast.success('✅ Thanh toán thành công!');
       } else {
         setSuccess(false);
@@ -45,13 +50,20 @@ const VNPayReturnPage: React.FC = () => {
         toast.error('❌ Thanh toán thất bại!');
       }
     } catch (err: any) {
-      console.error('Error verifying VNPay payment:', err);
+      console.error('❌ Lỗi xác thực thanh toán VNPay:', err);
+      console.error('Chi tiết lỗi:', err.response?.data);
       setSuccess(false);
+      
+      // Extract booking_id from error response
+      const bid = err.response?.data?.data?.booking_id?.toString() || null;
+      console.log('ID Booking từ lỗi:', bid);
+      setBookingId(bid);
+      
       setMessage(
         err.response?.data?.message ||
         'Không thể xác minh thanh toán. Vui lòng liên hệ hỗ trợ.'
       );
-      toast.error('❌ Lỗi xác minh thanh toán!');
+      toast.error('❌ Thanh toán thất bại!');
     } finally {
       setVerifying(false);
     }

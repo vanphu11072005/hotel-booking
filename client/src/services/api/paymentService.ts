@@ -208,7 +208,7 @@ export const verifyVNPayReturn = async (
   queryParams: string
 ): Promise<{
   success: boolean;
-  data?: { payment: Payment; booking: any };
+  data?: { payment: Payment; booking: any; booking_id?: number };
   message?: string;
   code?: string;
 }> => {

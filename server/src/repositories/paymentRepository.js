@@ -31,6 +31,11 @@ class PaymentRepository {
       include: [
         { model: Payment, as: 'payments' },
         {
+          model: Room,
+          as: 'room',
+          include: [{ model: RoomType, as: 'room_type' }],
+        },
+        {
           model: ServiceUsage,
           as: 'service_usages',
           include: [{ model: Service, as: 'service' }],

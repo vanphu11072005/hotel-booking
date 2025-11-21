@@ -102,6 +102,11 @@ class BookingRepository {
             }
           ] 
         },
+        { 
+          model: User, 
+          as: 'user',
+          attributes: ['id', 'full_name', 'email', 'phone']
+        },
         { model: Payment, as: 'payments' },
         { 
           model: ServiceUsage, 

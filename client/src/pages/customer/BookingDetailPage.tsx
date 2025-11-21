@@ -84,7 +84,21 @@ const BookingDetailPage: React.FC = () => {
         response.success && 
         response.data?.booking
       ) {
-        setBooking(response.data.booking);
+        const bookingData = response.data.booking;
+        
+        // Parse guest_info if it's a JSON string
+        if (bookingData.guest_info && typeof bookingData.guest_info === 'string') {
+          try {
+            bookingData.guest_info = JSON.parse(bookingData.guest_info);
+          } catch (e) {
+            console.error('Error parsing guest_info:', e);
+            bookingData.guest_info = undefined;
+          }
+        }
+        
+        console.log('📋 Booking data:', bookingData);
+        console.log('👤 Guest info:', bookingData.guest_info);
+        setBooking(bookingData);
       } else {
         throw new Error(
           'Không thể tải thông tin đặt phòng'
@@ -200,37 +214,43 @@ const BookingDetailPage: React.FC = () => {
         return {
           icon: Clock,
           color: 'bg-yellow-100 text-yellow-800',
-          text: 'Chờ xác nhận',
+          text: 'Đang chờ xác nhận',
+          description: 'Đơn đặt phòng đang chờ được xác nhận'
         };
       case 'confirmed':
         return {
           icon: CheckCircle,
           color: 'bg-green-100 text-green-800',
           text: 'Đã xác nhận',
+          description: 'Đặt phòng thành công'
         };
       case 'cancelled':
         return {
           icon: XCircle,
           color: 'bg-red-100 text-red-800',
           text: 'Đã hủy',
+          description: 'Đơn đặt phòng đã bị hủy'
         };
       case 'checked_in':
         return {
           icon: DoorOpen,
           color: 'bg-blue-100 text-blue-800',
           text: 'Đã nhận phòng',
+          description: 'Khách đã nhận phòng'
         };
       case 'checked_out':
         return {
           icon: DoorClosed,
           color: 'bg-gray-100 text-gray-800',
           text: 'Đã trả phòng',
+          description: 'Khách đã trả phòng'
         };
       default:
         return {
           icon: AlertCircle,
           color: 'bg-gray-100 text-gray-800',
           text: status,
+          description: ''
         };
     }
   };
@@ -401,9 +421,17 @@ const BookingDetailPage: React.FC = () => {
 
             {/* Status Badge */}
             <div className="mt-6">
-              <span className={`inline-block px-6 py-2 rounded-full text-sm font-bold shadow-lg ${statusConfig.color}`}>
-                {statusConfig.text}
-              </span>
+              <div className="inline-flex flex-col items-center">
+                <span className={`inline-block px-6 py-2 rounded-full 
+                  text-sm font-bold shadow-lg ${statusConfig.color}`}>
+                  {statusConfig.text}
+                </span>
+                {statusConfig.description && (
+                  <p className="text-sm text-white mt-1">
+                    {statusConfig.description}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -522,31 +550,14 @@ const BookingDetailPage: React.FC = () => {
             </div>
 
             {/* Guest Info */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                <div className="flex items-center gap-2 mb-1">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <p className="text-sm text-gray-600 font-medium">Số khách</p>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {booking.num_guests || booking.guest_count}
-                </p>
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 text-center">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Users className="w-5 h-5 text-blue-600" />
+                <p className="text-sm text-gray-600 font-medium">Số khách</p>
               </div>
-              <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
-                <div className="flex items-center gap-2 mb-1">
-                  <CreditCard className="w-5 h-5 text-purple-600" />
-                  <p className="text-sm text-gray-600 font-medium">Thanh toán</p>
-                </div>
-                <p className="text-sm font-bold text-gray-900">
-                  {booking.payment_method === 'cash' ? 'Tại chỗ' : 'Chuyển khoản'}
-                </p>
-                <div className="mt-1">
-                  <PaymentStatusBadge 
-                    status={booking.payment_status}
-                    size="sm"
-                  />
-                </div>
-              </div>
+              <p className="text-2xl font-bold text-gray-900">
+                {booking.num_guests || booking.guest_count}
+              </p>
             </div>
 
             {/* Special Requests */}
@@ -638,58 +649,90 @@ const BookingDetailPage: React.FC = () => {
                     {formatPrice(booking.total_price)}
                   </span>
                 </div>
+
+                {/* Payment Status and Details */}
+                <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className="w-6 h-6 text-purple-600" />
+                    <p className="text-base text-gray-600 font-medium">Trạng thái thanh toán</p>
+                  </div>
+                  <p className="text-lg font-bold text-gray-900 mb-2">
+                    {booking.payment_method === 'cash'
+                      ? 'Thanh toán khi nhận phòng'
+                      : booking.payment_method === 'vnpay'
+                      ? 'VNPay'
+                      : 'Chuyển khoản ngân hàng'}
+                  </p>
+                  <div className="mb-2">
+                    <PaymentStatusBadge 
+                      status={booking.payment_status}
+                      size="sm"
+                    />
+                  </div>
+                  {/* Hiển thị thông tin thanh toán nếu có */}
+                  {booking.deposit_paid && booking.payments && 
+                    booking.payments.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-purple-200">
+                      {booking.payments
+                        .filter(p => p.payment_status === 'completed')
+                        .map((payment) => (
+                          <div key={payment.id} 
+                            className="flex items-start gap-2 mb-2 last:mb-0">
+                            <CheckCircle 
+                              className="w-4 h-4 text-green-600 mt-0.5 
+                                flex-shrink-0" 
+                            />
+                            <div>
+                              <p className="text-sm text-gray-700 font-semibold">
+                                {payment.payment_type === 'deposit' 
+                                  ? `Đã đặt cọc ${
+                                      payment.deposit_percentage || 20
+                                    }%`
+                                  : payment.payment_type === 'full' && 
+                                    booking.payment_method === 'vnpay'
+                                  ? 'Đã thanh toán 100% qua VNPay'
+                                  : 'Đã thanh toán toàn bộ'
+                                }
+                              </p>
+                              <p className="text-sm text-gray-600 font-medium">
+                                Qua {
+                                  payment.payment_method === 'e_wallet'
+                                    ? 'VNPay' 
+                                    : payment.payment_method === 'bank_transfer' && payment.payment_type === 'deposit' && booking.payment_method === 'cash'
+                                    ? 'Tiền mặt'
+                                    : payment.payment_method === 'bank_transfer'
+                                    ? 'Chuyển khoản'
+                                    : payment.payment_method === 'cash'
+                                    ? 'Tiền mặt'
+                                    : payment.payment_method === 'credit_card'
+                                    ? 'Thẻ tín dụng'
+                                    : payment.payment_method === 'debit_card'
+                                    ? 'Thẻ ghi nợ'
+                                    : 'Khác'
+                                } - {
+                                  new Intl.NumberFormat('vi-VN', {
+                                    style: 'currency',
+                                    currency: 'VND'
+                                  }).format(payment.amount)
+                                }
+                              </p>
+                              {payment.payment_type === 'deposit' && (
+                                <p className="text-sm text-orange-600 font-semibold mt-1">
+                                  Vui lòng thanh toán phần còn lại khi nhận phòng
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Guest Information */}
-        {booking.guest_info && (
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <User className="w-6 h-6 text-indigo-600" />
-              Thông tin liên hệ
-            </h2>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <User className="w-5 h-5 text-indigo-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 uppercase font-medium mb-1">Họ và tên</p>
-                  <p className="font-bold text-gray-900 text-lg">
-                    {booking.guest_info.full_name}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-5 h-5 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 uppercase font-medium mb-1">Email</p>
-                  <p className="font-medium text-gray-900 break-all">
-                    {booking.guest_info.email}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Phone className="w-5 h-5 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 uppercase font-medium mb-1">Số điện thoại</p>
-                  <p className="font-bold text-gray-900 text-lg">
-                    {booking.guest_info.phone}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
           </div>
 
           {/* Right Column - Sidebar */}
@@ -704,15 +747,27 @@ const BookingDetailPage: React.FC = () => {
               <div className="space-y-4">
                 <div className="flex gap-3">
                   <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                      <Check className="w-5 h-5 text-white" />
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out'
+                        ? 'bg-green-500'
+                        : 'bg-gray-300'
+                    }`}>
+                      {booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out' ? (
+                        <Check className="w-5 h-5 text-white" />
+                      ) : (
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      )}
                     </div>
-                    <div className="w-0.5 h-full bg-green-200 my-1"></div>
+                    <div className={`w-0.5 h-full my-1 ${
+                      booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out'
+                        ? 'bg-green-200'
+                        : 'bg-gray-200'
+                    }`}></div>
                   </div>
                   <div className="flex-1 pb-4">
-                    <p className="font-semibold text-gray-900">Đặt phòng thành công</p>
+                    <p className="font-semibold text-gray-900">Xác nhận đặt phòng</p>
                     <p className="text-sm text-gray-500">
-                      {new Date(booking.created_at).toLocaleString('vi-VN')}
+                      {booking.status === 'pending' ? 'Đang chờ xác nhận' : 'Đã xác nhận'}
                     </p>
                   </div>
                 </div>
@@ -737,9 +792,11 @@ const BookingDetailPage: React.FC = () => {
                     }`}></div>
                   </div>
                   <div className="flex-1 pb-4">
-                    <p className="font-semibold text-gray-900">Xác nhận đặt phòng</p>
+                    <p className="font-semibold text-gray-900">Đặt phòng thành công</p>
                     <p className="text-sm text-gray-500">
-                      {booking.status === 'pending' ? 'Đang chờ xác nhận' : 'Đã xác nhận'}
+                      {booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out'
+                        ? new Date(booking.created_at).toLocaleString('vi-VN')
+                        : 'Chờ thanh toán'}
                     </p>
                   </div>
                 </div>
@@ -836,6 +893,53 @@ const BookingDetailPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Guest Information */}
+            {booking.guest_info && (
+              <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5 text-indigo-600" />
+                  Thông tin người đặt phòng
+                </h2>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 uppercase font-medium mb-1">Họ và tên</p>
+                      <p className="font-bold text-gray-900">
+                        {booking.guest_info.full_name}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Mail className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 uppercase font-medium mb-1">Email</p>
+                      <p className="font-medium text-gray-900 break-all text-sm">
+                        {booking.guest_info.email}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Phone className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-500 uppercase font-medium mb-1">Số điện thoại</p>
+                      <p className="font-bold text-gray-900">
+                        {booking.guest_info.phone}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Important Notice */}
             <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5">
               <div className="flex items-start gap-3">
@@ -856,7 +960,12 @@ const BookingDetailPage: React.FC = () => {
                     {canCancelBooking(booking) && (
                       <li className="flex items-start gap-2">
                         <span className="text-yellow-600 mt-1">•</span>
-                        <span>Hủy phòng sẽ bị giữ 20% tổng giá trị</span>
+                        <span>
+                          {booking.deposit_paid 
+                            ? 'Hủy phòng sẽ bị mất tiền cọc đã thanh toán'
+                            : 'Hủy phòng sẽ bị giữ 20% tổng giá trị'
+                          }
+                        </span>
                       </li>
                     )}
                     {booking.payment_method === 'bank_transfer' && booking.payment_status === 'unpaid' && (

@@ -82,12 +82,22 @@ module.exports = (sequelize, DataTypes) => {
           min: 1
         }
       },
+      guest_info: {
+        type: DataTypes.JSON,
+        allowNull: true,
+        comment: 'Thông tin khách đặt phòng (full_name, email, phone)'
+      },
       total_price: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
         validate: {
           min: 0
         }
+      },
+      payment_method: {
+        type: DataTypes.ENUM('cash', 'bank_transfer', 'vnpay'),
+        allowNull: true,
+        defaultValue: 'cash'
       },
       status: {
         type: DataTypes.ENUM(
