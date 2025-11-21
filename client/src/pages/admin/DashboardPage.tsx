@@ -31,6 +31,14 @@ const DashboardPage: React.FC = () => {
         'summary' in response.data
       ) {
         const dashboard: any = response.data;
+        const mappedTopRooms = Array.isArray(dashboard.top_rooms)
+            ? dashboard.top_rooms.map((room: any) => ({
+                room_id: room.room_id ?? room.id,
+                room_number: room.room?.room_number ?? room['room.room_number'] ?? room.room_number ?? '',
+                bookings: room.booking_count ?? room.bookings ?? room.total_bookings ?? 0,
+                revenue: parseFloat(room.total_revenue ?? room.revenue ?? 0),
+              }))
+            : [];
         setStats({
           total_bookings: dashboard.summary.total_bookings,
           total_revenue: dashboard.summary.total_revenue,
@@ -39,8 +47,15 @@ const DashboardPage: React.FC = () => {
           occupied_rooms: dashboard.summary.occupied_rooms ?? 0,
           revenue_by_date: dashboard.revenue_by_date,
           bookings_by_status: dashboard.bookings_by_status,
-          top_rooms: dashboard.top_rooms,
-          service_usage: dashboard.service_usage,
+          top_rooms: mappedTopRooms,
+          service_usage: Array.isArray(dashboard.service_usage)
+            ? dashboard.service_usage.map((item: any) => ({
+                service_id: item.service_id,
+                service_name: item.service?.name ?? '',
+                usage_count: item.total_quantity ?? item.usage_count ?? 0,
+                total_revenue: item.total_revenue ?? 0,
+              }))
+            : [],
         });
       } else if (
         response.data &&
@@ -211,9 +226,14 @@ const DashboardPage: React.FC = () => {
                   checked_in: 'Đã nhận phòng',
                   checked_out: 'Đã trả phòng',
                   cancelled: 'Đã hủy',
+                  0: 'Chờ xác nhận',
+                  1: 'Đã xác nhận',
+                  2: 'Đã nhận phòng',
+                  3: 'Đã trả phòng',
+                  4: 'Đã hủy',
                 };
                 const displayCount = typeof count === 'object' && count !== null && 'count' in count ? (count as any).count : count;
-                const label = statusLabels[status] || status;
+                const label = statusLabels[status] !== undefined ? statusLabels[status] : status;
                 const color = statusColors[status] || 'bg-gray-300';
                 return (
                   <div key={status} className="flex items-center justify-between">
@@ -237,24 +257,26 @@ const DashboardPage: React.FC = () => {
         {/* Top Rooms */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Top phòng được đặt</h2>
-          {stats?.top_rooms && stats.top_rooms.length > 0 ? (
+          {stats?.top_rooms && stats.top_rooms.filter(room => room.room_number && String(room.room_number).trim() !== '').length > 0 ? (
             <div className="space-y-3">
-              {stats.top_rooms.map((room, index) => (
-                <div key={room.room_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-8 h-8 bg-blue-500 text-white rounded-full font-bold">
-                      {index + 1}
-                    </span>
-                    <div>
-                      <p className="font-medium text-gray-900">Phòng {room.room_number}</p>
-                      <p className="text-sm text-gray-500">{room.bookings} lượt đặt</p>
+              {stats.top_rooms
+                .filter(room => room.room_number && String(room.room_number).trim() !== '')
+                .map((room, index) => (
+                  <div key={room.room_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center justify-center w-8 h-8 bg-blue-500 text-white rounded-full font-bold">
+                        {index + 1}
+                      </span>
+                      <div>
+                        <p className="font-medium text-gray-900">Phòng {room.room_number}</p>
+                        <p className="text-sm text-gray-500">{room.bookings ?? 0} lượt đặt</p>
+                      </div>
                     </div>
+                    <span className="font-semibold text-green-600">
+                      {formatCurrency(Number(room.revenue) || 0)}
+                    </span>
                   </div>
-                  <span className="font-semibold text-green-600">
-                    {formatCurrency(room.revenue)}
-                  </span>
-                </div>
-              ))}
+                ))}
             </div>
           ) : (
             <p className="text-gray-500 text-center py-8">Không có dữ liệu</p>
