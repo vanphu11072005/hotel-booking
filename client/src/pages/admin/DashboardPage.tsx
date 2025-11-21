@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { 
   BarChart3, 
   Users, 
@@ -14,23 +15,47 @@ import Loading from '../../components/common/Loading';
 const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({
-    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    to: new Date().toISOString().split('T')[0],
-  });
 
   useEffect(() => {
     fetchDashboardData();
-  }, [dateRange]);
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await reportService.getReports({
-        from: dateRange.from,
-        to: dateRange.to,
-      });
-      setStats(response.data);
+      const response = await reportService.getDashboardStats();
+      // Nếu trả về kiểu DashboardData thì map sang ReportData
+      if (
+        response.data &&
+        typeof response.data === 'object' &&
+        'summary' in response.data
+      ) {
+        const dashboard: any = response.data;
+        setStats({
+          total_bookings: dashboard.summary.total_bookings,
+          total_revenue: dashboard.summary.total_revenue,
+          total_customers: dashboard.summary.total_customers,
+          available_rooms: dashboard.summary.available_rooms,
+          occupied_rooms: dashboard.summary.occupied_rooms ?? 0,
+          revenue_by_date: dashboard.revenue_by_date,
+          bookings_by_status: dashboard.bookings_by_status,
+          top_rooms: dashboard.top_rooms,
+          service_usage: dashboard.service_usage,
+        });
+      } else if (
+        response.data &&
+        typeof response.data === 'object' &&
+        'total_bookings' in response.data &&
+        'total_revenue' in response.data &&
+        'total_customers' in response.data &&
+        'available_rooms' in response.data &&
+        'occupied_rooms' in response.data
+      ) {
+        setStats(response.data as ReportData);
+      } else {
+        toast.error('Dữ liệu trả về không đúng định dạng ReportData/DashboardData');
+        setStats(null);
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Không thể tải dữ liệu dashboard');
     } finally {
@@ -58,22 +83,7 @@ const DashboardPage: React.FC = () => {
           <p className="text-gray-500 mt-1">Tổng quan hoạt động khách sạn</p>
         </div>
         
-        {/* Date Range Filter */}
-        <div className="flex gap-3 items-center">
-          <input
-            type="date"
-            value={dateRange.from}
-            onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-          <span className="text-gray-500">đến</span>
-          <input
-            type="date"
-            value={dateRange.to}
-            onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+        {/* Date Range Filter đã bị loại bỏ vì lấy toàn bộ dữ liệu từ backend */}
       </div>
 
       {/* Stats Cards */}
@@ -168,28 +178,15 @@ const DashboardPage: React.FC = () => {
             <BarChart3 className="w-5 h-5 text-gray-400" />
           </div>
           {stats?.revenue_by_date && stats.revenue_by_date.length > 0 ? (
-            <div className="space-y-3">
-              {stats.revenue_by_date.slice(0, 7).map((item, index) => (
-                <div key={index} className="flex items-center">
-                  <span className="text-sm text-gray-600 w-24">
-                    {new Date(item.date).toLocaleDateString('vi-VN')}
-                  </span>
-                  <div className="flex-1 mx-3">
-                    <div className="bg-gray-200 rounded-full h-4 overflow-hidden">
-                      <div
-                        className="bg-blue-500 h-4 rounded-full transition-all"
-                        style={{
-                          width: `${Math.min((item.revenue / (stats.revenue_by_date?.[0]?.revenue || 1)) * 100, 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900 w-32 text-right">
-                    {formatCurrency(item.revenue)}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={stats.revenue_by_date.slice(0, 14)}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tickFormatter={(date) => new Date(date).toLocaleDateString('vi-VN')} />
+                <YAxis tickFormatter={(value) => value.toLocaleString('vi-VN')} />
+                <Tooltip formatter={(value: number) => formatCurrency(value)} labelFormatter={(label) => new Date(label).toLocaleDateString('vi-VN')} />
+                <Bar dataKey="revenue" fill="#3b82f6" name="Doanh thu" />
+              </BarChart>
+            </ResponsiveContainer>
           ) : (
             <p className="text-gray-500 text-center py-8">Không có dữ liệu</p>
           )}
@@ -215,13 +212,16 @@ const DashboardPage: React.FC = () => {
                   checked_out: 'Đã trả phòng',
                   cancelled: 'Đã hủy',
                 };
+                const displayCount = typeof count === 'object' && count !== null && 'count' in count ? (count as any).count : count;
+                const label = statusLabels[status] || status;
+                const color = statusColors[status] || 'bg-gray-300';
                 return (
                   <div key={status} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${statusColors[status]}`} />
-                      <span className="text-gray-700">{statusLabels[status]}</span>
+                      <div className={`w-3 h-3 rounded-full ${color}`} />
+                      <span className="text-gray-700">{label}</span>
                     </div>
-                    <span className="font-semibold text-gray-900">{count}</span>
+                    <span className="font-semibold text-gray-900">{displayCount}</span>
                   </div>
                 );
               })}

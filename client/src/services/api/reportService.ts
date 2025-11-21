@@ -13,7 +13,7 @@ export interface ReportData {
   revenue_by_date?: Array<{
     date: string;
     revenue: number;
-    bookings: number;
+    bookings?: number;
   }>;
   bookings_by_status?: {
     pending: number;
@@ -36,10 +36,38 @@ export interface ReportData {
   }>;
 }
 
+export interface DashboardData {
+  summary: {
+    total_revenue: number;
+    total_bookings: number;
+    available_rooms: number;
+    total_customers: number;
+  };
+  revenue_by_date: Array<{
+    date: string;
+    revenue: number;
+  }>;
+  bookings_by_status: {
+    [key: string]: number;
+  };
+  top_rooms: Array<{
+    room_id: number;
+    room_number: string;
+    bookings: number;
+    revenue: number;
+  }>;
+  service_usage: Array<{
+    service_id: number;
+    service_name: string;
+    usage_count: number;
+    total_revenue: number;
+  }>;
+}
+
 export interface ReportResponse {
   success: boolean;
   status?: string;
-  data: ReportData;
+  data: ReportData | DashboardData;
   message?: string;
 }
 
