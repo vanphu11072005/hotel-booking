@@ -465,6 +465,157 @@ class RoomService {
       }
     });
   }
+
+  /**
+   * Đếm số phòng trống của cùng loại trong khoảng thời gian
+   */
+  async getAvailableRoomCount(roomId, checkInDate, checkOutDate) {
+    const { Room, Booking } = require('../databases/models');
+    
+    // Get room to find room_type_id
+    const room = await Room.findByPk(roomId);
+    if (!room) {
+      return 0;
+    }
+
+    // Count total rooms of this type with status 'available'
+    const totalRooms = await Room.count({
+      where: {
+        room_type_id: room.room_type_id,
+        status: 'available'
+      }
+    });
+
+    if (!checkInDate || !checkOutDate) {
+      return totalRooms;
+    }
+
+    // Count booked rooms in date range
+    const bookedCount = await Booking.count({
+      distinct: true,
+      col: 'room_id',
+      include: [{
+        model: Room,
+        as: 'room',
+        where: {
+          room_type_id: room.room_type_id
+        },
+        attributes: []
+      }],
+      where: {
+        status: {
+          [Op.notIn]: ['cancelled']
+        },
+        [Op.or]: [
+          {
+            check_in_date: {
+              [Op.between]: [checkInDate, checkOutDate]
+            }
+          },
+          {
+            check_out_date: {
+              [Op.between]: [checkInDate, checkOutDate]
+            }
+          },
+          {
+            [Op.and]: [
+              {
+                check_in_date: {
+                  [Op.lte]: checkInDate
+                }
+              },
+              {
+                check_out_date: {
+                  [Op.gte]: checkOutDate
+                }
+              }
+            ]
+          }
+        ]
+      }
+    });
+
+    const availableCount = Math.max(0, totalRooms - bookedCount);
+    return availableCount;
+  }
+
+  /**
+   * Get list of available room IDs of same type for date range
+   */
+  async getAvailableRoomsForType(roomId, checkInDate, checkOutDate, quantity) {
+    const { Room, Booking } = require('../databases/models');
+    
+    // Get room to find room_type_id
+    const room = await Room.findByPk(roomId);
+    if (!room) {
+      return [];
+    }
+
+    // Get all rooms of this type
+    const allRooms = await Room.findAll({
+      where: {
+        room_type_id: room.room_type_id,
+        status: 'available'
+      },
+      attributes: ['id', 'room_number'],
+      raw: true
+    });
+
+    if (!checkInDate || !checkOutDate) {
+      return allRooms.slice(0, quantity);
+    }
+
+    // Get booked room IDs in date range
+    const bookedRoomIds = await Booking.findAll({
+      attributes: ['room_id'],
+      include: [{
+        model: Room,
+        as: 'room',
+        where: {
+          room_type_id: room.room_type_id
+        },
+        attributes: []
+      }],
+      where: {
+        status: {
+          [Op.notIn]: ['cancelled']
+        },
+        [Op.or]: [
+          {
+            check_in_date: {
+              [Op.between]: [checkInDate, checkOutDate]
+            }
+          },
+          {
+            check_out_date: {
+              [Op.between]: [checkInDate, checkOutDate]
+            }
+          },
+          {
+            [Op.and]: [
+              {
+                check_in_date: {
+                  [Op.lte]: checkInDate
+                }
+              },
+              {
+                check_out_date: {
+                  [Op.gte]: checkOutDate
+                }
+              }
+            ]
+          }
+        ]
+      },
+      group: ['room_id'],
+      raw: true
+    });
+
+    const bookedIds = bookedRoomIds.map(b => b.room_id);
+    const availableRooms = allRooms.filter(r => !bookedIds.includes(r.id));
+    
+    return availableRooms.slice(0, quantity);
+  }
 }
 
 module.exports = new RoomService();

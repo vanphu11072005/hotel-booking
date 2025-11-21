@@ -28,6 +28,35 @@ const createBooking = async (req, res, next) => {
 };
 
 /**
+ * Create booking with multiple room types
+ * POST /api/bookings/multi-room-type
+ */
+const createMultiRoomTypeBooking = async (req, res, next) => {
+	try {
+		const result = await bookingService.createMultiRoomTypeBooking(
+			req.user.id,
+			req.body
+		);
+
+		return res.status(201).json({
+			success: true,
+			data: { 
+				booking: result.booking
+			},
+			message: result.message,
+		});
+	} catch (error) {
+		if (error.statusCode) {
+			return res.status(error.statusCode).json({
+				status: 'error',
+				message: error.message,
+			});
+		}
+		next(error);
+	}
+};
+
+/**
  * Get bookings for current user
  * GET /api/bookings/me
  */
@@ -155,6 +184,7 @@ const updateBooking = async (req, res, next) => {
 
 module.exports = {
 	createBooking,
+	createMultiRoomTypeBooking,
 	getMyBookings,
 	getBookingById,
 	cancelBooking,

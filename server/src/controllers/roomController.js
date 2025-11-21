@@ -237,6 +237,31 @@ const deleteRoomImage = async (req, res, next) => {
   }
 };
 
+/**
+ * Get available room count for booking dates
+ */
+const getAvailableRoomCount = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { check_in_date, check_out_date } = req.query;
+
+    const availableCount = await roomService.getAvailableRoomCount(
+      id,
+      check_in_date,
+      check_out_date
+    );
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        available_count: availableCount,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getRooms,
   getRoomById,
@@ -248,4 +273,5 @@ module.exports = {
   uploadRoomImages,
   deleteRoomImage,
   getRoomTypes,
+  getAvailableRoomCount,
 };
