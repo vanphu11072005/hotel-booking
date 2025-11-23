@@ -28,7 +28,6 @@ import { toast } from 'react-toastify';
 import {
   getBookingById,
   cancelBooking,
-  generateQRCode,
   type Booking,
 } from '../../services/api/bookingService';
 import useAuthStore from '../../store/useAuthStore';
@@ -335,11 +334,6 @@ const BookingDetailPage: React.FC = () => {
   
   const PLACEHOLDER = '/images/room-placeholder.jpg';
 
-  const qrCodeUrl = generateQRCode(
-    booking.booking_number,
-    booking.total_price
-  );
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
@@ -488,12 +482,6 @@ const BookingDetailPage: React.FC = () => {
                               <h4 className="font-bold text-lg text-gray-900">
                                 {roomTypeData?.name || 'Phòng'}
                               </h4>
-                              {roomData && (
-                                <p className="text-gray-600 text-sm flex items-center gap-1 mt-1">
-                                  <MapPin className="w-4 h-4" />
-                                  Phòng {roomData.room_number} • Tầng {roomData.floor}
-                                </p>
-                              )}
                             </div>
                             <div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-sm">
                               × {quantity}
@@ -1024,92 +1012,6 @@ const BookingDetailPage: React.FC = () => {
                 </div>
               </div>
             </div>
-
-        {/* Bank Transfer Instructions */}
-        {booking.payment_method === 'bank_transfer' && (
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6 shadow-lg">
-            <div className="mb-4">
-              <h3 className="font-bold text-blue-900 mb-4 text-xl flex items-center gap-2">
-                <Building2 className="w-7 h-7 text-blue-600" />
-                🏦 Thông tin chuyển khoản
-              </h3>
-              <div className="grid grid-cols-1 gap-6">
-                {/* Bank Info */}
-                <div className="bg-white rounded-xl p-5 shadow-md border border-blue-100">
-                  <h4 className="font-bold text-gray-900 mb-4 text-lg">Thông tin tài khoản</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Building2 className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Ngân hàng</p>
-                        <p className="font-bold text-gray-900">Vietcombank (VCB)</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <CreditCard className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Số tài khoản</p>
-                        <p className="font-bold text-gray-900 font-mono text-lg">0123456789</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Chủ tài khoản</p>
-                        <p className="font-bold text-gray-900">KHACH SAN ABC</p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-3 border border-orange-200">
-                      <p className="text-xs text-gray-500 uppercase mb-1">Số tiền</p>
-                      <p className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600">
-                        {formatPrice(booking.total_price)}
-                      </p>
-                    </div>
-                    
-                    <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-                      <p className="text-xs text-gray-500 uppercase mb-1">Nội dung chuyển khoản</p>
-                      <p className="font-bold text-gray-900 font-mono text-lg">
-                        {booking.booking_number}
-                      </p>
-                      <p className="text-xs text-red-600 font-medium mt-1">
-                        ⚠️ Vui lòng nhập chính xác
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* QR Code */}
-                {qrCodeUrl && (
-                  <div className="bg-white rounded-xl p-5 shadow-md border border-blue-100 flex flex-col items-center justify-center">
-                    <h4 className="font-bold text-gray-900 mb-3 text-lg">Quét mã QR</h4>
-                    <div className="bg-white p-4 rounded-xl border-4 border-gray-100 shadow-lg">
-                      <img
-                        src={qrCodeUrl}
-                        alt="QR Code"
-                        className="w-48 h-48"
-                      />
-                    </div>
-                    <p className="text-sm text-gray-600 mt-3 text-center font-medium">
-                      📱 Quét để chuyển khoản nhanh
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1 text-center">
-                      Mã QR đã bao gồm đầy đủ thông tin
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
         
           </div>
         </div>

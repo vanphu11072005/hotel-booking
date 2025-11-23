@@ -49,6 +49,7 @@ export interface CreateReviewData {
   room_id: number;
   rating: number;
   comment: string;
+  booking_id?: number;
 }
 
 /**

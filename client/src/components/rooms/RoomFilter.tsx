@@ -136,7 +136,12 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
     }));
   };
 
-  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  const formatDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
 
   // Filters are applied only when user clicks "Áp dụng".
   // Debounced values are kept for UX but won't auto-submit.
@@ -279,7 +284,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               startDate={checkInDate}
               endDate={checkOutDate}
               minDate={new Date()}
-              dateFormat="dd/MM"
+              dateFormat="dd/MM/yyyy"
               placeholderText=""
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
@@ -299,7 +304,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               startDate={checkInDate}
               endDate={checkOutDate}
               minDate={checkInDate || new Date()}
-              dateFormat="dd/MM"
+              dateFormat="dd/MM/yyyy"
               placeholderText=""
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
@@ -381,7 +386,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">Tất cả</option>
-            {[1, 2, 4].map((v) => (
+            {Array.from({ length: 4 }, (_, i) => i + 1).map((v) => (
               <option key={v} value={v}>{v} người</option>
             ))}
           </select>

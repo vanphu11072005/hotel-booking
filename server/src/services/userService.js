@@ -119,6 +119,7 @@ class UserService {
       full_name,
       email,
       phone_number,
+      avatar,
       role,
       status,
       password,
@@ -162,6 +163,9 @@ class UserService {
     if (role !== undefined) dataToUpdate.role_id = roleMap[role] || 3;
     if (status !== undefined) 
       dataToUpdate.is_active = status === 'active';
+
+    // Avatar (URL) update
+    if (avatar !== undefined) dataToUpdate.avatar = avatar;
 
     // Hash password if provided
     if (password) {

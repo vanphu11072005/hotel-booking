@@ -16,20 +16,27 @@ class PaymentService {
    */
   async sendBookingConfirmationEmail(booking) {
     try {
-      // Parse guest_info if it's a string
+      // Parse guest_info if it's a string and normalize
       let guestInfo = booking.guest_info;
       if (typeof guestInfo === 'string') {
         try {
           guestInfo = JSON.parse(guestInfo);
         } catch (e) {
           console.error('Error parsing guest_info:', e);
-          return; // Skip email if guest_info invalid
+          guestInfo = null; // continue and try fallback
         }
       }
 
-      if (!guestInfo || !guestInfo.email) {
-        console.warn('No email found in guest_info for booking:', 
-          booking.booking_number);
+      // Resolve recipient email (guest_info.email || booking.user.email)
+      const userEmail = booking.user?.email;
+      const userFullName = booking.user?.full_name;
+      let recipientEmail = guestInfo?.email || userEmail;
+      if (!guestInfo && userEmail) {
+        console.log('ℹ️ Falling back to booking.user.email for booking:', booking.booking_number);
+      }
+
+      if (!recipientEmail) {
+        console.warn('No email found in guest_info or user for booking:', booking.booking_number);
         return;
       }
 
@@ -39,9 +46,10 @@ class PaymentService {
       const paymentMethod = payment?.payment_method || 'cash';
 
       // Prepare email data
+      const guestNameFromInfo = guestInfo ? (guestInfo.full_name || guestInfo.name || guestInfo.fullName) : null;
       const emailData = {
         booking_number: booking.booking_number,
-        guest_name: guestInfo.full_name || guestInfo.name || guestInfo.fullName || 'Khách hàng',
+        guest_name: guestNameFromInfo || userFullName || 'Khách hàng',
         room_name: booking.room?.room_type?.name || 'Chưa xác định',
         room_number: booking.room?.room_number || 'Chưa xác định',
         check_in_date: booking.check_in_date,
@@ -55,13 +63,13 @@ class PaymentService {
 
       // Send email
       await sendEmail({
-        to: guestInfo.email,
+        to: recipientEmail,
         subject: `Xác nhận đặt phòng ${booking.booking_number}`,
         html: bookingConfirmationEmail(emailData),
         text: bookingConfirmationText(emailData)
       });
 
-      console.log('✅ Đã gửi email xác nhận đến:', guestInfo.email);
+      console.log('✅ Đã gửi email xác nhận đến:', recipientEmail);
     } catch (error) {
       // Log error but don't throw - email failure shouldn't block booking
       console.error('❌ Lỗi gửi email xác nhận:', error.message);
@@ -112,6 +120,7 @@ class PaymentService {
     }
 
     // Update payment
+    const wasAlreadyCompleted = payment.payment_status === 'completed';
     const updatedPayment = await paymentRepository.updatePayment(payment, {
       transaction_id: transaction_id || payment.transaction_id,
       payment_status: 'completed',
@@ -143,8 +152,12 @@ class PaymentService {
       booking.id
     );
 
-    // Send confirmation email
-    await this.sendBookingConfirmationEmail(bookingWithDetails);
+    // Send confirmation email only if this payment was not already completed
+    if (!wasAlreadyCompleted) {
+      await this.sendBookingConfirmationEmail(bookingWithDetails);
+    } else {
+      console.log('ℹ️ Payment already completed previously; skipping duplicate confirmation email');
+    }
 
     return { payment: updatedPayment, booking: updatedBooking };
   }
@@ -317,6 +330,7 @@ class PaymentService {
       // Payment successful
       console.log('✅ Thanh toán thành công, đang cập nhật dữ liệu...');
       
+      const wasAlreadyCompleted = payment.payment_status === 'completed';
       const updatedPayment = await paymentRepository.updatePayment(payment, {
         payment_status: 'completed',
         payment_date: new Date(),
@@ -362,8 +376,12 @@ class PaymentService {
           payment.booking.id
         );
 
-        // Send confirmation email
-        await this.sendBookingConfirmationEmail(bookingWithDetails);
+        // Send confirmation email only if this payment was not already completed
+        if (!wasAlreadyCompleted) {
+          await this.sendBookingConfirmationEmail(bookingWithDetails);
+        } else {
+          console.log('ℹ️ Payment already completed previously; skipping duplicate confirmation email');
+        }
       }
 
       return {

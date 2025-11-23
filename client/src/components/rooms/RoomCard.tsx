@@ -201,17 +201,6 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
           {roomType.name}
         </h3>
 
-        {/* Room Number & Floor */}
-        <div 
-          className="flex items-center text-sm 
-            text-gray-600 mb-3"
-        >
-          <MapPin className="w-4 h-4 mr-1" />
-          <span>
-            Phòng {room.room_number} - Tầng {room.floor}
-          </span>
-        </div>
-
         {/* Description (truncated) */}
         <p className="text-gray-600 text-sm mb-3 line-clamp-2">
           {roomType.description}

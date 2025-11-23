@@ -67,16 +67,16 @@ apiClient.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       // Không redirect nếu đang ở trang login/register
-      const isAuthEndpoint = error.config?.url?.includes('/auth/login') || 
-                             error.config?.url?.includes('/auth/register') ||
-                             error.config?.url?.includes('/auth/refresh');
+      const isAuthEndpoint = error.config?.url?.includes('/auth/login') ||
+                 error.config?.url?.includes('/auth/register') ||
+                 error.config?.url?.includes('/auth/refresh-token');
       
       if (!isAuthEndpoint && localStorage.getItem('rememberMe') === 'true') {
         // Try to refresh token
         originalRequest._retry = true;
 
         try {
-          const response = await apiClient.post('/auth/refresh');
+          const response = await apiClient.post('/auth/refresh-token');
           
           if (response.data?.data?.token) {
             const newToken = response.data.data.token;
