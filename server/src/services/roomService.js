@@ -8,6 +8,17 @@ const path = require('path');
  * Xử lý logic nghiệp vụ liên quan đến room
  */
 class RoomService {
+  // Parse YYYY-MM-DD to local Date at 00:00
+  parseLocalDate(dateStr) {
+    if (!dateStr) return null;
+    if (dateStr instanceof Date) return dateStr;
+    const parts = String(dateStr).split('-');
+    if (parts.length < 3) return new Date(dateStr);
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const d = parseInt(parts[2], 10);
+    return new Date(y, m - 1, d);
+  }
   /**
    * Lấy danh sách rooms với filters và pagination
    */
@@ -149,8 +160,8 @@ class RoomService {
       throw error;
     }
 
-    const checkInDate = new Date(from);
-    const checkOutDate = new Date(to);
+    const checkInDate = this.parseLocalDate(from);
+    const checkOutDate = this.parseLocalDate(to);
 
     if (checkInDate >= checkOutDate) {
       const error = new Error('Check-out date must be after check-in date');
@@ -164,7 +175,8 @@ class RoomService {
       roomTypeWhere.name = { [Op.like]: `%${type}%` };
     }
     if (capacity) {
-      roomTypeWhere.capacity = { [Op.eq]: parseInt(capacity) };
+      // Match room types with capacity greater than or equal to requested
+      roomTypeWhere.capacity = { [Op.gte]: parseInt(capacity) };
     }
 
     // Pagination
@@ -469,8 +481,9 @@ class RoomService {
   /**
    * Đếm số phòng trống của cùng loại trong khoảng thời gian
    */
-  async getAvailableRoomCount(roomId, checkInDate, checkOutDate) {
+  async getAvailableRoomCount(roomId, checkInDate, checkOutDate, options = {}) {
     const { Room, Booking } = require('../databases/models');
+    const transaction = options.transaction;
     
     // Get room to find room_type_id
     const room = await Room.findByPk(roomId);
@@ -483,14 +496,17 @@ class RoomService {
       where: {
         room_type_id: room.room_type_id,
         status: 'available'
-      }
+      },
+      transaction,
     });
 
     if (!checkInDate || !checkOutDate) {
       return totalRooms;
     }
 
-    // Count booked rooms in date range
+    // Count booked rooms in date range using overlap formula
+    // overlap when booking.check_in_date < checkOutDate
+    // and booking.check_out_date > checkInDate
     const bookedCount = await Booking.count({
       distinct: true,
       col: 'room_id',
@@ -506,33 +522,12 @@ class RoomService {
         status: {
           [Op.notIn]: ['cancelled']
         },
-        [Op.or]: [
-          {
-            check_in_date: {
-              [Op.between]: [checkInDate, checkOutDate]
-            }
-          },
-          {
-            check_out_date: {
-              [Op.between]: [checkInDate, checkOutDate]
-            }
-          },
-          {
-            [Op.and]: [
-              {
-                check_in_date: {
-                  [Op.lte]: checkInDate
-                }
-              },
-              {
-                check_out_date: {
-                  [Op.gte]: checkOutDate
-                }
-              }
-            ]
-          }
-        ]
-      }
+        [Op.and]: [
+          { check_in_date: { [Op.lt]: this.parseLocalDate(checkOutDate) } },
+          { check_out_date: { [Op.gt]: this.parseLocalDate(checkInDate) } },
+        ],
+      },
+      transaction,
     });
 
     const availableCount = Math.max(0, totalRooms - bookedCount);
@@ -542,8 +537,9 @@ class RoomService {
   /**
    * Get list of available room IDs of same type for date range
    */
-  async getAvailableRoomsForType(roomId, checkInDate, checkOutDate, quantity) {
+  async getAvailableRoomsForType(roomId, checkInDate, checkOutDate, quantity, options = {}) {
     const { Room, Booking } = require('../databases/models');
+    const transaction = options.transaction;
     
     // Get room to find room_type_id
     const room = await Room.findByPk(roomId);
@@ -552,20 +548,27 @@ class RoomService {
     }
 
     // Get all rooms of this type
-    const allRooms = await Room.findAll({
+    const findAllOpts = {
       where: {
         room_type_id: room.room_type_id,
         status: 'available'
       },
       attributes: ['id', 'room_number'],
       raw: true
-    });
+    };
+    if (transaction) {
+      findAllOpts.transaction = transaction;
+      // Lock room rows to prevent concurrent allocation races
+      findAllOpts.lock = transaction.LOCK.UPDATE;
+    }
+
+    const allRooms = await Room.findAll(findAllOpts);
 
     if (!checkInDate || !checkOutDate) {
       return allRooms.slice(0, quantity);
     }
 
-    // Get booked room IDs in date range
+    // Get booked room IDs in date range using overlap formula
     const bookedRoomIds = await Booking.findAll({
       attributes: ['room_id'],
       include: [{
@@ -580,42 +583,21 @@ class RoomService {
         status: {
           [Op.notIn]: ['cancelled']
         },
-        [Op.or]: [
-          {
-            check_in_date: {
-              [Op.between]: [checkInDate, checkOutDate]
-            }
-          },
-          {
-            check_out_date: {
-              [Op.between]: [checkInDate, checkOutDate]
-            }
-          },
-          {
-            [Op.and]: [
-              {
-                check_in_date: {
-                  [Op.lte]: checkInDate
-                }
-              },
-              {
-                check_out_date: {
-                  [Op.gte]: checkOutDate
-                }
-              }
-            ]
-          }
-        ]
+        [Op.and]: [
+          { check_in_date: { [Op.lt]: this.parseLocalDate(checkOutDate) } },
+          { check_out_date: { [Op.gt]: this.parseLocalDate(checkInDate) } },
+        ],
       },
       group: ['room_id'],
-      raw: true
+      raw: true,
+      transaction,
     });
 
     const bookedIds = bookedRoomIds.map(b => b.room_id);
     const availableRooms = allRooms.filter(r => !bookedIds.includes(r.id));
-    
     return availableRooms.slice(0, quantity);
   }
+
 }
 
 module.exports = new RoomService();

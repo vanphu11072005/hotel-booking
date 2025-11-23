@@ -9,6 +9,7 @@ const {
   loginValidation,
   refreshTokenValidation
 } = require('../validators/authValidator');
+const upload = require('../middlewares/upload');
 
 /**
  * @route   POST /api/auth/register
@@ -59,6 +60,20 @@ router.post('/logout', authController.logout);
  * @access  Private
  */
 router.get('/profile', authenticateToken, authController.getProfile);
+/**
+ * PUT /api/auth/profile - Update current user's profile
+ */
+router.put('/profile', authenticateToken, authController.updateProfile);
+
+/**
+ * Upload avatar for current user
+ */
+router.put(
+  '/profile/avatar',
+  authenticateToken,
+  upload.single('avatar'),
+  authController.uploadAvatar
+ );
 
 /**
  * @route   POST /api/auth/forgot-password

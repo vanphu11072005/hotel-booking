@@ -46,6 +46,16 @@ class ReviewRepository {
   }
 
   /**
+   * Find existing review by booking id
+   */
+  async findReviewByBookingId(bookingId) {
+    if (!bookingId) return null;
+    return await Review.findOne({
+      where: { booking_id: bookingId }
+    });
+  }
+
+  /**
    * Check if user has completed booking for room
    */
   async hasCompletedBooking(userId, roomId) {

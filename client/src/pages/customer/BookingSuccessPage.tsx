@@ -11,7 +11,6 @@ import {
   Calendar,
   Users,
   CreditCard,
-  MapPin,
   Mail,
   Phone,
   User,
@@ -334,12 +333,6 @@ const BookingSuccessPage: React.FC = () => {
                         <h3 className="font-bold text-xl text-gray-900 mb-1">
                           {roomType.name}
                         </h3>
-                        {room && (
-                          <p className="text-gray-600 text-sm flex items-center gap-1 mb-2">
-                            <MapPin className="w-4 h-4" />
-                            Phòng {room.room_number} • Tầng {room.floor}
-                          </p>
-                        )}
                       </div>
                     </div>
                     <div className="flex items-baseline gap-2 mt-2">

@@ -209,9 +209,9 @@ class RoomRepository {
       }
     }
 
-    // Filter by capacity
+    // Filter by capacity (rooms that can hold at least `capacity` people)
     if (capacity) {
-      roomTypeWhere.capacity = { [Op.eq]: parseInt(capacity) };
+      roomTypeWhere.capacity = { [Op.gte]: parseInt(capacity) };
     }
 
     // Filter by price

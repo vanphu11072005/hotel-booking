@@ -8,6 +8,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import DatePicker from 'react-datepicker';
+import { addDays } from 'date-fns';
 import QRCode from 'qrcode';
 import { 
   Calendar,
@@ -190,6 +191,13 @@ const BookingPage: React.FC = () => {
   const checkOutDate = watch('checkOutDate');
   const paymentMethod = watch('paymentMethod');
 
+  const formatLocalDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   // Fetch available count for each room type when dates change
   useEffect(() => {
     const updateAvailability = async () => {
@@ -199,17 +207,14 @@ const BookingPage: React.FC = () => {
         return;
       }
 
-      const checkInStr = checkInDate.toISOString().split('T')[0];
-      const checkOutStr = checkOutDate.toISOString().split('T')[0];
+      const checkInStr = formatLocalDate(checkInDate);
+      const checkOutStr = formatLocalDate(checkOutDate);
 
       // Update each room type's availability
       const updatedRoomTypes = await Promise.all(
         selectedRoomTypes.map(async (roomType) => {
-          // Skip if already loading or recently fetched
-          if (roomType.loading || 
-            (roomType.availableCount !== null && 
-              checkInDate && checkOutDate)
-          ) {
+          // Skip if currently loading to avoid duplicate fetches
+          if (roomType.loading) {
             return roomType;
           }
 
@@ -321,8 +326,8 @@ const BookingPage: React.FC = () => {
     // Fetch availability for new room type
     if (checkInDate && checkOutDate) {
       try {
-        const checkInStr = checkInDate.toISOString().split('T')[0];
-        const checkOutStr = checkOutDate.toISOString().split('T')[0];
+        const checkInStr = formatLocalDate(checkInDate);
+        const checkOutStr = formatLocalDate(checkOutDate);
         
         const response = await getAvailableRoomCount(
           selectedRoom.id,
@@ -361,12 +366,8 @@ const BookingPage: React.FC = () => {
     try {
       setSubmitting(true);
 
-      const checkInDateStr = data.checkInDate
-        .toISOString()
-        .split('T')[0];
-      const checkOutDateStr = data.checkOutDate
-        .toISOString()
-        .split('T')[0];
+      const checkInDateStr = formatLocalDate(data.checkInDate);
+      const checkOutDateStr = formatLocalDate(data.checkOutDate);
 
       // Step 1: Prepare services list
       const servicesList = Object.entries(selectedServices)
@@ -837,9 +838,7 @@ const BookingPage: React.FC = () => {
                             onChange={(date) => 
                               field.onChange(date)
                             }
-                            minDate={
-                              checkInDate || new Date()
-                            }
+                            minDate={checkInDate ? addDays(checkInDate, 1) : new Date()}
                             selectsEnd
                             startDate={checkInDate}
                             endDate={checkOutDate}
@@ -1375,9 +1374,6 @@ const BookingPage: React.FC = () => {
                 <h3 className="font-bold text-gray-900">
                   {roomType.name}
                 </h3>
-                <p className="text-sm text-gray-600">
-                  Phòng {room.room_number} - Tầng {room.floor}
-                </p>
               </div>
 
               {/* Pricing Breakdown */}

@@ -2,44 +2,35 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../../uploads/rooms');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Ensure uploads/avatars directory exists
+const avatarsDir = path.join(__dirname, '../../uploads/avatars');
+if (!fs.existsSync(avatarsDir)) {
+  fs.mkdirSync(avatarsDir, { recursive: true });
 }
 
-// Configure storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
+  destination: function (req, file, cb) {
+    cb(null, avatarsDir);
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    cb(null, 'room-' + uniqueSuffix + ext);
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname) || '.jpg';
+    const name = `avatar_${Date.now()}${ext}`;
+    cb(null, name);
   }
 });
 
-// File filter - only images
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-
-  if (extname && mimetype) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'));
+  if (!file.mimetype.startsWith('image/')) {
+    return cb(new Error('Only image files are allowed'), false);
   }
+  cb(null, true);
 };
 
-// Configure multer
 const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB max file size
-  }
+  storage,
+  fileFilter,
+  limits: { fileSize: 2 * 1024 * 1024 } // 2MB
 });
 
 module.exports = upload;
+// module.exports = upload; (already exported above)
