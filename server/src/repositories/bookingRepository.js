@@ -67,6 +67,15 @@ class BookingRepository {
             attributes: this.getRoomTypeAttributes()
           }]
         }]
+      },
+      {
+        model: ServiceUsage,
+        as: 'service_usages',
+        include: [{
+          model: Service,
+          as: 'service',
+          attributes: ['id', 'name', 'price', 'category']
+        }]
       }
     ];
 
@@ -186,9 +195,48 @@ class BookingRepository {
    * Find booking by booking number
    */
   async findBookingByNumber(bookingNumber) {
+    const { BookingRoom } = require('../databases/models');
+    
     return await Booking.findOne({
       where: { booking_number: bookingNumber },
-      include: [{ model: Room, as: 'room' }],
+      include: [
+        {
+          model: Room,
+          as: 'room',
+          include: [{
+            model: RoomType,
+            as: 'room_type',
+            attributes: this.getRoomTypeAttributes()
+          }]
+        },
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'full_name', 'email', 'phone'],
+        },
+        {
+          model: BookingRoom,
+          as: 'booking_rooms',
+          include: [{
+            model: Room,
+            as: 'room',
+            include: [{
+              model: RoomType,
+              as: 'room_type',
+              attributes: this.getRoomTypeAttributes()
+            }]
+          }]
+        },
+        {
+          model: ServiceUsage,
+          as: 'service_usages',
+          include: [{
+            model: Service,
+            as: 'service',
+            attributes: ['id', 'name', 'price', 'category']
+          }]
+        }
+      ],
     });
   }
 

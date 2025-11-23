@@ -80,6 +80,7 @@ import {
   BookingManagementPage as StaffBookingPage,
   CheckInPage as StaffCheckInPage,
   CheckOutPage as StaffCheckOutPage,
+  PaymentManagementPage as StaffPaymentPage,
 } from './pages/staff';
 
 // Demo component cho các page chưa có
@@ -353,6 +354,10 @@ function App() {
           <Route 
             path="check-out" 
             element={<StaffCheckOutPage />} 
+          />
+          <Route 
+            path="payments" 
+            element={<StaffPaymentPage />} 
           />
         </Route>
 

@@ -47,6 +47,10 @@ const BannerManagementPage: React.FC = () => {
         page: currentPage,
         limit: itemsPerPage,
       });
+      console.log('=== BANNER DEBUG ===');
+      console.log('First banner:', response.data.banners[0]);
+      console.log('Image URL:', response.data.banners[0]?.image_url);
+      console.log('==================');
       setBanners(response.data.banners);
       if (response.data.pagination) {
         setTotalPages(response.data.pagination.totalPages);
@@ -246,15 +250,38 @@ const BannerManagementPage: React.FC = () => {
             {banners.map((banner) => (
               <tr key={banner.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {banner.image_url ? (
-                    <img
-                      src={`http://localhost:3000${banner.image_url}`}
-                      alt={banner.title}
-                      className="w-20 h-12 object-cover rounded"
-                    />
-                  ) : (
-                    <div className="w-20 h-12 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-xs">
-                      No image
+                  {banner.image_url ? (() => {
+                    const imgUrl = banner.image_url;
+                    const fullUrl = imgUrl.startsWith('http')
+                      ? imgUrl
+                      : `http://localhost:3000${imgUrl.startsWith('/') ? imgUrl : '/' + imgUrl}`;
+                    return (
+                      <div className="relative group">
+                        <img
+                          src={fullUrl}
+                          alt={banner.title}
+                          className="w-32 h-20 object-cover rounded-lg cursor-pointer hover:shadow-lg transition-shadow"
+                          onClick={() => window.open(fullUrl, '_blank')}
+                          onError={(e) => {
+                            console.error('Image load error:', imgUrl);
+                            console.error('Full URL:', fullUrl);
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            const errorDiv = document.createElement('div');
+                            errorDiv.innerText = 'Không load được ảnh';
+                            errorDiv.className = 'w-32 h-20 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs';
+                            (e.target as HTMLImageElement).parentElement?.appendChild(errorDiv);
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded-lg flex items-center justify-center">
+                          <span className="text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                            Click để xem lớn
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })() : (
+                    <div className="w-32 h-20 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs">
+                      Chưa có ảnh
                     </div>
                   )}
                 </td>
@@ -400,39 +427,75 @@ const BannerManagementPage: React.FC = () => {
             </form>
 
             {/* Image Upload Section */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="text-lg font-semibold mb-4">Hình ảnh banner</h3>
-              {previewUrl ? (
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-2">Ảnh xem trước:</p>
-                  <img
-                    src={previewUrl}
-                    alt="Banner preview"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedFile(null); setPreviewUrl(''); }}
-                    className="mt-2 px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
-                  >
-                    Xóa ảnh
-                  </button>
-                </div>
-              ) : (
-                <div className="mb-4 text-gray-400 text-sm">Chưa chọn ảnh</div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tải ảnh mới:
-                </label>
-                <div className="flex gap-3">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                  {editingBanner && (
+            {editingBanner && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Upload className="w-5 h-5" />
+                  Hình ảnh banner
+                </h3>
+                
+                {/* Current Image */}
+                {editingBanner.image_url && (() => {
+                  const imgUrl = editingBanner.image_url;
+                  const fullUrl = imgUrl.startsWith('http')
+                    ? imgUrl
+                    : `http://localhost:3000${imgUrl.startsWith('/') ? imgUrl : '/' + imgUrl}`;
+                  return (
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-600 mb-2">Ảnh hiện tại:</p>
+                      <div className="relative group inline-block">
+                        <img
+                          src={fullUrl}
+                          alt={editingBanner.title}
+                          className="w-full max-w-2xl h-48 object-cover rounded-lg border-2 border-gray-200"
+                          onError={(e) => {
+                            console.error('Image load error (modal):', imgUrl);
+                            console.error('Full URL (modal):', fullUrl);
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            const errorDiv = document.createElement('div');
+                            errorDiv.innerText = 'Không load được ảnh';
+                            errorDiv.className = 'text-xs text-red-500 mt-1';
+                            (e.target as HTMLImageElement).parentElement?.appendChild(errorDiv);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+                
+                {/* Preview New Image */}
+                {previewUrl && selectedFile && (
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600 mb-2">Ảnh mới (xem trước):</p>
+                    <div className="relative inline-block">
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        className="w-full max-w-2xl h-48 object-cover rounded-lg border-2 border-blue-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedFile(null); setPreviewUrl(''); }}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Upload New Image */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {editingBanner.image_url ? 'Thay đổi ảnh banner:' : 'Thêm ảnh banner:'}
+                  </label>
+                  <div className="flex gap-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
                     <button
                       type="button"
                       onClick={handleUploadImage}
@@ -442,10 +505,15 @@ const BannerManagementPage: React.FC = () => {
                       <Upload className="w-4 h-4" />
                       {uploadingImage ? 'Đang tải...' : 'Upload'}
                     </button>
+                  </div>
+                  {selectedFile && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      File đã chọn: {selectedFile.name}
+                    </p>
                   )}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

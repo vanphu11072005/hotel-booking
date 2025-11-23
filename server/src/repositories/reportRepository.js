@@ -36,6 +36,44 @@ class ReportRepository {
   }
 
   /**
+   * Get total rooms count
+   */
+  async getTotalRoomsCount() {
+    return await Room.count();
+  }
+
+  /**
+   * Get occupied rooms count (rooms with checked_in bookings)
+   */
+  async getOccupiedRoomsCount() {
+    const { BookingRoom } = require('../databases/models');
+    
+    // Get all checked_in bookings with their rooms
+    const checkedInBookings = await Booking.findAll({
+      where: { status: 'checked_in' },
+      include: [{
+        model: BookingRoom,
+        as: 'booking_rooms',
+        attributes: ['room_id'],
+        required: true,
+      }],
+      raw: false,
+    });
+
+    // Get unique room IDs
+    const roomIds = new Set();
+    checkedInBookings.forEach(booking => {
+      if (booking.booking_rooms) {
+        booking.booking_rooms.forEach(br => {
+          if (br.room_id) roomIds.add(br.room_id);
+        });
+      }
+    });
+
+    return roomIds.size;
+  }
+
+  /**
    * Get available rooms count
    */
   async getAvailableRoomsCount() {
