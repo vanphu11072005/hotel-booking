@@ -6,13 +6,14 @@ import Loading from '../../components/common/Loading';
 import Pagination from '../../components/common/Pagination';
 
 const PaymentManagementPage: React.FC = () => {
+  const today = new Date().toISOString().split('T')[0];
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
     method: '',
-    from: '',
-    to: '',
+    from: today,
+    to: today,
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -76,7 +77,7 @@ const PaymentManagementPage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Quản lý thanh toán</h1>
-        <p className="text-gray-500 mt-1">Theo dõi các giao dịch thanh toán</p>
+        <p className="text-gray-500 mt-1">Theo dõi các giao dịch thanh toán hôm nay - {new Date().toLocaleDateString('vi-VN')}</p>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-4">

@@ -50,7 +50,8 @@ class ReportService {
     const [
       totalRevenue,
       totalBookings,
-      availableRooms,
+      totalRooms,
+      occupiedRooms,
       totalCustomers,
       revenueByDate,
       bookingsByStatus,
@@ -59,7 +60,8 @@ class ReportService {
     ] = await Promise.all([
       reportRepository.getTotalRevenue(dateFilter),
       reportRepository.getTotalBookings(dateFilter),
-      reportRepository.getAvailableRoomsCount(),
+      reportRepository.getTotalRoomsCount(),
+      reportRepository.getOccupiedRoomsCount(),
       reportRepository.getTotalCustomersCount(),
       reportRepository.getRevenueByDate(dateFilter),
       reportRepository.getBookingsByStatus(dateFilter),
@@ -67,11 +69,15 @@ class ReportService {
       reportRepository.getServiceUsage(5),
     ]);
 
+    // Calculate available rooms = total rooms - occupied rooms
+    const availableRooms = totalRooms - occupiedRooms;
+
     return {
       summary: {
         total_revenue: totalRevenue || 0,
         total_bookings: totalBookings,
         available_rooms: availableRooms,
+        occupied_rooms: occupiedRooms,
         total_customers: totalCustomers,
       },
       revenue_by_date: revenueByDate,
