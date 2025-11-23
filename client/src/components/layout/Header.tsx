@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { 
   Hotel, 
@@ -30,9 +30,13 @@ const Header: React.FC<HeaderProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = 
     useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [hiddenOnScroll, setHiddenOnScroll] = useState(false);
+  const lastScrollY = useRef(0);
 
   const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+    const next = !isMobileMenuOpen;
+    setIsMobileMenuOpen(next);
+    if (next) setHiddenOnScroll(false);
   };
 
   const toggleUserMenu = () => {
@@ -47,8 +51,37 @@ const Header: React.FC<HeaderProps> = ({
     setIsMobileMenuOpen(false);
   };
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY || window.pageYOffset;
+
+      // If mobile menu is open, keep header visible
+      if (isMobileMenuOpen) {
+        lastScrollY.current = currentY;
+        setHiddenOnScroll(false);
+        return;
+      }
+
+      // Scrolling down -> hide, scrolling up -> show
+      if (currentY > lastScrollY.current && currentY > 60) {
+        setHiddenOnScroll(true);
+      } else if (currentY < lastScrollY.current) {
+        setHiddenOnScroll(false);
+      }
+
+      lastScrollY.current = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isMobileMenuOpen]);
+
   return (
-    <header className="bg-[#0F2F2F] shadow-md sticky top-0 z-50">
+    <header
+      className={`bg-[#0F2F2F] shadow-md sticky top-0 z-50
+        transition-transform duration-300 ease-in-out
+        ${hiddenOnScroll ? '-translate-y-full' : 'translate-y-0'}`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex items-center justify-between">
           {/* Logo */}

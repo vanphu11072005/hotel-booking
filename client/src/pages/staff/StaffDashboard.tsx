@@ -38,7 +38,13 @@ const StaffDashboard: React.FC = () => {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      const today = new Date().toISOString().split('T')[0];
+      const formatLocalDate = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+      const today = formatLocalDate(new Date());
 
       // Lấy booking hôm nay
       const bookingsResponse = await bookingService.getAllBookings({

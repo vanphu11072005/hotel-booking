@@ -245,6 +245,9 @@ function bookingConfirmationText(bookingData) {
     payment_method
   } = bookingData;
 
+  // Also accept deposit fields for calculation
+  const { deposit_amount, requires_deposit } = bookingData;
+
   const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',

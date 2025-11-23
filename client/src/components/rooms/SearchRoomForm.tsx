@@ -56,9 +56,12 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
       return;
     }
 
-    // Format dates to YYYY-MM-DD
+    // Format dates to YYYY-MM-DD using local date (avoid UTC shift)
     const formatDate = (date: Date) => {
-      return date.toISOString().split('T')[0];
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
     };
 
     // Build search params
@@ -110,7 +113,14 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
               minDate={today}
               placeholderText="Ngày nhận phòng"
               dateFormat="dd/MM"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              popperPlacement="bottom-start"
+              popperClassName="shadow-lg z-50"
+              popperModifiers={[
+                { name: 'preventOverflow', options: { padding: 8 } },
+                { name: 'flip', options: { fallbackPlacements: [] } }
+              ] as any}
+              withPortal
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
             />
           </div>
 
@@ -125,7 +135,14 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
               minDate={checkInDate || today}
               placeholderText="Ngày trả phòng"
               dateFormat="dd/MM"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              popperPlacement="bottom-start"
+              popperClassName="shadow-lg z-50"
+              popperModifiers={[
+                { name: 'preventOverflow', options: { padding: 8 } },
+                { name: 'flip', options: { fallbackPlacements: [] } }
+              ] as any}
+              withPortal
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
             />
           </div>
 
@@ -152,7 +169,7 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
               onChange={(e) => setGuestCount(Number(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
             >
-              {[1, 2, 4].map((v) => (
+              {Array.from({ length: 4 }, (_, i) => i + 1).map((v) => (
                 <option key={v} value={v}>{v} khách</option>
               ))}
             </select>

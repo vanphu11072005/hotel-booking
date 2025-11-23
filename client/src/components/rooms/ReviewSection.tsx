@@ -9,6 +9,7 @@ import {
   createReview,
   type Review,
 } from '../../services/api/reviewService';
+import { getMyBookings, type Booking } from '../../services/api/bookingService';
 import useAuthStore from '../../store/useAuthStore';
 
 interface ReviewSectionProps {
@@ -42,6 +43,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [averageRating, setAverageRating] = useState<number>(0);
   const [totalReviews, setTotalReviews] = useState<number>(0);
+  const [eligibleBookingId, setEligibleBookingId] = useState<number | null>(null);
 
   const {
     register,
@@ -63,6 +65,16 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
   useEffect(() => {
     fetchReviews();
   }, [roomId]);
+
+  useEffect(() => {
+    // If user is authenticated, try to find an eligible booking
+    if (isAuthenticated) {
+      checkEligibleBooking();
+    } else {
+      setEligibleBookingId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, roomId]);
 
   const fetchReviews = async () => {
     try {
@@ -89,6 +101,33 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
     }
   };
 
+  const checkEligibleBooking = async () => {
+    try {
+      const resp = await getMyBookings();
+      if (resp && resp.success && resp.data && Array.isArray(resp.data.bookings)) {
+        const bookings: Booking[] = resp.data.bookings;
+        // Accept either 'checked_out' or 'completed' as completed state
+        const completedStatuses = ['checked_out', 'completed'];
+        const booking = bookings.find((b) =>
+          b.room_id === roomId &&
+          completedStatuses.includes(b.status) &&
+          // has_review may be present from backend annotation
+          !(b as any).has_review
+        );
+
+        if (booking) {
+          setEligibleBookingId(booking.id);
+          return;
+        }
+      }
+
+      setEligibleBookingId(null);
+    } catch (err) {
+      console.error('Error checking bookings for review eligibility', err);
+      setEligibleBookingId(null);
+    }
+  };
+
   const onSubmit = async (data: ReviewFormData) => {
     if (!isAuthenticated) {
       toast.error('Vui lòng đăng nhập để đánh giá');
@@ -96,24 +135,29 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
     }
 
     try {
+      if (!eligibleBookingId) {
+        toast.error('Bạn không có booking đủ điều kiện để đánh giá');
+        return;
+      }
+
       setSubmitting(true);
       const response = await createReview({
         room_id: roomId,
         rating: data.rating,
         comment: data.comment,
+        booking_id: eligibleBookingId,
       });
 
-      if (response.success) {
-        toast.success(
-          'Đánh giá của bạn đã được gửi và đang chờ duyệt'
-        );
+      if (response && (response as any).success) {
+        toast.success('Đánh giá của bạn đã được gửi và đang chờ duyệt');
         reset();
+        // Hide form for this booking
+        setEligibleBookingId(null);
         fetchReviews();
       }
     } catch (error: any) {
       const message =
-        error.response?.data?.message ||
-        'Không thể gửi đánh giá';
+        error.response?.data?.message || 'Không thể gửi đánh giá';
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -159,79 +203,61 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
           <h4 className="text-xl font-semibold mb-4">
             Viết đánh giá của bạn
           </h4>
-          <form onSubmit={handleSubmit(onSubmit)} 
-            className="space-y-4"
-          >
-            <div>
-              <label className="block text-sm font-medium 
-                text-gray-700 mb-2"
-              >
-                Đánh giá của bạn
-              </label>
-              <RatingStars
-                rating={rating}
-                size="lg"
-                interactive
-                onRatingChange={(value) => 
-                  setValue('rating', value)
-                }
-              />
-              {errors.rating && (
-                <p className="text-red-600 text-sm mt-1">
-                  {errors.rating.message}
-                </p>
-              )}
-            </div>
 
-            <div>
-              <label
-                htmlFor="comment"
-                className="block text-sm font-medium 
-                  text-gray-700 mb-2"
-              >
-                Nhận xét
-              </label>
-              <textarea
-                {...register('comment')}
-                id="comment"
-                rows={4}
-                className="w-full px-4 py-2 border 
-                  border-gray-300 rounded-lg 
-                  focus:ring-2 focus:ring-blue-500 
-                  focus:border-transparent"
-                placeholder="Chia sẻ trải nghiệm của bạn..."
-              />
-              {errors.comment && (
-                <p className="text-red-600 text-sm mt-1">
-                  {errors.comment.message}
-                </p>
-              )}
-            </div>
+          {eligibleBookingId ? (
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Đánh giá của bạn
+                </label>
+                <RatingStars
+                  rating={rating}
+                  size="lg"
+                  interactive
+                  onRatingChange={(value) => setValue('rating', value)}
+                />
+                {errors.rating && (
+                  <p className="text-red-600 text-sm mt-1">{errors.rating.message}</p>
+                )}
+              </div>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-3 bg-blue-600 text-white 
-                rounded-lg hover:bg-blue-700 
-                disabled:bg-gray-400 
-                disabled:cursor-not-allowed 
-                transition-colors font-medium"
-            >
-              {submitting ? 'Đang gửi...' : 'Gửi đánh giá'}
-            </button>
-          </form>
+              <div>
+                <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nhận xét
+                </label>
+                <textarea
+                  {...register('comment')}
+                  id="comment"
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Chia sẻ trải nghiệm của bạn..."
+                />
+                {errors.comment && (
+                  <p className="text-red-600 text-sm mt-1">{errors.comment.message}</p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                {submitting ? 'Đang gửi...' : 'Gửi đánh giá'}
+              </button>
+            </form>
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-yellow-800">
+                Bạn chỉ có thể đánh giá nếu có booking đã hoàn tất và chưa được đánh giá.
+              </p>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="bg-blue-50 border border-blue-200 
-          rounded-lg p-6 text-center"
-        >
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
           <p className="text-blue-800">
             Vui lòng{' '}
-            <a
-              href="/login"
-              className="font-semibold underline 
-                hover:text-blue-900"
-            >
+            <a href="/login" className="font-semibold underline hover:text-blue-900">
               đăng nhập
             </a>{' '}
             để viết đánh giá

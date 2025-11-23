@@ -35,6 +35,7 @@ const LoginPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: yupResolver(loginSchema),
@@ -56,6 +57,11 @@ const LoginPage: React.FC = () => {
       setLockedUntil(null);
     }
   }, [error]);
+
+  // Keep form's rememberMe in sync with local checkbox state
+  useEffect(() => {
+    setValue('rememberMe', rememberMeChecked);
+  }, [rememberMeChecked, setValue]);
 
   // Countdown timer
   useEffect(() => {
@@ -307,7 +313,11 @@ const LoginPage: React.FC = () => {
                   id="rememberMe"
                   type="checkbox"
                   checked={rememberMeChecked}
-                  onChange={(e) => setRememberMeChecked(e.target.checked)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setRememberMeChecked(checked);
+                    setValue('rememberMe', checked);
+                  }}
                   className="h-4 w-4 text-blue-600 
                     focus:ring-blue-500 border-gray-300 
                     rounded cursor-pointer"

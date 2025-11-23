@@ -46,53 +46,50 @@ class ReviewService {
    * Create a new review
    */
   async createReview(userId, reviewData) {
-    const { room_id, rating, comment } = reviewData;
+    const { room_id, rating, comment, booking_id } = reviewData;
 
     // Validate review data
     this.validateReviewData(rating, comment);
 
-    // Check if room exists
-    const room = await reviewRepository.findRoomById(room_id);
-    if (!room) {
-      throw {
-        statusCode: 404,
-        message: 'Room not found',
-      };
+    if (!booking_id) {
+      throw { statusCode: 400, message: 'booking_id is required' };
     }
 
-    // Optional: Check if user has booked this room
-    // Uncomment if you want to enforce this rule
-    // const hasBooked = await reviewRepository.hasCompletedBooking(
-    //   userId,
-    //   room_id
-    // );
-    // if (!hasBooked) {
-    //   throw {
-    //     statusCode: 403,
-    //     message: 'You can only review rooms you have booked',
-    //   };
-    // }
+    // Check booking exists and belongs to user
+    const bookingRepo = require('../repositories/bookingRepository');
+    const booking = await bookingRepo.findBookingById(booking_id);
+    if (!booking) {
+      throw { statusCode: 404, message: 'Booking not found' };
+    }
 
-    // Check if user already reviewed this room
-    const existingReview = await reviewRepository.findReviewByUserAndRoom(
-      userId,
-      room_id
-    );
+    if (booking.user_id !== userId) {
+      throw { statusCode: 403, message: 'You can only review your own bookings' };
+    }
 
-    if (existingReview) {
+    // Booking must be completed. Some codepaths use 'checked_out'
+    // as the completed state — accept either to remain compatible.
+    const completedStatuses = ['completed', 'checked_out'];
+    if (!completedStatuses.includes(booking.status)) {
       throw {
         statusCode: 400,
-        message: 'You have already reviewed this room',
+        message: 'Only completed bookings can be reviewed',
       };
     }
 
-    // Create review
+    // Ensure one review per booking
+    const existingByBooking = await reviewRepository.findReviewByBookingId(booking_id);
+    if (existingByBooking) {
+      throw { statusCode: 400, message: 'This booking already has a review' };
+    }
+
+    // Create review: keep status 'pending' so admin can approve
     const review = await reviewRepository.createReview({
       user_id: userId,
       room_id,
+      booking_id,
       rating,
       comment,
-      status: 'pending', // Admin will approve
+      status: 'pending',
     });
 
     return review;

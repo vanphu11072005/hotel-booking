@@ -14,7 +14,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { getBookingById, createBooking, type Booking } from 
+import { getBookingById, createBooking, createMultiRoomTypeBooking, type Booking } from 
   '../../services/api/bookingService';
 import {
   getPaymentsByBookingId,
@@ -204,7 +204,10 @@ const DepositPaymentPage: React.FC = () => {
 
       // Case 1: Pending booking - create booking first
       if (pendingBookingData) {
-        const bookingResponse = await createBooking(pendingBookingData);
+        const isMulti = 'rooms' in pendingBookingData;
+        const bookingResponse = isMulti
+          ? await createMultiRoomTypeBooking(pendingBookingData)
+          : await createBooking(pendingBookingData);
 
         if (bookingResponse.success && bookingResponse.data) {
           const newBooking = bookingResponse.data.booking;
@@ -273,7 +276,10 @@ const DepositPaymentPage: React.FC = () => {
       // Case 1: Pending booking - create booking first
       if (pendingBookingData) {
         console.log('✅ Case 1: Creating new booking');
-        const bookingResponse = await createBooking(pendingBookingData);
+        const isMulti = 'rooms' in pendingBookingData;
+        const bookingResponse = isMulti
+          ? await createMultiRoomTypeBooking(pendingBookingData)
+          : await createBooking(pendingBookingData);
         console.log('✅ Booking response:', bookingResponse);
 
         if (bookingResponse.success && bookingResponse.data) {

@@ -540,7 +540,7 @@ const AboutPage: React.FC = () => {
           </p>
           <div className="mt-4">
             <Link
-              to="/booking"
+              to="/rooms"
               className="inline-block bg-white text-indigo-600 font-semibold py-2 px-6 rounded-md"
             >
               Khám phá phòng ngay

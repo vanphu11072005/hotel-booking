@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { toast } from 'react-toastify';
-import { Pencil, Loader2 } from 'lucide-react';
+import { Pencil, Loader2, Camera } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
-import userService from '../../services/api/userService';
 import authService from '../../services/api/authService';
 import bookingService, { type Booking } from '../../services/api/bookingService';
 import Loading from '../../components/common/Loading';
@@ -31,6 +30,10 @@ const ProfilePage: React.FC = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
 
   const {
@@ -106,34 +109,64 @@ const ProfilePage: React.FC = () => {
         phone_number: values.phone,
       };
 
-      // Password change is not supported on this form
+      // First update textual profile fields
+      const response = await authService.updateProfile(payload);
 
-      const response = await userService.updateUser(userInfo.id, payload);
-
-      if ((response as any).success || (response as any).status === 'success') {
-        const updated = (response as any).data?.user;
-        if (updated) {
-          // Normalize and update store
-          const normalized = {
-            id: updated.id,
-            name: updated.full_name || updated.name || '',
-            email: updated.email,
-            phone: updated.phone_number || updated.phone,
-            avatar: updated.avatar,
-            role: updated.role || 'user',
-          } as any;
-          setUser(normalized);
-          reset({
-            fullName: normalized.name,
-            email: normalized.email,
-            phone: normalized.phone,
-          });
-        }
-
-        toast.success('Cập nhật thông tin thành công');
-      } else {
+      if (!((response as any).success || (response as any).status === 'success')) {
         throw new Error((response as any).message || 'Cập nhật thất bại');
       }
+
+      // If user selected a new avatar file, upload it as part of the same save
+      let avatarUpdatedUser = null;
+      if (selectedFile) {
+        try {
+          setUploading(true);
+          const uploadRes = await authService.uploadAvatar(selectedFile);
+          if (uploadRes?.success || uploadRes?.status === 'success') {
+            avatarUpdatedUser = uploadRes.data?.user;
+          } else {
+            // Non-fatal: show warning but continue
+            toast.warn(uploadRes?.message || 'Không thể cập nhật ảnh đại diện');
+          }
+        } catch (err: any) {
+          console.error('Upload avatar error', err);
+          const message = err.response?.data?.message || err.message || 'Lỗi khi tải lên ảnh';
+          toast.warn(message);
+        } finally {
+          setUploading(false);
+        }
+      }
+
+      // Prefer avatarUpdatedUser if available; otherwise take updated user from profile update
+      const updated = avatarUpdatedUser ?? (response as any).data?.user;
+      if (updated) {
+        const normalized = {
+          id: updated.id,
+          name: updated.full_name || updated.name || '',
+          email: updated.email,
+          phone: updated.phone_number || updated.phone,
+          avatar: updated.avatar,
+          role: updated.role || 'user',
+        } as any;
+        setUser(normalized);
+        reset({
+          fullName: normalized.name,
+          email: normalized.email,
+          phone: normalized.phone,
+        });
+        // clear selected file and preview URL (and revoke object URL)
+        if (previewUrl) {
+          try {
+            URL.revokeObjectURL(previewUrl);
+          } catch (e) {
+            /* ignore */
+          }
+        }
+        setSelectedFile(null);
+        setPreviewUrl(null);
+      }
+
+      toast.success('Cập nhật thông tin thành công');
     } catch (err: any) {
       console.error('Update profile error:', err);
       const message = err.response?.data?.message || err.message || 'Lỗi khi cập nhật';
@@ -146,7 +179,7 @@ const ProfilePage: React.FC = () => {
   if (loading) return <Loading fullScreen text="Đang tải hồ sơ..." />;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-pink-50 py-12">
       <div className="max-w-5xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Hồ sơ của tôi</h1>
@@ -159,15 +192,56 @@ const ProfilePage: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Left: Profile Form */}
-          <div className="md:col-span-2 bg-white p-6 rounded-lg shadow">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 gap-6">
+          {/* Single card: Avatar + Profile Form (merged) */}
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-gray-100">
+            <div className="flex flex-col items-center mb-4">
+              <div
+                role="button"
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => { if (e.key === 'Enter') fileInputRef.current?.click(); }}
+                tabIndex={0}
+                className="w-28 h-28 rounded-full overflow-hidden mb-3
+                  ring-4 ring-white shadow-md flex items-center justify-center
+                  relative cursor-pointer hover:opacity-90"
+                aria-label="Đổi ảnh đại diện"
+              >
+                {previewUrl ? (
+                  <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
+                ) : userInfo?.avatar ? (
+                  <img
+                    src={userInfo.avatar}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-blue-500 flex items-center
+                    justify-center text-white font-semibold text-2xl">
+                    {(userInfo?.name?.charAt(0) || 'U').toUpperCase()}
+                  </div>
+                )}
+
+                <div className="absolute inset-0 bg-black/40 opacity-0
+                  hover:opacity-100 flex items-center justify-center text-white
+                  transition-opacity rounded-full">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-5 h-5" />
+                    <span className="text-sm font-medium">Đổi ảnh</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold text-lg">{userInfo?.name}</div>
+                <div className="text-sm text-gray-500">{userInfo?.email}</div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Họ và tên</label>
                 <input
                   {...register('fullName')}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 />
                 {errors.fullName && (
                   <p className="text-sm text-red-600">{errors.fullName.message}</p>
@@ -179,7 +253,7 @@ const ProfilePage: React.FC = () => {
                 <input
                   {...register('email')}
                   disabled
-                  className="w-full px-3 py-2 border rounded-lg bg-gray-50"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 shadow-sm"
                 />
                 {errors.email && (
                   <p className="text-sm text-red-600">{errors.email.message}</p>
@@ -190,7 +264,7 @@ const ProfilePage: React.FC = () => {
                 <label className="block text-sm text-gray-700 mb-1">Số điện thoại</label>
                 <input
                   {...register('phone')}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 />
                 {errors.phone && (
                   <p className="text-sm text-red-600">{errors.phone.message}</p>
@@ -200,16 +274,15 @@ const ProfilePage: React.FC = () => {
               <div className="flex justify-end items-center gap-3 pt-4">
                 <button
                   type="submit"
-                  disabled={saving}
-                  className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                  disabled={saving || uploading}
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 shadow-lg transition-transform transform hover:-translate-y-0.5"
                 >
-                  {saving ? <Loader2 className="animate-spin w-4 h-4" /> : <Pencil className="w-4 h-4" />}
+                  {(saving || uploading) ? <Loader2 className="animate-spin w-4 h-4" /> : <Pencil className="w-4 h-4" />}
                   Lưu thay đổi
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    // reset to store values
                     if (userInfo) {
                       reset({
                         fullName: (userInfo as any).name || '',
@@ -218,53 +291,43 @@ const ProfilePage: React.FC = () => {
                       });
                     }
                   }}
-                  className="px-3 py-2 bg-red border rounded text-sm"
+                  className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
                 >
                   Hủy
                 </button>
               </div>
             </form>
           </div>
-
-          {/* Right: Avatar + Bookings */}
-          <div className="bg-white p-6 rounded-lg shadow space-y-4">
-            <div className="flex flex-col items-center">
-              <div className="w-24 h-24 bg-gray-100 rounded-full overflow-hidden mb-3">
-                {userInfo?.avatar ? (
-                  <img src={userInfo.avatar} alt="avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">Ảnh</div>
-                )}
-              </div>
-              <div className="text-center">
-                <div className="font-medium">{userInfo?.name}</div>
-                <div className="text-sm text-gray-500">{userInfo?.email}</div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Đặt phòng gần đây</h4>
-              {bookings.length === 0 ? (
-                <p className="text-sm text-gray-500">Bạn chưa có đặt phòng nào.</p>
-              ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                  {bookings.slice(0, 6).map((b) => (
-                    <div key={b.id} className="border rounded p-3">
-                      <div className="flex justify-between">
-                        <div>
-                          <div className="font-medium">{b.booking_number}</div>
-                          <div className="text-sm text-gray-500">{new Date(b.createdAt ?? (b as any).created_at).toLocaleDateString()}</div>
-                        </div>
-                        <div className="text-sm text-indigo-600">{b.status}</div>
+        </div>
+        {/* Bookings: move below grid */}
+        <div className="mt-6">
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-gray-100">
+            <h4 className="font-semibold mb-3 text-gray-800">Đặt phòng gần đây</h4>
+            {bookings.length === 0 ? (
+              <p className="text-sm text-gray-500">Bạn chưa có đặt phòng nào.</p>
+            ) : (
+              <div className="space-y-3">
+                {bookings.slice(0, 6).map((b) => (
+                  <div
+                    key={b.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/bookings/${b.id}`)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/bookings/${b.id}`); }}
+                    className="bg-white rounded-xl p-3 shadow hover:shadow-lg transition cursor-pointer hover:bg-gray-50"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-medium text-gray-800">{b.booking_number}</div>
+                        <div className="text-xs text-gray-400">{new Date(b.createdAt ?? (b as any).created_at).toLocaleDateString()}</div>
                       </div>
-                      <div className="text-sm text-gray-600 mt-2">Tổng: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(b.total_price)}</div>
+                      <div className="text-sm font-semibold text-indigo-600 uppercase bg-indigo-50 px-3 py-1 rounded-full">{b.status}</div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* consolidated: header button navigates to bookings */}
+                    <div className="text-sm text-gray-600 mt-2">Tổng: <span className="font-bold text-gray-900">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(b.total_price)}</span></div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

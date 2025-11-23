@@ -15,6 +15,17 @@ const { Op } = require('sequelize');
  * Xử lý tất cả các truy vấn database liên quan đến booking
  */
 class BookingRepository {
+  // Parse YYYY-MM-DD to local Date at 00:00
+  parseLocalDate(dateStr) {
+    if (!dateStr) return null;
+    if (dateStr instanceof Date) return dateStr;
+    const parts = String(dateStr).split('-');
+    if (parts.length < 3) return new Date(dateStr);
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const d = parseInt(parts[2], 10);
+    return new Date(y, m - 1, d);
+  }
   /**
    * Get safe RoomType attributes (exclude images)
    */
@@ -247,17 +258,19 @@ class BookingRepository {
   /**
    * Check for overlapping bookings
    */
-  async findOverlappingBooking(roomId, checkInDate, checkOutDate) {
-    return await Booking.findOne({
+  async findOverlappingBooking(roomId, checkInDate, checkOutDate, transaction = null) {
+    const opts = {
       where: {
         room_id: roomId,
         status: { [Op.ne]: 'cancelled' },
         [Op.and]: [
-          { check_in_date: { [Op.lt]: new Date(checkOutDate) } },
-          { check_out_date: { [Op.gt]: new Date(checkInDate) } },
+          { check_in_date: { [Op.lt]: this.parseLocalDate(checkOutDate) } },
+          { check_out_date: { [Op.gt]: this.parseLocalDate(checkInDate) } },
         ],
       },
-    });
+    };
+    if (transaction) opts.transaction = transaction;
+    return await Booking.findOne(opts);
   }
 
   /**
@@ -318,10 +331,10 @@ class BookingRepository {
     if (startDate || endDate) {
       whereClause.check_in_date = {};
       if (startDate) {
-        whereClause.check_in_date[Op.gte] = new Date(startDate);
+        whereClause.check_in_date[Op.gte] = this.parseLocalDate(startDate);
       }
       if (endDate) {
-        whereClause.check_in_date[Op.lte] = new Date(endDate);
+        whereClause.check_in_date[Op.lte] = this.parseLocalDate(endDate);
       }
     }
 

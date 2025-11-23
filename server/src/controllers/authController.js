@@ -178,6 +178,67 @@ const getProfile = async (req, res, next) => {
 };
 
 /**
+ * Update current user's profile
+ * PUT /api/auth/profile
+ */
+const updateProfile = async (req, res, next) => {
+  try {
+    // Only allow updating own profile via this route
+    const userId = req.user.id;
+    // Defer validation/logic to userService which handles email checks, password hashing
+    const userService = require('../services/userService');
+
+    const updatedUser = await userService.updateUser(userId, req.body);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Profile updated successfully',
+      data: { user: updatedUser }
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Upload avatar for current user
+ * Expects multipart/form-data with field `avatar`
+ */
+const uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ status: 'error', message: 'No file uploaded' });
+    }
+
+    // Build public URL to the uploaded file
+    const serverUrl = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const avatarPath = `/uploads/avatars/${req.file.filename}`;
+    const avatarUrl = `${serverUrl}${avatarPath}`;
+
+    // Update user avatar using userService
+    const userService = require('../services/userService');
+    const updatedUser = await userService.updateUser(req.user.id, { avatar: avatarUrl });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Avatar uploaded successfully',
+      data: { user: updatedUser }
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ status: 'error', message: error.message });
+    }
+    next(error);
+  }
+};
+
+/**
  * Forgot Password - Send reset link
  */
 const forgotPassword = async (req, res, next) => {
@@ -244,6 +305,8 @@ module.exports = {
   refreshAccessToken,
   logout,
   getProfile,
+  updateProfile,
+  uploadAvatar,
   forgotPassword,
   resetPassword
 };
