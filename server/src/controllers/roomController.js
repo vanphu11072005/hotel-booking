@@ -262,6 +262,39 @@ const getAvailableRoomCount = async (req, res, next) => {
   }
 };
 
+/**
+ * Update room status (Staff/Admin)
+ * PATCH /api/rooms/:id/status
+ */
+const updateRoomStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    const validStatuses = ['available', 'occupied', 'maintenance', 'dirty', 'cleaning'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({
+        status: 'error',
+        message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`,
+      });
+    }
+
+    // Update room status via service
+    const room = await roomService.updateRoomStatus(id, status);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Room status updated successfully',
+      data: {
+        room,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getRooms,
   getRoomById,
@@ -274,4 +307,5 @@ module.exports = {
   deleteRoomImage,
   getRoomTypes,
   getAvailableRoomCount,
+  updateRoomStatus,
 };

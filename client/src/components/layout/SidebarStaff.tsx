@@ -5,7 +5,7 @@ import {
   Calendar,
   LogIn,
   LogOut as LogOutIcon,
-  DollarSign,
+  Home,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -40,9 +40,9 @@ const SidebarStaff: React.FC<SidebarStaffProps> = ({ className = '' }) => {
       label: 'Check-out',
     },
     {
-      path: '/staff/payments',
-      icon: DollarSign,
-      label: 'Thanh toán',
+      path: '/staff/rooms',
+      icon: Home,
+      label: 'Quản lý phòng',
     },
   ];
 

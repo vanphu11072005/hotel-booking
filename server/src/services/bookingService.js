@@ -389,6 +389,8 @@ class BookingService {
    * Update booking status (Admin)
    */
   async updateBookingStatus(id, status) {
+    const { Room } = require('../databases/models');
+    
     const booking = await bookingRepository.findBookingById(id);
 
     if (!booking) {
@@ -412,6 +414,25 @@ class BookingService {
     const updatedBooking = await bookingRepository.updateBooking(booking, {
       status,
     });
+
+    // Tự động cập nhật trạng thái phòng khi check-in/check-out
+    if (booking.room_id) {
+      const room = await Room.findByPk(booking.room_id);
+      
+      if (room) {
+        if (status === 'checked_in') {
+          // Check-in → Phòng đang ở
+          room.status = 'occupied';
+          await room.save();
+          console.log(`✅ Phòng ${room.room_number} đã chuyển sang trạng thái: occupied`);
+        } else if (status === 'checked_out') {
+          // Check-out → Phòng bẩn (cần dọn)
+          room.status = 'dirty';
+          await room.save();
+          console.log(`✅ Phòng ${room.room_number} đã chuyển sang trạng thái: dirty`);
+        }
+      }
+    }
 
     return updatedBooking;
   }
