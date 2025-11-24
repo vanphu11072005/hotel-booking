@@ -598,6 +598,38 @@ class RoomService {
     return availableRooms.slice(0, quantity);
   }
 
+<<<<<<< HEAD
+  /**
+   * Update room status (for staff)
+   */
+  async updateRoomStatus(roomId, status) {
+    const { Room, RoomType } = require('../databases/models');
+    
+    const room = await Room.findByPk(roomId);
+
+    if (!room) {
+      throw { statusCode: 404, message: 'Room not found' };
+    }
+
+    // Update status
+    room.status = status;
+    await room.save();
+
+    // Return room with room_type info
+    const updatedRoom = await Room.findByPk(roomId, {
+      include: [
+        {
+          model: RoomType,
+          as: 'room_type',
+          attributes: ['id', 'name', 'base_price', 'capacity', 'description'],
+        },
+      ],
+    });
+
+    return updatedRoom;
+  }
+=======
+>>>>>>> 2251591481554589125e303b77ffcdfeb546272a
 }
 
 module.exports = new RoomService();

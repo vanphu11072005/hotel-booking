@@ -26,6 +26,8 @@ class RoomRepository {
    * Tìm tất cả rooms với filters và pagination
    */
   async findAllRooms(whereClause, roomTypeWhere, limit, offset, order) {
+    const { Booking, User } = require('../databases/models');
+    
     return await Room.findAndCountAll({
       where: whereClause,
       include: [
@@ -38,6 +40,23 @@ class RoomRepository {
             : undefined,
           required: true,
         },
+        {
+          model: Booking,
+          as: 'bookings',
+          where: {
+            status: 'checked_in'
+          },
+          required: false,
+          limit: 1,
+          order: [['check_in_date', 'DESC']],
+          include: [
+            {
+              model: User,
+              as: 'user',
+              attributes: ['id', 'full_name', 'email', 'phone']
+            }
+          ]
+        }
       ],
       limit,
       offset,

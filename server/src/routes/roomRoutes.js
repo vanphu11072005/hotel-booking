@@ -20,6 +20,14 @@ router.get('/:id/available-count', roomController.getAvailableRoomCount);
 
 // Public: Get reviews for a specific room (support /api/rooms/:id/reviews)
 router.get('/:id/reviews', reviewController.getRoomReviews);
+
+// Staff/Admin: Update room status
+router.patch(
+	'/:id/status',
+	authenticateToken,
+	authorizeRoles('staff', 'admin'),
+	roomController.updateRoomStatus
+);
 // Admin routes
 router.post(
 	'/',

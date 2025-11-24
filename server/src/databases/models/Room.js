@@ -76,6 +76,7 @@ module.exports = (sequelize, DataTypes) => {
           'available',
           'occupied',
           'maintenance',
+          'dirty',
           'cleaning'
         ),
         allowNull: false,

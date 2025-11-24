@@ -7,7 +7,7 @@ export interface Room {
   room_number: string;
   floor: number;
   price: number;
-  status: 'available' | 'occupied' | 'maintenance';
+  status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
   featured: boolean;
   images?: string[];
   amenities?: string[];
@@ -69,7 +69,7 @@ export interface CreateRoomData {
   floor: number;
   room_type_id: number;
   price: number;
-  status: 'available' | 'occupied' | 'maintenance';
+  status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
   featured?: boolean;
 }
 // API functions
@@ -90,7 +90,7 @@ export interface Room {
   room_type_id: number;
   room_number: string;
   floor: number;
-  status: 'available' | 'occupied' | 'maintenance';
+  status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
   featured: boolean;
   images?: string[];
   amenities?: string[];
@@ -216,7 +216,7 @@ export interface CreateRoomData {
   room_number: string;
   floor: number;
   room_type_id: number;
-  status: 'available' | 'occupied' | 'maintenance';
+  status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
   featured?: boolean;
 }
 
@@ -249,6 +249,17 @@ export const deleteRoom = async (
 };
 
 /**
+ * Update room status (for staff)
+ */
+export const updateRoomStatus = async (
+  id: number,
+  status: string
+): Promise<{ success: boolean; data: { room: Room }; message: string }> => {
+  const response = await apiClient.patch(`/rooms/${id}/status`, { status });
+  return response.data;
+};
+
+/**
  * Get available room count for specific dates
  */
 export const getAvailableRoomCount = async (
@@ -273,6 +284,7 @@ export default {
   getAmenities,
   createRoom,
   updateRoom,
+  updateRoomStatus,
   deleteRoom,
   getRoomTypes,
   getAvailableRoomCount,
