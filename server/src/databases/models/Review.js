@@ -13,6 +13,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'room_id',
         as: 'room'
       });
+       Review.belongsTo(models.Booking, {
+         foreignKey: 'booking_id',
+         as: 'booking'
+       });
     }
   }
 
@@ -50,10 +54,10 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: 'Review',
       tableName: 'reviews',
-      underscored: true,
-      timestamps: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at'
+        booking_id: {
+          type: DataTypes.INTEGER,
+          allowNull: true
+        },
     }
   );
 

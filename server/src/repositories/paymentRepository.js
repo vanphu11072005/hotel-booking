@@ -40,6 +40,12 @@ class PaymentRepository {
           as: 'service_usages',
           include: [{ model: Service, as: 'service' }],
         },
+        // Include user so we can fallback to user's email if guest_info missing
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'email', 'full_name']
+        },
       ],
     });
   }

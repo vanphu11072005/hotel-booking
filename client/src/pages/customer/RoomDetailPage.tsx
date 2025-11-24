@@ -137,13 +137,6 @@ const RoomDetailPage: React.FC = () => {
                 gap-6 text-gray-600 mb-4"
               >
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  <span>
-                    Phòng {room.room_number} - Tầng {room.floor}
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
                   <span>
                     {roomType?.capacity || 0} người

@@ -1,4 +1,5 @@
 const bookingRepository = require('../repositories/bookingRepository');
+const roomService = require('./roomService');
 
 /**
  * Booking Service - Business logic layer
@@ -69,12 +70,28 @@ class BookingService {
     checkInDay.setHours(0, 0, 0, 0);
     
     if (checkInDay < today) {
-      console.error('❌ Ngày check-in không thể trong quá khứ');
+      console.error('❌ Ngày check-in không thể là trong quá khứ');
       throw {
         statusCode: 400,
-        message: 'Check-in date cannot be in the past',
+        message: 'Ngày check-in không thể là trong quá khứ',
       };
     }
+  }
+
+  /**
+   * Parse a date string `YYYY-MM-DD` into a local Date at 00:00
+   * This avoids `new Date('YYYY-MM-DD')` which is parsed as UTC
+   */
+  parseLocalDate(dateStr) {
+    if (!dateStr) return null;
+    // If already a Date, return as-is
+    if (dateStr instanceof Date) return dateStr;
+    const parts = String(dateStr).split('-');
+    if (parts.length < 3) return new Date(dateStr);
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const d = parseInt(parts[2], 10);
+    return new Date(y, m - 1, d);
   }
 
   /**
@@ -109,20 +126,42 @@ class BookingService {
     this.validateBookingDates(check_in_date, check_out_date);
 
     console.log('💰 Payment method:', payment_method);
+    // Start transaction early and perform allocation inside it using
+    // row-level locks to avoid race conditions.
     const transaction = await bookingRepository.beginTransaction();
+    let allocatedRoomId = room_id;
 
     try {
-      // Check if room exists
-      const room = await bookingRepository.findRoomById(room_id);
+      // Allocate (inside transaction) — lock candidate room rows
+      const available = await roomService.getAvailableRoomsForType(
+        room_id,
+        check_in_date,
+        check_out_date,
+        1,
+        { transaction }
+      );
+      if (Array.isArray(available) && available.length > 0) {
+        allocatedRoomId = available[0].id;
+        console.log('🔒 Allocated physical room inside tx:', allocatedRoomId);
+      } else {
+        throw {
+          statusCode: 409,
+          message: 'Room already booked for the selected dates',
+        };
+      }
+
+      // Check if room exists (use repository, can accept transaction if needed)
+      const room = await bookingRepository.findRoomById(allocatedRoomId);
       if (!room) {
         throw { statusCode: 404, message: 'Room not found' };
       }
-
-      // Check for overlapping bookings
-      const overlapping = await bookingRepository.findOverlappingBooking(
-        room_id,
+      // Check for overlapping bookings for the specific room within
+      // the same transaction to be safe.
+      let overlapping = await bookingRepository.findOverlappingBooking(
+        allocatedRoomId,
         check_in_date,
-        check_out_date
+        check_out_date,
+        transaction
       );
 
       if (overlapping) {
@@ -151,9 +190,9 @@ class BookingService {
         {
           booking_number: bookingNumber,
           user_id: userId,
-          room_id,
-          check_in_date: new Date(check_in_date),
-          check_out_date: new Date(check_out_date),
+          room_id: allocatedRoomId,
+          check_in_date: this.parseLocalDate(check_in_date),
+          check_out_date: this.parseLocalDate(check_out_date),
           num_guests: guest_count || 1,
           guest_info: guest_info || null,
           total_price: pricePerRoom,
@@ -178,9 +217,9 @@ class BookingService {
             {
               booking_number: childBookingNumber,
               user_id: userId,
-              room_id,
-              check_in_date: new Date(check_in_date),
-              check_out_date: new Date(check_out_date),
+              room_id: allocatedRoomId,
+              check_in_date: this.parseLocalDate(check_in_date),
+              check_out_date: this.parseLocalDate(check_out_date),
               num_guests: guest_count || 1,
               guest_info: guest_info || null,
               total_price: pricePerRoom,
@@ -253,7 +292,7 @@ class BookingService {
                 quantity,
                 unit_price: unitPrice,
                 total_price: totalServicePrice,
-                usage_date: new Date(check_in_date),
+                usage_date: this.parseLocalDate(check_in_date),
               },
               transaction
             );
@@ -293,7 +332,28 @@ class BookingService {
    * Get bookings for a specific user
    */
   async getMyBookings(userId) {
-    return await bookingRepository.findBookingsByUserId(userId);
+    const bookings = await bookingRepository.findBookingsByUserId(userId);
+
+    // Annotate each booking with whether it already has a review
+    const reviewRepo = require('../repositories/reviewRepository');
+    const annotated = await Promise.all(
+      bookings.map(async (b) => {
+        const hasReview = !!(await reviewRepo.findReviewByBookingId(b.id));
+        // Attach non-enumerable or dataValues field depending on instance
+        try {
+          if (b.dataValues) {
+            b.dataValues.has_review = hasReview;
+          } else {
+            b.has_review = hasReview;
+          }
+        } catch (e) {
+          // ignore
+        }
+        return b;
+      })
+    );
+
+    return annotated;
   }
 
   /**
@@ -518,7 +578,8 @@ class BookingService {
         const availableCount = await roomService.getAvailableRoomCount(
           room_id,
           check_in_date,
-          check_out_date
+          check_out_date,
+          { transaction }
         );
 
         console.log(`🏨 ${room.room_type?.name || 'Room'} (${room.room_number}):`, {
@@ -538,7 +599,8 @@ class BookingService {
           room_id,
           check_in_date,
           check_out_date,
-          quantity
+          quantity,
+          { transaction }
         );
 
         if (availableRooms.length < quantity) {
@@ -563,8 +625,8 @@ class BookingService {
           booking_number: bookingNumber,
           user_id: userId,
           room_id: rooms[0].room_id, // Keep first room for compatibility
-          check_in_date: new Date(check_in_date),
-          check_out_date: new Date(check_out_date),
+          check_in_date: this.parseLocalDate(check_in_date),
+          check_out_date: this.parseLocalDate(check_out_date),
           num_guests: guest_count || 1,
           guest_info: guest_info || null,
           total_price: total_price,

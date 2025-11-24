@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Calendar,
-  MapPin,
   Users,
   CreditCard,
   Eye,
@@ -502,16 +501,6 @@ const MyBookingsPage: React.FC = () => {
                             >
                               {roomType?.name || 'N/A'}
                             </h3>
-                            <p className="text-sm 
-                              text-gray-600"
-                            >
-                              <MapPin 
-                                className="w-4 h-4 inline 
-                                  mr-1" 
-                              />
-                              Phòng {room?.room_number} - 
-                              Tầng {room?.floor}
-                            </p>
                           </div>
 
                           {/* Status Badge */}
@@ -619,7 +608,7 @@ const MyBookingsPage: React.FC = () => {
                               text-gray-900"
                             >
                               {booking.payment_method === 'cash'
-                                ? 'Tại chỗ'
+                                ? 'Thanh toán khi nhận phòng'
                                 : booking.payment_method === 'vnpay'
                                 ? 'VNPay'
                                 : 'Chuyển khoản'}
@@ -679,6 +668,16 @@ const MyBookingsPage: React.FC = () => {
                               />
                               Hủy đặt phòng
                             </button>
+                          )}
+                          {/* Review Now */}
+                          {booking.status === 'checked_out' && !(booking as any).has_review && (
+                            <Link
+                              to={`/rooms/${(booking.room && booking.room.id) || booking.room_id}`}
+                              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium text-sm"
+                            >
+                              <DoorClosed className="w-4 h-4" />
+                              Đánh giá ngay
+                            </Link>
                           )}
                         </div>
                       </div>

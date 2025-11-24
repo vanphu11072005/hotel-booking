@@ -12,6 +12,7 @@ const VNPayReturnPage: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState('');
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [paymentType, setPaymentType] = useState<'full' | 'deposit' | 'remaining' | null>(null);
 
   useEffect(() => {
     verifyPayment();
@@ -33,14 +34,24 @@ const VNPayReturnPage: React.FC = () => {
 
       if (response.success) {
         setSuccess(true);
-        setMessage('Thanh toán thành công! Đặt cọc của bạn đã được xác nhận.');
         
-        // Get booking_id from response
+        // Get payment type and booking_id from response
+        const pType = response.data?.payment?.payment_type || 'deposit';
         const bid = response.data?.booking_id?.toString() || null;
-        console.log('ID Booking:', bid);
+        
+        setPaymentType(pType);
         setBookingId(bid);
         
-        toast.success('✅ Thanh toán thành công!');
+        // Set message based on payment type
+        if (pType === 'full') {
+          setMessage('Đơn đặt phòng của bạn đã được xác nhận và thanh toán đầy đủ.');
+          toast.success('✅ Thanh toán 100% thành công!');
+        } else {
+          setMessage('Đặt cọc của bạn đã được xác nhận.');
+          toast.success('✅ Thanh toán đặt cọc thành công!');
+        }
+        
+        console.log('ID Booking:', bid, '| Payment Type:', pType);
       } else {
         setSuccess(false);
         setMessage(
@@ -120,20 +131,37 @@ const VNPayReturnPage: React.FC = () => {
           {/* Success Details */}
           {success && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <ul className="text-sm text-green-800 space-y-2">
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  Tiền đặt cọc đã được thanh toán
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  Booking của bạn đã được xác nhận
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  Vui lòng thanh toán phần còn lại khi nhận phòng
-                </li>
-              </ul>
+              {paymentType === 'full' ? (
+                <ul className="text-sm text-green-800 space-y-2">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Đã thanh toán toàn bộ 100% giá trị đơn hàng
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Booking của bạn đã được xác nhận
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Bạn có thể nhận phòng vào ngày check-in
+                  </li>
+                </ul>
+              ) : (
+                <ul className="text-sm text-green-800 space-y-2">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Tiền đặt cọc đã được thanh toán
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Booking của bạn đã được xác nhận
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Vui lòng thanh toán phần còn lại khi nhận phòng
+                  </li>
+                </ul>
+              )}
             </div>
           )}
 

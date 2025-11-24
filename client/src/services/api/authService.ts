@@ -97,6 +97,26 @@ const authService = {
   },
 
   /**
+   * Update current user profile
+   */
+  updateProfile: async (data: Partial<{ full_name: string; phone_number: string }>) => {
+    const response = await apiClient.put('/api/auth/profile', data);
+    return response.data;
+  },
+
+  /**
+   * Upload avatar file for current user
+   */
+  uploadAvatar: async (file: File) => {
+    const form = new FormData();
+    form.append('avatar', file);
+    const response = await apiClient.put('/api/auth/profile/avatar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  /**
    * Refresh token
    */
   refreshToken: async (): Promise<AuthResponse> => {

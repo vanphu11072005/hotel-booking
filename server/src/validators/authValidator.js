@@ -53,14 +53,21 @@ const loginValidation = [
     .withMessage('Password is required')
 ];
 
+
 /**
  * Validation rules for refresh token
  * Accept token from request body or HttpOnly cookie
  */
 const refreshTokenValidation = [
   body('refreshToken')
-    .notEmpty()
-    .withMessage('Refresh token is required')
+    .optional()
+    .custom((value, { req }) => {
+      // If body value is missing, accept cookie-based refreshToken
+      if (!value && !(req && req.cookies && req.cookies.refreshToken)) {
+        throw new Error('Refresh token is required');
+      }
+      return true;
+    })
 ];
 
 module.exports = {
