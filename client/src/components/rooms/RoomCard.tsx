@@ -88,11 +88,11 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
     }
   }
   
-  // Format price
+  // Format price - prioritize room.price over roomType.base_price
   const formattedPrice = new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
-  }).format(roomType.base_price);
+  }).format(room.price || roomType.base_price);
 
   // Prefer room-level amenities when available, otherwise use room type
   const normalizeAmenities = (input: any): string[] => {

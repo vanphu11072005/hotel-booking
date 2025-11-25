@@ -96,7 +96,7 @@ const RoomDetailPage: React.FC = () => {
   const formattedPrice = new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
-  }).format(roomType?.base_price || 0);
+  }).format(room.price || roomType?.base_price || 0);
 
   return (
     <div className="min-h-screen bg-gray-50">

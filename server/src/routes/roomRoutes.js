@@ -53,7 +53,7 @@ router.post(
 	'/:id/images',
 	authenticateToken,
 	authorizeRoles('admin'),
-	upload.array('images', 5), // Max 5 images at once
+	upload.uploadRoomImages.array('images', 5), // Max 5 images at once
 	roomController.uploadRoomImages
 );
 router.delete(
