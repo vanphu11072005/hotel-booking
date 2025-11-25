@@ -39,8 +39,7 @@ export const registerSchema = yup.object().shape({
     .min(8, 'Mật khẩu phải có ít nhất 8 ký tự')
     .matches(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/,
-      'Mật khẩu phải chứa chữ hoa, chữ thường, ' +
-      'số và ký tự đặc biệt'
+      'Mật khẩu phải chứa chữ hoa, chữ thường, số và ký tự đặc biệt'
     ),
   confirmPassword: yup
     .string()
