@@ -36,6 +36,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false
       },
+      booking_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+      },
       rating: {
         type: DataTypes.INTEGER,
         allowNull: false
@@ -54,10 +58,10 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: 'Review',
       tableName: 'reviews',
-        booking_id: {
-          type: DataTypes.INTEGER,
-          allowNull: true
-        },
+      underscored: true,
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at'
     }
   );
 

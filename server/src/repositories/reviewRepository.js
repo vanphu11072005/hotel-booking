@@ -93,6 +93,7 @@ class ReviewRepository {
    * Find all reviews with filters and pagination
    */
   async findAllReviews(whereClause, limit, offset) {
+    const RoomType = require('../databases/models').RoomType;
     const { count, rows } = await Review.findAndCountAll({
       where: whereClause,
       include: [
@@ -105,6 +106,13 @@ class ReviewRepository {
           model: Room,
           as: 'room',
           attributes: ['id', 'room_number'],
+          include: [
+            {
+              model: RoomType,
+              as: 'room_type',
+              attributes: ['name'],
+            }
+          ]
         },
       ],
       limit,
