@@ -120,7 +120,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const response = await authService.register(data);
       
-  if (response.success || response.status === 'success') {
+      if (response.success || response.status === 'success') {
         set({ isLoading: false, error: null });
         toast.success(
           'Đăng ký thành công! Vui lòng đăng nhập.'
@@ -209,7 +209,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
       const response = 
         await authService.forgotPassword(data);
       
-  if (response.success || response.status === 'success') {
+      if (response.success || response.status === 'success') {
         set({ isLoading: false, error: null });
         toast.success(
           response.message || 

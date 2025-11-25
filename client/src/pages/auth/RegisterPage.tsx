@@ -12,9 +12,8 @@ import {
   User,
   Phone,
   Hotel,
-  CheckCircle2,
-  XCircle,
 } from 'lucide-react';
+import PasswordRequirement from '../../components/auth/PasswordRequirement';
 import useAuthStore from '../../store/useAuthStore';
 import {
   registerSchema,
@@ -23,12 +22,9 @@ import {
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { register: registerUser, isLoading, error, clearError } =
-    useAuthStore();
-
+  const { register: registerUser, isLoading, error, clearError } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = 
-    useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // React Hook Form setup
   const {
@@ -125,8 +121,7 @@ const RegisterPage: React.FC = () => {
             <div>
               <label
                 htmlFor="name"
-                className="block text-sm font-medium 
-                  text-gray-700 mb-2"
+                className="block text-sm font-medium text-gray-700 mb-2"
               >
                 Họ và tên
               </label>
@@ -491,21 +486,6 @@ const RegisterPage: React.FC = () => {
   );
 };
 
-// Helper component for password requirements
-const PasswordRequirement: React.FC<{
-  met: boolean;
-  text: string;
-}> = ({ met, text }) => (
-  <div className="flex items-center gap-2 text-xs">
-    {met ? (
-      <CheckCircle2 className="h-4 w-4 text-green-500" />
-    ) : (
-      <XCircle className="h-4 w-4 text-gray-300" />
-    )}
-    <span className={met ? 'text-green-600' : 'text-gray-500'}>
-      {text}
-    </span>
-  </div>
-);
+// PasswordRequirement moved to a separate component file
 
 export default RegisterPage;

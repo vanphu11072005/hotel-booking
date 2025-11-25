@@ -452,7 +452,7 @@ class AuthService {
 
     return {
       success: true,
-      message: 'Password reset link has been sent to your email'
+      message: 'Liên kết đặt lại mật khẩu đã được gửi đến email của bạn'
     };
   }
 

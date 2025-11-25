@@ -21,9 +21,7 @@ import {
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading, error, clearError } = 
-    useAuthStore();
-  
+  const { login, isLoading, error, clearError } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [countdown, setCountdown] = useState<string>('');
   const [lockedUntil, setLockedUntil] = useState<Date | null>(null);
