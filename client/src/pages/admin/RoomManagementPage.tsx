@@ -48,7 +48,7 @@ const RoomManagementPage: React.FC = () => {
     floor: 1,
     room_type_id: 1,
     price: 0,
-    status: 'available' as 'available' | 'occupied' | 'maintenance',
+    status: 'available' as 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning',
     featured: false,
   });
   

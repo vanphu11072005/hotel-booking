@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Users,
   Star,
-  MapPin,
   Wifi,
   Tv,
   Wind,
