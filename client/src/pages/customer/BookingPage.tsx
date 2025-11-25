@@ -270,7 +270,7 @@ const BookingPage: React.FC = () => {
 
   // Calculate total price for all selected room types
   const roomTotalPrice = selectedRoomTypes.reduce((sum, roomType) => {
-    const price = roomType.room.room_type?.base_price || 0;
+    const price = roomType.room.price || roomType.room.room_type?.base_price || 0;
     return sum + (numberOfNights * price * roomType.quantity);
   }, 0);
   
@@ -1400,7 +1400,7 @@ const BookingPage: React.FC = () => {
                   </p>
                   {selectedRoomTypes.map((roomType) => {
                     const price = 
-                      roomType.room.room_type?.base_price || 0;
+                      roomType.room.price || roomType.room.room_type?.base_price || 0;
                     const subtotal = 
                       numberOfNights * price * roomType.quantity;
                     return (
