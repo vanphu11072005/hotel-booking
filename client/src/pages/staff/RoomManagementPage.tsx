@@ -27,16 +27,28 @@ const RoomManagementPage: React.FC = () => {
   const [selectedRoom, setSelectedRoom] = useState<RoomWithBooking | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     fetchRooms();
+    
+    // Auto-refresh every 30 seconds to show updated room status
+    const interval = setInterval(() => {
+      fetchRooms();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchRooms = async () => {
     try {
       setLoading(true);
-      const response = await roomService.getRooms({});
-      setRooms(response.data.rooms || []);
+      const response = await roomService.getRooms({ limit: 1000 });
+      const roomsData = response.data.rooms || [];
+      console.log('Fetched rooms:', roomsData.length);
+      console.log('Dirty rooms:', roomsData.filter(r => r.status === 'dirty'));
+      setRooms(roomsData);
     } catch (error: any) {
       toast.error('Không thể tải danh sách phòng');
       console.error('Fetch rooms error:', error);
@@ -67,7 +79,7 @@ const RoomManagementPage: React.FC = () => {
       setUpdatingStatus(true);
       await roomService.updateRoomStatus(roomId, newStatus);
       toast.success('Cập nhật trạng thái phòng thành công');
-      fetchRooms();
+      await fetchRooms(); // Wait for rooms to refresh
       setShowDetailModal(false);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Không thể cập nhật trạng thái phòng');
@@ -116,6 +128,17 @@ const RoomManagementPage: React.FC = () => {
     return matchSearch && matchStatus;
   });
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRooms = filteredRooms.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.search, filters.status]);
+
   const statusCounts = {
     all: rooms.length,
     available: rooms.filter(r => r.status === 'available').length,
@@ -132,9 +155,21 @@ const RoomManagementPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý Phòng</h1>
-        <p className="text-gray-600">Theo dõi và cập nhật trạng thái phòng</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Quản lý Phòng</h1>
+          <p className="text-gray-600">Theo dõi và cập nhật trạng thái phòng</p>
+        </div>
+        <button
+          onClick={() => fetchRooms()}
+          disabled={loading}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          {loading ? 'Đang tải...' : 'Làm mới'}
+        </button>
       </div>
 
       {/* Status Filter Pills */}
@@ -231,7 +266,7 @@ const RoomManagementPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredRooms.length === 0 ? (
+              {paginatedRooms.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
                     <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -239,14 +274,14 @@ const RoomManagementPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredRooms.map((room) => (
+                paginatedRooms.map((room) => (
                   <tr key={room.id} className="hover:bg-blue-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-lg font-bold text-gray-900">{room.room_number}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{room.room_type?.name}</div>
-                      <div className="text-xs text-gray-500">{formatCurrency(room.room_type?.base_price || 0)}</div>
+                      <div className="text-xs text-gray-500">{formatCurrency(room.price || room.room_type?.base_price || 0)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-700">Tầng {room.floor}</div>
@@ -290,6 +325,48 @@ const RoomManagementPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Pagination */}
+      {filteredRooms.length > 0 && totalPages > 1 && (
+        <div className="mt-6 bg-white rounded-lg shadow-md p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Hiển thị <span className="font-semibold">{startIndex + 1}</span> - <span className="font-semibold">{Math.min(endIndex, filteredRooms.length)}</span> trong tổng số <span className="font-semibold">{filteredRooms.length}</span> phòng
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                Trước
+              </button>
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      currentPage === page
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'border border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                Sau
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detail Modal */}
       {showDetailModal && selectedRoom && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -317,7 +394,7 @@ const RoomManagementPage: React.FC = () => {
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600 mb-1">Giá phòng</p>
                   <p className="text-lg font-semibold text-green-600">
-                    {formatCurrency(selectedRoom.room_type?.base_price || 0)}
+                    {formatCurrency(selectedRoom.price || selectedRoom.room_type?.base_price || 0)}
                   </p>
                 </div>
               </div>

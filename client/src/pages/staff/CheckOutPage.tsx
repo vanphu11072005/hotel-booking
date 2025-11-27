@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, FileText, DollarSign, CreditCard, Printer, CheckCircle, Users, Phone, Mail, User, Hotel, Calendar } from 'lucide-react';
-import { bookingService, Booking } from '../../services/api';
+import { bookingService, Booking, roomService } from '../../services/api';
 import { toast } from 'react-toastify';
 import { useLocation } from 'react-router-dom';
 import Loading from '../../components/common/Loading';
@@ -194,7 +194,32 @@ const CheckOutPage: React.FC = () => {
         }
       }
 
-      toast.success('Check-out thành công!');
+      // Cập nhật trạng thái phòng sang 'dirty' sau khi check-out
+      try {
+        if (booking.booking_rooms && booking.booking_rooms.length > 0) {
+          // Multi-room: cập nhật tất cả các phòng
+          console.log('Updating status for multiple rooms:', booking.booking_rooms.length);
+          for (const bookingRoom of booking.booking_rooms) {
+            if (bookingRoom.room?.id) {
+              console.log('Updating room status to dirty - Room ID:', bookingRoom.room.id, 'Room Number:', bookingRoom.room.room_number);
+              await roomService.updateRoomStatus(bookingRoom.room.id, 'dirty');
+              console.log('Successfully updated room', bookingRoom.room.room_number, '(ID:', bookingRoom.room.id, ')');
+            }
+          }
+        } else if (booking.room?.id) {
+          // Single room: cập nhật phòng duy nhất
+          console.log('Updating single room status to dirty - Room ID:', booking.room.id, 'Room Number:', booking.room.room_number);
+          await roomService.updateRoomStatus(booking.room.id, 'dirty');
+          console.log('Successfully updated room', booking.room.room_number, '(ID:', booking.room.id, ')');
+        }
+      } catch (roomError: any) {
+        console.error('Error updating room status:', roomError);
+        console.error('Error details:', roomError.response?.data);
+        // Không throw error để không làm gián đoạn quy trình check-out
+        toast.warning('Check-out thành công nhưng không thể cập nhật trạng thái phòng. Vui lòng cập nhật thủ công.');
+      }
+
+      toast.success('Check-out thành công! Phòng đã chuyển sang trạng thái Bẩn.');
       setShowInvoice(true);
       
       // Reload bookings list to remove checked-out booking

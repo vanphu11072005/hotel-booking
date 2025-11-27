@@ -54,6 +54,11 @@ class BookingRepository {
         model: Room,
         as: 'room',
         attributes: ['id', 'room_number', 'floor'],
+        include: [{
+          model: RoomType,
+          as: 'room_type',
+          attributes: this.getRoomTypeAttributes()
+        }]
       },
       {
         model: BookingRoom,
