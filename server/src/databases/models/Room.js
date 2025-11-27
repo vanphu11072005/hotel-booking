@@ -98,10 +98,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.JSON,
         allowNull: true
       },
-      amenities: {
-        type: DataTypes.JSON,
-        allowNull: true
-      },
+      // `amenities` moved to `room_types` table; keep room model lean.
       description: {
         type: DataTypes.TEXT,
         allowNull: true

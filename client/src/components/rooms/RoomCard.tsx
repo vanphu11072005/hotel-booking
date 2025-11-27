@@ -3,12 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   Users,
   Star,
-  Wifi,
-  Tv,
-  Wind,
   ArrowRight,
 } from 'lucide-react';
-import type { Room } from '../../services/api/roomService';
+import type { Room } from '../../types/rooms';
 import FavoriteButton from './FavoriteButton';
 
 interface RoomCardProps {
@@ -16,6 +13,7 @@ interface RoomCardProps {
 }
 
 const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
+  const location = useLocation();
   const roomType = room.room_type;
   
   if (!roomType) {
@@ -27,49 +25,13 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
     .replace(/\/api\/?$/i, '')
     .replace(/\/$/, '');
 
-  // Resolve images coming from DB. `roomType.images` can be:
-  // - an array of paths (preferred)
-  // - a JSON-stringified array (e.g. "[\"/uploads/rooms/x.png\"]")
-  // - a single string path (absolute '/uploads/..' or filename)
-  // Build `imageSrc` so that server uploads (`/uploads/...`) are
-  // prefixed with `SERVER_URL`, while client-side placeholders
-  // (e.g. '/images/...') remain served from the client public folder.
   const PLACEHOLDER = '/images/room-placeholder.jpg';
 
-  // Prefer images defined on the room record first (API returns
-  // `images` at the room level), then fall back to the room type.
-  const imagesField = (room.images) as any;
-  let firstImage: string | undefined;
-
-  if (Array.isArray(imagesField)) {
-    firstImage = imagesField[0];
-  } else if (typeof imagesField === 'string') {
-    // Try parse JSON array first
-    try {
-      const parsed = JSON.parse(imagesField);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        firstImage = parsed[0];
-      } else if (typeof parsed === 'string') {
-        firstImage = parsed;
-      }
-    } catch {
-      // Not JSON: treat as single path or comma-separated list
-      const s = imagesField as string;
-      if (s.includes(',')) {
-        firstImage = s.split(',')[0].trim();
-      } else {
-        firstImage = s.trim();
-      }
-    }
-  } else if (imagesField && typeof imagesField === 'object') {
-    // If stored as object with data array
-    try {
-      const vals = Object.values(imagesField);
-      if (Array.isArray(vals) && vals.length > 0) {
-        firstImage = String(vals.flat()[0]);
-      }
-    } catch {}
-  }
+  // Backend guarantees `images: string[]` and `formatRoomImages`
+  // normalizes values. Use the first image if present.
+  const firstImage = Array.isArray(room.images) && room.images.length > 0
+    ? room.images[0]
+    : undefined;
 
   // Final image source resolution
   let imageSrc = PLACEHOLDER;
@@ -88,48 +50,35 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
     }
   }
   
-  // Format price - prioritize room.price over roomType.base_price
+  // Format price (fallback to 0 if base_price missing)
   const formattedPrice = new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
-  }).format(room.price || roomType.base_price);
+  }).format(Number(roomType.base_price || 0));
 
-  // Prefer room-level amenities when available, otherwise use room type
-  const normalizeAmenities = (input: any): string[] => {
-    if (Array.isArray(input)) return input;
-    if (!input) return [];
-    if (typeof input === 'string') {
+  // Normalize amenities (server should send string[] but be defensive)
+  const normalizeAmenities = (val: any): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.map((v) => String(v));
+    if (typeof val === 'string') {
+      // try parse JSON string like '["wifi","tv"]'
       try {
-        const parsed = JSON.parse(input);
-        if (Array.isArray(parsed)) return parsed;
-      } catch {}
-      return input.split(',').map((s) => s.trim()).filter(Boolean);
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) return parsed.map((v) => String(v));
+        return [val];
+      } catch {
+        return [val];
+      }
     }
-    if (typeof input === 'object') {
-      try {
-        const vals = Object.values(input);
-        if (Array.isArray(vals) && vals.length > 0) return vals.flat().map((v: any) => String(v).trim());
-      } catch {}
+    if (typeof val === 'object') {
+      // maybe a map/object of flags { wifi: true, tv: false }
+      return Object.keys(val).filter((k) => (val as any)[k]).map((k) => String(k));
     }
     return [];
   };
 
-  const amenitiesSource =
-    (room.amenities && normalizeAmenities(room.amenities).length > 0)
-      ? normalizeAmenities(room.amenities)
-      : normalizeAmenities(roomType.amenities);
-
   // Get amenities (limit to 3 for display)
-  const amenities = amenitiesSource.slice(0, 3);
-
-  // Amenity icons mapping
-  const amenityIcons: Record<string, React.ReactNode> = {
-    wifi: <Wifi className="w-4 h-4" />,
-    tv: <Tv className="w-4 h-4" />,
-    'air-conditioning': <Wind className="w-4 h-4" />,
-  };
-
-  const location = useLocation();
+  const amenities = normalizeAmenities(roomType.amenities).slice(0, 3);
 
   return (
     <div 
@@ -241,8 +190,7 @@ const RoomCard: React.FC<RoomCardProps> = ({ room }) => {
                   px-2 py-1 rounded"
                 title={amenity}
               >
-                {amenityIcons[amenity.toLowerCase()] || 
-                  <span>•</span>}
+                <span>•</span>
                 <span className="capitalize">{amenity}</span>
               </div>
             ))}

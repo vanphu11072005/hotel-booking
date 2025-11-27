@@ -8,11 +8,11 @@ import {
   Lock,
   Loader2,
   CheckCircle2,
-  XCircle,
   AlertCircle,
   KeyRound,
   Hotel,
 } from 'lucide-react';
+import PasswordRequirement from '../../components/auth/PasswordRequirement';
 import useAuthStore from '../../store/useAuthStore';
 import {
   resetPasswordSchema,
@@ -511,21 +511,6 @@ const ResetPasswordPage: React.FC = () => {
   );
 };
 
-// Helper component for password requirements
-const PasswordRequirement: React.FC<{
-  met: boolean;
-  text: string;
-}> = ({ met, text }) => (
-  <div className="flex items-center gap-2 text-xs">
-    {met ? (
-      <CheckCircle2 className="h-4 w-4 text-green-500" />
-    ) : (
-      <XCircle className="h-4 w-4 text-gray-300" />
-    )}
-    <span className={met ? 'text-green-600' : 'text-gray-500'}>
-      {text}
-    </span>
-  </div>
-);
+
 
 export default ResetPasswordPage;

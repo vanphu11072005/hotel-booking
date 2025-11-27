@@ -33,7 +33,7 @@ const Pagination: React.FC<PaginationProps> = ({
   // Generate page numbers to show
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
-    const maxVisible = 7; // Max page buttons to show
+    const maxVisible = 4; // Max page buttons to show
 
     if (totalPages <= maxVisible) {
       // Show all pages if total is small

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Search, Edit, Trash2, X, Upload, Image as ImageIcon } from 'lucide-react';
-import { roomService, Room } from '../../services/api';
+import { roomService } from '../../services/api';
+import type { Room } from '../../types/rooms';
 import { toast } from 'react-toastify';
 import Loading from '../../components/common/Loading';
 import Pagination from '../../components/common/Pagination';
@@ -159,13 +160,20 @@ const RoomManagementPage: React.FC = () => {
 
   const handleEdit = (room: Room) => {
     setEditingRoom(room);
+    // Use safe fallbacks for possibly-undefined fields and
+    // normalize status to the form's allowed values.
+    const normalizedStatus =
+      room.status === 'available' || room.status === 'occupied' || room.status === 'maintenance'
+        ? room.status
+        : 'maintenance';
+
     setFormData({
-      room_number: room.room_number,
-      floor: room.floor,
-      room_type_id: room.room_type_id,
-      price: room.price || 0,
-      status: room.status,
-      featured: room.featured,
+      room_number: room.room_number ?? '',
+      floor: room.floor ?? 1,
+      room_type_id: room.room_type_id ?? 1,
+      price: room.price ?? 0,
+      status: normalizedStatus,
+      featured: !!room.featured,
     });
     setShowModal(true);
   };

@@ -128,6 +128,123 @@ class RoomRepository {
   }
 
   /**
+   * Count available rooms by room_type_id
+   */
+  async countAvailableRoomsByType(roomTypeId, transaction) {
+    const opts = {
+      where: {
+        room_type_id: roomTypeId,
+        status: 'available',
+      },
+      transaction,
+    };
+    return await Room.count(opts);
+  }
+
+  /**
+   * Count booked distinct rooms in a date range for a room type
+   */
+  async countBookedRoomsInRangeByType(roomTypeId, checkInDate, checkOutDate, transaction) {
+    const { Booking } = require('../databases/models');
+    const { Sequelize: Seq } = require('../databases/models');
+    const { Op: OpLocal } = require('sequelize');
+
+    const result = await Booking.findOne({
+      attributes: [[Seq.fn('COUNT', Seq.col('room_id')), 'booked_count']],
+      include: [
+        {
+          model: Room,
+          as: 'room',
+          where: { room_type_id: roomTypeId },
+          attributes: [],
+        },
+      ],
+      where: {
+        status: { [OpLocal.notIn]: ['cancelled'] },
+        [OpLocal.and]: [
+          { check_in_date: { [OpLocal.lt]: checkOutDate } },
+          { check_out_date: { [OpLocal.gt]: checkInDate } },
+        ],
+      },
+      raw: true,
+      transaction,
+    });
+
+    return result ? parseInt(result.booked_count || 0, 10) : 0;
+  }
+
+  /**
+   * Find available rooms for a room type (optionally with lock/transaction)
+   */
+  async findRoomsByTypeAvailable(roomTypeId, { limit = null, transaction, lock = false } = {}) {
+    const opts = {
+      where: {
+        room_type_id: roomTypeId,
+        status: 'available',
+      },
+      attributes: ['id', 'room_number'],
+      raw: true,
+    };
+    if (limit) opts.limit = limit;
+    if (transaction) {
+      opts.transaction = transaction;
+      if (lock) opts.lock = transaction.LOCK.UPDATE;
+    }
+    return await Room.findAll(opts);
+  }
+
+  /**
+   * Find booked room ids (distinct) in a date range for a room type
+   */
+  async findBookedRoomIdsByTypeInRange(roomTypeId, checkInDate, checkOutDate, transaction) {
+    const { Booking } = require('../databases/models');
+    const { Op: OpLocal } = require('sequelize');
+
+    const rows = await Booking.findAll({
+      attributes: ['room_id'],
+      include: [
+        {
+          model: Room,
+          as: 'room',
+          where: { room_type_id: roomTypeId },
+          attributes: [],
+        },
+      ],
+      where: {
+        status: { [OpLocal.notIn]: ['cancelled'] },
+        [OpLocal.and]: [
+          { check_in_date: { [OpLocal.lt]: checkOutDate } },
+          { check_out_date: { [OpLocal.gt]: checkInDate } },
+        ],
+      },
+      group: ['room_id'],
+      raw: true,
+      transaction,
+    });
+
+    return rows.map((r) => r.room_id);
+  }
+
+  /**
+   * Update room status and return updated room with room_type
+   */
+  async updateRoomStatus(roomId, status) {
+    const room = await Room.findByPk(roomId);
+    if (!room) return null;
+    room.status = status;
+    await room.save();
+    return await Room.findByPk(roomId, {
+      include: [
+        {
+          model: RoomType,
+          as: 'room_type',
+          attributes: this.getRoomTypeAttributes(),
+        },
+      ],
+    });
+  }
+
+  /**
    * Lấy review stats cho room
    */
   async getReviewStats(roomId) {
@@ -159,12 +276,8 @@ class RoomRepository {
       raw: true,
     });
 
-    const rooms = await Room.findAll({
-      attributes: ['amenities'],
-      raw: true,
-    });
-
-    return { roomTypes, rooms };
+    // `amenities` removed from `rooms`; only room types are authoritative now
+    return { roomTypes };
   }
 
   /**
@@ -197,12 +310,12 @@ class RoomRepository {
         .filter(Boolean);
       
       if (amenitiesArr.length > 0) {
+        // Match against room_type.amenities only (rooms no longer store amenities)
         whereClause[Op.and] = amenitiesArr.map((a) => ({
           [Op.or]: [
             sequelize.where(sequelize.col('room_type.amenities'), {
               [Op.like]: `%${a}%`,
             }),
-            { amenities: { [Op.like]: `%${a}%` } },
           ],
         }));
       }

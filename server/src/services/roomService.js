@@ -111,15 +111,18 @@ class RoomService {
    * Lấy danh sách amenities
    */
   async getAmenities() {
-    const { roomTypes, rooms } = await roomRepository.findAllAmenities();
+    const { roomTypes } = await roomRepository.findAllAmenities();
 
+    // roomTypes.amenities may be stored as JSON strings in DB; normalize
     const all = [];
-
-    const pushFromValue = (val) => {
+    roomTypes.forEach((rt) => {
+      const val = rt.amenities;
       if (!val) return;
       if (Array.isArray(val)) {
         val.forEach((v) => all.push(String(v).trim()));
-      } else if (typeof val === 'string') {
+        return;
+      }
+      if (typeof val === 'string') {
         try {
           const parsed = JSON.parse(val);
           if (Array.isArray(parsed)) {
@@ -129,18 +132,16 @@ class RoomService {
         } catch (e) {
           // not JSON
         }
-        // comma separated
         val.split(',').forEach((v) => all.push(String(v).trim()));
-      } else if (typeof val === 'object') {
+        return;
+      }
+      if (typeof val === 'object') {
         Object.values(val).forEach((v) => {
           if (Array.isArray(v)) v.forEach((x) => all.push(String(x).trim()));
           else all.push(String(v).trim());
         });
       }
-    };
-
-    roomTypes.forEach((rt) => pushFromValue(rt.amenities));
-    rooms.forEach((r) => pushFromValue(r.amenities));
+    });
 
     // unique, filter empty
     const unique = Array.from(new Set(all.map((s) => s))).filter(Boolean);
@@ -482,53 +483,28 @@ class RoomService {
    * Đếm số phòng trống của cùng loại trong khoảng thời gian
    */
   async getAvailableRoomCount(roomId, checkInDate, checkOutDate, options = {}) {
-    const { Room, Booking } = require('../databases/models');
     const transaction = options.transaction;
-    
-    // Get room to find room_type_id
-    const room = await Room.findByPk(roomId);
-    if (!room) {
-      return 0;
-    }
+
+    // Get room to find room_type_id via repository
+    const room = await roomRepository.findRoomById(roomId);
+    if (!room) return 0;
+
+    const roomTypeId = room.room_type_id;
 
     // Count total rooms of this type with status 'available'
-    const totalRooms = await Room.count({
-      where: {
-        room_type_id: room.room_type_id,
-        status: 'available'
-      },
-      transaction,
-    });
+    const totalRooms = await roomRepository.countAvailableRoomsByType(roomTypeId, transaction);
 
     if (!checkInDate || !checkOutDate) {
       return totalRooms;
     }
 
-    // Count booked rooms in date range using overlap formula
-    // overlap when booking.check_in_date < checkOutDate
-    // and booking.check_out_date > checkInDate
-    const bookedCount = await Booking.count({
-      distinct: true,
-      col: 'room_id',
-      include: [{
-        model: Room,
-        as: 'room',
-        where: {
-          room_type_id: room.room_type_id
-        },
-        attributes: []
-      }],
-      where: {
-        status: {
-          [Op.notIn]: ['cancelled']
-        },
-        [Op.and]: [
-          { check_in_date: { [Op.lt]: this.parseLocalDate(checkOutDate) } },
-          { check_out_date: { [Op.gt]: this.parseLocalDate(checkInDate) } },
-        ],
-      },
-      transaction,
-    });
+    // Count booked rooms in date range using repository helper
+    const bookedCount = await roomRepository.countBookedRoomsInRangeByType(
+      roomTypeId,
+      this.parseLocalDate(checkInDate),
+      this.parseLocalDate(checkOutDate),
+      transaction
+    );
 
     const availableCount = Math.max(0, totalRooms - bookedCount);
     return availableCount;
@@ -538,63 +514,33 @@ class RoomService {
    * Get list of available room IDs of same type for date range
    */
   async getAvailableRoomsForType(roomId, checkInDate, checkOutDate, quantity, options = {}) {
-    const { Room, Booking } = require('../databases/models');
     const transaction = options.transaction;
-    
-    // Get room to find room_type_id
-    const room = await Room.findByPk(roomId);
-    if (!room) {
-      return [];
-    }
 
-    // Get all rooms of this type
-    const findAllOpts = {
-      where: {
-        room_type_id: room.room_type_id,
-        status: 'available'
-      },
-      attributes: ['id', 'room_number'],
-      raw: true
-    };
-    if (transaction) {
-      findAllOpts.transaction = transaction;
-      // Lock room rows to prevent concurrent allocation races
-      findAllOpts.lock = transaction.LOCK.UPDATE;
-    }
+    // Get room to find room_type_id via repository
+    const room = await roomRepository.findRoomById(roomId);
+    if (!room) return [];
 
-    const allRooms = await Room.findAll(findAllOpts);
+    const roomTypeId = room.room_type_id;
+
+    // Get all available rooms of this type (may lock if transaction provided)
+    const allRooms = await roomRepository.findRoomsByTypeAvailable(roomTypeId, {
+      transaction,
+      lock: !!transaction,
+    });
 
     if (!checkInDate || !checkOutDate) {
       return allRooms.slice(0, quantity);
     }
 
-    // Get booked room IDs in date range using overlap formula
-    const bookedRoomIds = await Booking.findAll({
-      attributes: ['room_id'],
-      include: [{
-        model: Room,
-        as: 'room',
-        where: {
-          room_type_id: room.room_type_id
-        },
-        attributes: []
-      }],
-      where: {
-        status: {
-          [Op.notIn]: ['cancelled']
-        },
-        [Op.and]: [
-          { check_in_date: { [Op.lt]: this.parseLocalDate(checkOutDate) } },
-          { check_out_date: { [Op.gt]: this.parseLocalDate(checkInDate) } },
-        ],
-      },
-      group: ['room_id'],
-      raw: true,
-      transaction,
-    });
+    // Get booked room IDs in date range via repository
+    const bookedIds = await roomRepository.findBookedRoomIdsByTypeInRange(
+      roomTypeId,
+      this.parseLocalDate(checkInDate),
+      this.parseLocalDate(checkOutDate),
+      transaction
+    );
 
-    const bookedIds = bookedRoomIds.map(b => b.room_id);
-    const availableRooms = allRooms.filter(r => !bookedIds.includes(r.id));
+    const availableRooms = allRooms.filter((r) => !bookedIds.includes(r.id));
     return availableRooms.slice(0, quantity);
   }
 
@@ -602,48 +548,54 @@ class RoomService {
    * Update room status (for staff)
    */
   async updateRoomStatus(roomId, status) {
-    const { Room, RoomType } = require('../databases/models');
-    
-    const room = await Room.findByPk(roomId);
+const { Room, RoomType } = require('../databases/models');
+const roomRepository = require('../repositories/roomRepository');
 
-    if (!room) {
-      throw { statusCode: 404, message: 'Room not found' };
-    }
+async function updateRoomStatus(roomId, status) {
+  console.log(`[updateRoomStatus] Request -> RoomID: ${roomId}, New status: ${status}`);
 
-    console.log(`[updateRoomStatus] Room ${room.room_number} (ID: ${roomId}) - Old status: ${room.status}, New status: ${status}`);
-
-    // Update status using direct update to avoid any potential issues
-    const [updateCount] = await Room.update(
-      { status: status },
-      { 
-        where: { id: roomId },
-        validate: true
-      }
-    );
-
-    console.log(`[updateRoomStatus] Updated ${updateCount} room(s) with status: ${status}`);
-
-    // Verify update with raw query
-    const verifyRoom = await Room.findByPk(roomId, { raw: true });
-    console.log(`[updateRoomStatus] Verify from DB - Room ${verifyRoom.room_number} status in DB: "${verifyRoom.status}"`);
-
-    // Return room with room_type info (force reload from DB)
-    const updatedRoom = await Room.findByPk(roomId, {
-      include: [
-        {
-          model: RoomType,
-          as: 'room_type',
-          attributes: ['id', 'name', 'base_price', 'capacity', 'description'],
-        },
-      ],
-      raw: false
-    });
-
-    console.log(`[updateRoomStatus] Final response - Room ${updatedRoom.room_number} status: "${updatedRoom.status}"`);
-    console.log(`[updateRoomStatus] Room object:`, JSON.stringify(updatedRoom.toJSON()));
-
-    return updatedRoom;
+  // 1. Get old room info
+  const room = await Room.findByPk(roomId);
+  if (!room) {
+    console.log(`[updateRoomStatus] ERROR: Room ${roomId} not found`);
+    throw { statusCode: 404, message: 'Room not found' };
   }
+
+  console.log(`[updateRoomStatus] Room ${room.room_number} - Old Status: ${room.status}`);
+
+  // 2. Update via repository (clean architecture)
+  const updatedCount = await roomRepository.updateRoomStatus(roomId, status);
+
+  if (!updatedCount) {
+    console.log(`[updateRoomStatus] ERROR: Update failed for Room ${roomId}`);
+    throw { statusCode: 404, message: 'Room not found or update failed' };
+  }
+
+  console.log(`[updateRoomStatus] Updated ${updatedCount} row(s)`);
+
+  // 3. Verify the update
+  const verifyRoom = await Room.findByPk(roomId, { raw: true });
+  console.log(`[updateRoomStatus] DB Verify - Room ${verifyRoom.room_number} now has status: "${verifyRoom.status}"`);
+
+  // 4. Return full room object including RoomType
+  const finalRoom = await Room.findByPk(roomId, {
+    include: [
+      {
+        model: RoomType,
+        as: 'room_type',
+        attributes: ['id', 'name', 'base_price', 'capacity', 'description'],
+      },
+    ],
+  });
+
+  console.log(`[updateRoomStatus] Final Response -> Room ${finalRoom.room_number} | Status: "${finalRoom.status}"`);
+
+  return finalRoom;
+}
+
+module.exports = {
+  updateRoomStatus,
+};
 }
 
 module.exports = new RoomService();
