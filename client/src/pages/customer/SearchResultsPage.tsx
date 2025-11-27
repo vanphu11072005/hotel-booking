@@ -19,7 +19,7 @@ import {
 } from '../../components/rooms';
 import { searchAvailableRooms } from 
   '../../services/api/roomService';
-import type { Room } from '../../services/api/roomService';
+import type { Room } from '../../types/rooms';
 import { toast } from 'react-toastify';
 
 const SearchResultsPage: React.FC = () => {

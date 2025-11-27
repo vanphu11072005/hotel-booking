@@ -84,14 +84,6 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
     navigate(`/rooms/search?${params.toString()}`);
   };
 
-  // Reset helper (kept for potential future use)
-  // const handleReset = () => {
-  //   setCheckInDate(null);
-  //   setCheckOutDate(null);
-  //   setRoomType('');
-  //   setGuestCount(1);
-  // };
-
   return (
     <div className={`w-full bg-gray-100 border border-gray-200 rounded-lg shadow-sm p-4 ${className}`}>
       <div className="flex items-center justify-center gap-3 mb-6">

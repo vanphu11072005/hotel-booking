@@ -18,46 +18,9 @@ interface RoomAmenitiesProps {
   amenities: string[];
 }
 
-const RoomAmenities: React.FC<RoomAmenitiesProps> = ({ 
-  amenities 
-}) => {
-  const normalizeAmenities = (input: any): string[] => {
-    if (Array.isArray(input)) return input;
-    if (!input) return [];
-    if (typeof input === 'string') {
-      // Try JSON.parse first (stringified JSON)
-      try {
-        const parsed = JSON.parse(input);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {
-        // ignore
-      }
-
-      // Fallback: comma separated list
-      return input
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-    }
-
-    // If it's an object with values as amenities
-    if (typeof input === 'object') {
-      try {
-        // Convert object values to array if possible
-        const vals = Object.values(input);
-        if (Array.isArray(vals) && vals.length > 0) {
-          // flatten nested arrays
-          return vals.flat().map((v: any) => String(v).trim()).filter(Boolean);
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    return [];
-  };
-
-  const safeAmenities = normalizeAmenities(amenities);
+const RoomAmenities: React.FC<RoomAmenitiesProps> = ({ amenities }) => {
+  // Backend guarantees `amenities: string[]` (possibly empty). Use directly.
+  const safeAmenities = Array.isArray(amenities) ? amenities : [];
 
   // Icon mapping for common amenities
   const amenityIcons: Record<string, React.ReactNode> = {
