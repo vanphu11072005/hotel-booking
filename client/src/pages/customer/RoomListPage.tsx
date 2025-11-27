@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { getRooms } from '../../services/api/roomService';
-import type { Room } from '../../services/api/roomService';
+import type { Room } from '../../types/rooms';
 import RoomFilter from '../../components/rooms/RoomFilter';
 import RoomCard from '../../components/rooms/RoomCard';
 import RoomCardSkeleton from '../../components/rooms/RoomCardSkeleton';

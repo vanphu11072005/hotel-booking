@@ -6,8 +6,8 @@ import {
   DollarSign,
   ArrowLeft,
 } from 'lucide-react';
-import { getRoomById, type Room } from 
-  '../../services/api/roomService';
+import { getRoomById } from '../../services/api/roomService';
+import type { Room } from '../../types/rooms';
 import RoomGallery from '../../components/rooms/RoomGallery';
 import RoomAmenities from '../../components/rooms/RoomAmenities';
 import ReviewSection from '../../components/rooms/ReviewSection';
@@ -94,6 +94,24 @@ const RoomDetailPage: React.FC = () => {
   }
 
   const roomType = room.room_type;
+  // Normalize amenities to string[] (server ideally returns string[])
+  const normalizeAmenities = (val: any): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.map((v) => String(v));
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        if (Array.isArray(parsed)) return parsed.map((v) => String(v));
+        return [val];
+      } catch {
+        return [val];
+      }
+    }
+    if (typeof val === 'object') {
+      return Object.keys(val).filter((k) => (val as any)[k]).map((k) => String(k));
+    }
+    return [];
+  };
   const formattedPrice = new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
@@ -116,7 +134,7 @@ const RoomDetailPage: React.FC = () => {
         {/* Image Gallery */}
         <div className="mb-8">
           <RoomGallery
-              images={room.images || []}
+              images={room.images}
               roomName={roomType?.name || 'Room'}
             />
         </div>
@@ -198,13 +216,7 @@ const RoomDetailPage: React.FC = () => {
               >
                 Tiện ích
               </h2>
-              <RoomAmenities
-                amenities={
-                  (room.amenities && room.amenities.length > 0)
-                    ? room.amenities
-                    : (roomType?.amenities || [])
-                }
-              />
+              <RoomAmenities amenities={normalizeAmenities(roomType?.amenities)} />
             </div>
           </div>
 

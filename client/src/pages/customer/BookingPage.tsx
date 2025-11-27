@@ -26,8 +26,8 @@ import {
   getRoomById,
   getRooms,
   getAvailableRoomCount,
-  type Room 
 } from '../../services/api/roomService';
+import type { Room } from '../../types/rooms';
 import { 
   createBooking,
   createMultiRoomTypeBooking,
@@ -1823,20 +1823,25 @@ const BookingPage: React.FC = () => {
 
                             {/* Room Details */}
                             <div className="p-4 space-y-3">
-                              <div className="flex items-center 
-                                justify-between"
-                              >
-                                <span className="text-sm 
-                                  text-gray-600"
+                                <div className="flex items-center \
+                                  justify-between"
                                 >
-                                  Giá/đêm
-                                </span>
-                                <span className="text-lg 
-                                  font-bold text-indigo-600"
-                                >
-                                  {formatPrice(roomType.base_price)}
-                                </span>
-                              </div>
+                                  <span className="text-sm \
+                                    text-gray-600"
+                                  >
+                                    Giá/đêm
+                                  </span>
+                                  {/**
+                                   * `roomType.base_price` may be undefined depending
+                                   * on the shared type. Coerce to a number to satisfy
+                                   * `formatPrice` which expects a `number`.
+                                   */}
+                                  <span className="text-lg \
+                                    font-bold text-indigo-600"
+                                  >
+                                    {formatPrice(Number(roomType.base_price ?? 0))}
+                                  </span>
+                                </div>
 
                               {roomOption.room_type?.capacity && (
                                 <div className="flex items-center 

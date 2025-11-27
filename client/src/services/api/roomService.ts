@@ -1,77 +1,12 @@
 import apiClient from './apiClient';
-
-// Types & Interfaces
-export interface Room {
-  id: number;
-  room_type_id: number;
-  room_number: string;
-  floor: number;
-  price: number;
-  status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
-  featured: boolean;
-  images?: string[];
-  amenities?: string[];
-  created_at: string;
-  updated_at: string;
-  room_type?: {
-    id: number;
-    name: string;
-    description: string;
-    base_price: number;
-    capacity: number;
-    amenities: string[];
-  };
-  average_rating?: number | string | null;
-  total_reviews?: number | string | null;
-}
-
-export interface RoomListResponse {
-  success: boolean;
-  status?: string;
-  data: {
-    rooms: Room[];
-    pagination?: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  };
-  message?: string;
-}
-
-export interface FeaturedRoomsParams {
-  featured?: boolean;
-  limit?: number;
-}
-
-export interface RoomSearchParams {
-  type?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  capacity?: number;
-  page?: number;
-  limit?: number;
-  sort?: string;
-}
-
-export interface AvailableSearchParams {
-  from: string;
-  to: string;
-  type?: string;
-  capacity?: number;
-  page?: number;
-  limit?: number;
-}
-
-export interface CreateRoomData {
-  room_number: string;
-  floor: number;
-  room_type_id: number;
-  price: number;
-  status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
-  featured?: boolean;
-}
+import type {
+  Room,
+  RoomListResponse,
+  FeaturedRoomsParams,
+  RoomSearchParams,
+  AvailableSearchParams,
+  CreateRoomData,
+} from '../../types/rooms';
 // API functions
 export const getRoomTypes = async (): Promise<{
   success: boolean;
@@ -81,62 +16,7 @@ export const getRoomTypes = async (): Promise<{
   return response.data;
 };
 
-/**
- * Room API Service
- */
-
-export interface Room {
-  id: number;
-  room_type_id: number;
-  room_number: string;
-  floor: number;
-  status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
-  featured: boolean;
-  images?: string[];
-  amenities?: string[];
-  created_at: string;
-  updated_at: string;
-  room_type?: {
-    id: number;
-    name: string;
-    description: string;
-    base_price: number;
-    capacity: number;
-    amenities: string[];
-  };
-  average_rating?: number | string | null;
-  total_reviews?: number | string | null;
-}
-
-export interface RoomListResponse {
-  success: boolean;
-  status?: string;
-  data: {
-    rooms: Room[];
-    pagination?: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  };
-  message?: string;
-}
-
-export interface FeaturedRoomsParams {
-  featured?: boolean;
-  limit?: number;
-}
-
-export interface RoomSearchParams {
-  type?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  capacity?: number;
-  page?: number;
-  limit?: number;
-  sort?: string;
-}
+/** Room API Service */
 
 /**
  * Get featured rooms for homepage
@@ -179,15 +59,6 @@ export const getRoomById = async (
 /**
  * Search available rooms
  */
-export interface AvailableSearchParams {
-  from: string;
-  to: string;
-  type?: string;
-  capacity?: number;
-  page?: number;
-  limit?: number;
-}
-
 export const searchAvailableRooms = async (
   params: AvailableSearchParams
 ): Promise<RoomListResponse> => {
@@ -212,14 +83,6 @@ export const getAmenities = async (): Promise<{
 /**
  * Create new room
  */
-export interface CreateRoomData {
-  room_number: string;
-  floor: number;
-  room_type_id: number;
-  status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
-  featured?: boolean;
-}
-
 export const createRoom = async (
   data: CreateRoomData
 ): Promise<{ success: boolean; data: { room: Room }; message: string }> => {

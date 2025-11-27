@@ -236,7 +236,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
       const response = 
         await authService.resetPassword(data);
       
-  if (response.success || response.status === 'success') {
+      if (response.success || response.status === 'success') {
         set({ isLoading: false, error: null });
         toast.success(
           response.message || 
