@@ -610,11 +610,24 @@ class RoomService {
       throw { statusCode: 404, message: 'Room not found' };
     }
 
-    // Update status
-    room.status = status;
-    await room.save();
+    console.log(`[updateRoomStatus] Room ${room.room_number} (ID: ${roomId}) - Old status: ${room.status}, New status: ${status}`);
 
-    // Return room with room_type info
+    // Update status using direct update to avoid any potential issues
+    const [updateCount] = await Room.update(
+      { status: status },
+      { 
+        where: { id: roomId },
+        validate: true
+      }
+    );
+
+    console.log(`[updateRoomStatus] Updated ${updateCount} room(s) with status: ${status}`);
+
+    // Verify update with raw query
+    const verifyRoom = await Room.findByPk(roomId, { raw: true });
+    console.log(`[updateRoomStatus] Verify from DB - Room ${verifyRoom.room_number} status in DB: "${verifyRoom.status}"`);
+
+    // Return room with room_type info (force reload from DB)
     const updatedRoom = await Room.findByPk(roomId, {
       include: [
         {
@@ -623,7 +636,11 @@ class RoomService {
           attributes: ['id', 'name', 'base_price', 'capacity', 'description'],
         },
       ],
+      raw: false
     });
+
+    console.log(`[updateRoomStatus] Final response - Room ${updatedRoom.room_number} status: "${updatedRoom.status}"`);
+    console.log(`[updateRoomStatus] Room object:`, JSON.stringify(updatedRoom.toJSON()));
 
     return updatedRoom;
   }

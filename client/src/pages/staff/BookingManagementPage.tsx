@@ -217,15 +217,6 @@ const BookingManagementPage: React.FC = () => {
                       </button>
                     </>
                   )}
-                  {booking.status === 'confirmed' && (
-                    <button
-                      onClick={() => handleUpdateStatus(booking.id, 'checked_in')}
-                      className="text-green-600 hover:text-green-900"
-                      title="Check-in"
-                    >
-                      <CheckCircle className="w-5 h-5" />
-                    </button>
-                  )}
                 </td>
               </tr>
             ))}
@@ -654,34 +645,6 @@ const BookingManagementPage: React.FC = () => {
                 <div>
                   <label className="text-sm font-medium text-gray-500">Ghi chú</label>
                   <p className="text-gray-900">{selectedBooking.notes}</p>
-                </div>
-              )}
-              {/* Dịch vụ đã đặt */}
-              {selectedBooking.service_usages && selectedBooking.service_usages.length > 0 && (
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Dịch vụ đã đặt</label>
-                  <div className="mt-2">
-                    <table className="min-w-full divide-y divide-gray-200 border">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tên dịch vụ</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Số lượng</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Đơn giá</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Thành tiền</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {selectedBooking.service_usages.map((usage) => (
-                          <tr key={usage.id}>
-                            <td className="px-4 py-2">{usage.service?.name || 'Không rõ'}</td>
-                            <td className="px-4 py-2">{usage.quantity}</td>
-                            <td className="px-4 py-2">{formatCurrency(usage.unit_price)}</td>
-                            <td className="px-4 py-2">{formatCurrency(usage.total_price)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
               )}
             </div>
