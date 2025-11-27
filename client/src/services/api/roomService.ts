@@ -7,6 +7,8 @@ import type {
   AvailableSearchParams,
   CreateRoomData,
 } from '../../types/rooms';
+
+export type { Room };
 // API functions
 export const getRoomTypes = async (): Promise<{
   success: boolean;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Eye, AlertCircle, Loader } from 'lucide-react';
-import { roomService, Room } from '../../services/api';
+import { roomService } from '../../services/api';
+import type { Room } from '../../services/api/roomService';
 import { toast } from 'react-toastify';
 import Loading from '../../components/common/Loading';
 
@@ -122,7 +123,7 @@ const RoomManagementPage: React.FC = () => {
 
   const filteredRooms = rooms.filter((room) => {
     const matchSearch = 
-      room.room_number.toLowerCase().includes(filters.search.toLowerCase()) ||
+      (room.room_number || '').toLowerCase().includes(filters.search.toLowerCase()) ||
       (room.room_type?.name || '').toLowerCase().includes(filters.search.toLowerCase());
     const matchStatus = !filters.status || room.status === filters.status;
     return matchSearch && matchStatus;

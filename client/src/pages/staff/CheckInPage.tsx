@@ -10,7 +10,6 @@ import {
   X,
   Users,
   Upload,
-  AlertTriangle,
 } from 'lucide-react';
 import { bookingService, Booking, serviceService, Service, Payment } from '../../services/api';
 import { toast } from 'react-toastify';
