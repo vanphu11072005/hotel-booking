@@ -49,12 +49,13 @@ const RoomManagementPage: React.FC = () => {
     floor: 1,
     room_type_id: 1,
     price: 0,
-    status: 'available' as 'available' | 'occupied' | 'maintenance',
+    status: 'available' as 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning',
     featured: false,
   });
   
   const [uploadingImages, setUploadingImages] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   // Helper function to parse images (handle both string and array)
   const parseImages = (images: any): string[] => {
@@ -78,6 +79,13 @@ const RoomManagementPage: React.FC = () => {
   useEffect(() => {
     fetchRooms();
   }, [filters.search, filters.status, filters.type, currentPage]);
+
+  // Cleanup preview URLs khi component unmount
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
 
   const fetchRooms = async () => {
     try {
@@ -193,12 +201,17 @@ const RoomManagementPage: React.FC = () => {
       featured: false,
     });
     setSelectedFiles([]);
+    setPreviewUrls([]);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
       setSelectedFiles(files);
+      
+      // Tạo preview URLs cho các file đã chọn
+      const urls = files.map(file => URL.createObjectURL(file));
+      setPreviewUrls(urls);
     }
   };
 
@@ -230,6 +243,7 @@ const RoomManagementPage: React.FC = () => {
 
       toast.success('Upload ảnh thành công');
       setSelectedFiles([]);
+      setPreviewUrls([]);
       fetchRooms();
       
       // Refresh editing room data
@@ -419,7 +433,7 @@ const RoomManagementPage: React.FC = () => {
                     {new Intl.NumberFormat('vi-VN', {
                       style: 'currency',
                       currency: 'VND',
-                    }).format(room.room_type?.base_price || 0)}
+                    }).format(room.price || room.room_type?.base_price || 0)}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -577,9 +591,25 @@ const RoomManagementPage: React.FC = () => {
                     />
                   </div>
                   {selectedFiles.length > 0 && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      {selectedFiles.length} file đã chọn
-                    </p>
+                    <div className="mt-3">
+                      <p className="text-sm text-gray-600 mb-2">
+                        {selectedFiles.length} file đã chọn - Preview:
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {previewUrls.map((url, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={url}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                            />
+                            <span className="absolute bottom-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded">
+                              {selectedFiles[index].name.substring(0, 15)}...
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -617,33 +647,49 @@ const RoomManagementPage: React.FC = () => {
                       <p className="text-sm text-gray-600 mb-2">Ảnh hiện tại:</p>
                       <div className="grid grid-cols-3 gap-3">
                         {images.map((img, index) => {
-                          // Xử lý đường dẫn tuyệt đối và tương đối
+                          // Xử lý đường dẫn - ưu tiên dùng VITE_API_URL nếu có
+                          const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+                            .replace(/\/api\/?$/i, '')
+                            .replace(/\/$/, '');
+                          
                           let src = '';
                           if (img.startsWith('http')) {
+                            // URL đầy đủ
                             src = img;
+                          } else if (img.startsWith('/uploads/')) {
+                            // Đường dẫn tương đối bắt đầu từ /uploads
+                            src = `${SERVER_URL}${img}`;
                           } else if (img.startsWith('/')) {
-                            src = `http://localhost:3000${img}`;
+                            // Đường dẫn tương đối khác
+                            src = `${SERVER_URL}${img}`;
                           } else {
-                            src = `http://localhost:3000/uploads/rooms/${img}`;
+                            // Chỉ tên file
+                            src = `${SERVER_URL}/uploads/rooms/${img}`;
                           }
+                          
                           return (
                             <div key={index} className="relative group">
                               <img
                                 src={src}
                                 alt={`Room ${index + 1}`}
-                                className="w-full h-24 object-cover rounded-lg"
+                                className="w-full h-24 object-cover rounded-lg border border-gray-200"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                  const errorDiv = document.createElement('div');
-                                  errorDiv.innerText = 'Không load được ảnh';
-                                  errorDiv.className = 'text-xs text-red-500 mt-1';
-                                  (e.target as HTMLImageElement).parentElement?.appendChild(errorDiv);
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const parent = target.parentElement;
+                                  if (parent && !parent.querySelector('.error-msg')) {
+                                    const errorDiv = document.createElement('div');
+                                    errorDiv.innerText = `Không load được ảnh\n${src}`;
+                                    errorDiv.className = 'error-msg text-xs text-red-500 bg-red-50 p-2 rounded break-all';
+                                    parent.appendChild(errorDiv);
+                                  }
                                 }}
                               />
                               <button
                                 type="button"
                                 onClick={() => handleDeleteImage(img)}
-                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                title="Xóa ảnh"
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -679,9 +725,25 @@ const RoomManagementPage: React.FC = () => {
                     </button>
                   </div>
                   {selectedFiles.length > 0 && (
-                    <p className="text-sm text-gray-600 mt-2">
-                      {selectedFiles.length} file đã chọn
-                    </p>
+                    <div className="mt-3">
+                      <p className="text-sm text-gray-600 mb-2">
+                        {selectedFiles.length} file đã chọn - Preview:
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {previewUrls.map((url, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={url}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                            />
+                            <span className="absolute bottom-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded">
+                              {selectedFiles[index].name.substring(0, 15)}...
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

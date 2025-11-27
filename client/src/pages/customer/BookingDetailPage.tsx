@@ -7,7 +7,6 @@ import {
 import {
   ArrowLeft,
   Calendar,
-  MapPin,
   Users,
   CreditCard,
   User,
