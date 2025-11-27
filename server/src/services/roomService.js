@@ -598,7 +598,6 @@ class RoomService {
     return availableRooms.slice(0, quantity);
   }
 
-<<<<<<< HEAD
   /**
    * Update room status (for staff)
    */
@@ -628,8 +627,6 @@ class RoomService {
 
     return updatedRoom;
   }
-=======
->>>>>>> 2251591481554589125e303b77ffcdfeb546272a
 }
 
 module.exports = new RoomService();
