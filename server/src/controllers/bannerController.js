@@ -1,11 +1,6 @@
 const bannerService = require('../services/bannerService');
 
 /**
- * Banner Controller - Request/Response handling layer
- * Xử lý HTTP requests và responses
- */
-
-/**
  * Get all banners with filters and pagination
  */
 const getBanners = async (req, res, next) => {

@@ -5,7 +5,7 @@ import {
   addFavorite,
   removeFavorite,
 } from '../services/api/favoriteService';
-import type { Favorite } from '../services/api/favoriteService';
+import type { Favorite } from '../types/favorite';
 
 interface FavoritesState {
   favorites: Favorite[];

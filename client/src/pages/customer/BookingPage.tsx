@@ -28,14 +28,16 @@ import {
   getAvailableRoomCount,
 } from '../../services/api/roomService';
 import type { Room } from '../../types/rooms';
-import { 
+import {
   createBooking,
   createMultiRoomTypeBooking,
-  type BookingData,
-  type MultiRoomTypeBookingData,
 } from '../../services/api/bookingService';
-import { getServices, type Service } from 
-  '../../services/api/serviceService';
+import type {
+  BookingData,
+  MultiRoomTypeBookingData,
+} from '../../types/booking';
+import { getServices } from '../../services/api/serviceService';
+import type { Service } from '../../types/service';
 import { createVNPayPayment } from '../../services/api/paymentService';
 import useAuthStore from '../../store/useAuthStore';
 import { 

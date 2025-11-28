@@ -6,7 +6,8 @@ import { toast } from 'react-toastify';
 import { Pencil, Loader2, Camera } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import authService from '../../services/api/authService';
-import bookingService, { type Booking } from '../../services/api/bookingService';
+import bookingService from '../../services/api/bookingService';
+import type { Booking } from '../../types/booking';
 import Loading from '../../components/common/Loading';
 import * as yup from 'yup';
 
@@ -319,7 +320,7 @@ const ProfilePage: React.FC = () => {
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="font-medium text-gray-800">{b.booking_number}</div>
-                        <div className="text-xs text-gray-400">{new Date(b.createdAt ?? (b as any).created_at).toLocaleDateString()}</div>
+                        <div className="text-xs text-gray-400">{new Date((b as any).created_at ?? (b as any).createdAt).toLocaleDateString()}</div>
                       </div>
                       <div className="text-sm font-semibold text-indigo-600 uppercase bg-indigo-50 px-3 py-1 rounded-full">{b.status}</div>
                     </div>

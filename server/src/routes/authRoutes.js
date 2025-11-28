@@ -11,11 +11,6 @@ const {
 } = require('../validators/authValidator');
 const upload = require('../middlewares/upload');
 
-/**
- * @route   POST /api/auth/register
- * @desc    Register new user
- * @access  Public
- */
 router.post(
   '/register',
   registerValidation,
@@ -23,11 +18,6 @@ router.post(
   authController.register
 );
 
-/**
- * @route   POST /api/auth/login
- * @desc    Login user
- * @access  Public
- */
 router.post(
   '/login',
   loginValidation,
@@ -35,11 +25,6 @@ router.post(
   authController.login
 );
 
-/**
- * @route   POST /api/auth/refresh-token
- * @desc    Refresh access token
- * @access  Public
- */
 router.post(
   '/refresh-token',
   refreshTokenValidation,
@@ -47,22 +32,8 @@ router.post(
   authController.refreshAccessToken
 );
 
-/**
- * @route   POST /api/auth/logout
- * @desc    Logout user
- * @access  Public
- */
 router.post('/logout', authController.logout);
-
-/**
- * @route   GET /api/auth/profile
- * @desc    Get current user profile
- * @access  Private
- */
 router.get('/profile', authenticateToken, authController.getProfile);
-/**
- * PUT /api/auth/profile - Update current user's profile
- */
 router.put('/profile', authenticateToken, authController.updateProfile);
 
 /**
@@ -75,18 +46,7 @@ router.put(
   authController.uploadAvatar
  );
 
-/**
- * @route   POST /api/auth/forgot-password
- * @desc    Send password reset link
- * @access  Public
- */
 router.post('/forgot-password', authController.forgotPassword);
-
-/**
- * @route   POST /api/auth/reset-password
- * @desc    Reset password with token
- * @access  Public
- */
 router.post('/reset-password', authController.resetPassword);
 
 module.exports = router;

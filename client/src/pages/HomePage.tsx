@@ -16,9 +16,9 @@ import {
   roomService,
   serviceService 
 } from '../services/api';
-import type { Banner } from '../services/api/bannerService';
-import type { Room } from '../services/api/roomService';
-import type { Service } from '../services/api/serviceService';
+import type { Banner } from '../types/banner';
+import type { Room } from '../types/rooms';
+import type { Service } from '../types/service';
 
 const HomePage: React.FC = () => {
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -38,8 +38,7 @@ const HomePage: React.FC = () => {
     const fetchBanners = async () => {
       try {
         setIsLoadingBanners(true);
-        const response = await bannerService
-          .getBannersByPosition('home');
+        const response = await bannerService.getBannersByPosition('home');
         
         if (
           response.success || 
@@ -49,7 +48,6 @@ const HomePage: React.FC = () => {
         }
       } catch (err) {
         console.error('Error fetching banners:', err);
-        // Don't show error for banners, just use fallback
       } finally {
         setIsLoadingBanners(false);
       }

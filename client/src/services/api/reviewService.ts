@@ -1,56 +1,5 @@
 import apiClient from './apiClient';
-
-/**
- * Review API Service
- */
-
-export interface Review {
-  id: number;
-  user_id: number;
-  room_id: number;
-  rating: number;
-  comment: string;
-  status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
-  updated_at: string;
-  user?: {
-    id: number;
-    name: string;
-    full_name: string;
-    email: string;
-  };
-  room?: {
-    id: number;
-    room_number: string;
-    room_type?: {
-      name: string;
-    };
-  };
-}
-
-export interface ReviewListResponse {
-  success: boolean;
-  status?: string;
-  data: {
-    reviews: Review[];
-    average_rating?: number;
-    total_reviews?: number;
-    pagination?: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  };
-  message?: string;
-}
-
-export interface CreateReviewData {
-  room_id: number;
-  rating: number;
-  comment: string;
-  booking_id?: number;
-}
+import type { Review, ReviewListResponse, CreateReviewData } from '../../types/review';
 
 /**
  * Get reviews for a specific room
