@@ -1,5 +1,34 @@
 const paymentRepository = require('../repositories/paymentRepository');
 const vnpayService = require('../utils/vnpayService');
+const { URL } = require('url');
+const https = require('https');
+const http = require('http');
+
+/**
+ * Fetch page text from a URL with a timeout (ms)
+ */
+function fetchUrlText(targetUrl, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    try {
+      const urlObj = new URL(targetUrl);
+      const lib = urlObj.protocol === 'https:' ? https : http;
+      const req = lib.get(targetUrl, { timeout }, (res) => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => (data += chunk));
+        res.on('end', () => resolve(data));
+      });
+
+      req.on('error', (err) => reject(err));
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('timeout'));
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 const { sendEmail } = require('../utils/mailer');
 const { 
   bookingConfirmationEmail, 
@@ -290,10 +319,55 @@ class PaymentService {
 
     console.log('VNPay Payment URL created:', paymentUrl);
 
-    return {
-      payment_url: paymentUrl,
-      payment_id: payment.id,
-    };
+        // Pre-check the VNPay URL: fetch the page HTML and look for known
+        // error signatures (Payment/Error.html, "Không tìm thấy website", etc.).
+        // This prevents redirecting users to a broken VNPay page and gives a
+        // clearer error message.
+        // Try to fetch the payment page and detect known error signatures.
+        try {
+          const pageHtml = await fetchUrlText(paymentUrl, 5000);
+          const errorSignatures = [
+            'Payment/Error.html',
+            'Không tìm thấy website',
+            'Không tìm thấy',
+            'timer is not defined',
+          ];
+
+          const foundError = errorSignatures.some((s) =>
+            pageHtml && pageHtml.includes(s)
+          );
+
+          if (foundError) {
+            const configuredTmn = process.env.VNP_TMN_CODE ||
+              (vnpayService.vnpay && (vnpayService.vnpay.options?.tmnCode || vnpayService.vnpay.options?.TmnCode));
+
+            console.error('VNPay returned an error page. Aborting redirect.', {
+              tmn: configuredTmn,
+              paymentUrl,
+            });
+
+            // Throw and let controller catch and return proper status to client
+            throw {
+              statusCode: 502,
+              message:
+                'VNPay sandbox returned an error page (Payment/Error). Check TMN code and return URL configuration in VNPay dashboard.',
+            };
+          }
+        } catch (err) {
+          // If the throw above created an error object with statusCode, rethrow it
+          if (err && err.statusCode) {
+            throw err;
+          }
+
+          // Otherwise it's a fetch/network/timeout error — warn but still allow
+          // returning the paymentUrl so the integration can be tried manually.
+          console.warn('Warning: could not pre-check VNPay payment URL:', err.message || err);
+        }
+
+        return {
+          payment_url: paymentUrl,
+          payment_id: payment.id,
+        };
   }
 
   /**

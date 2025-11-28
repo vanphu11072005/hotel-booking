@@ -14,15 +14,14 @@ import {
   Wallet,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { getBookingById, createBooking, createMultiRoomTypeBooking, type Booking } from 
-  '../../services/api/bookingService';
+import { getBookingById, createBooking, createMultiRoomTypeBooking } from '../../services/api/bookingService';
+import type { Booking } from '../../types/booking';
 import {
   getPaymentsByBookingId,
   notifyPaymentCompletion,
   createVNPayPayment,
-  type Payment,
-  type BankInfo,
 } from '../../services/api/paymentService';
+import type { Payment, BankInfo } from '../../types/payment';
 import Loading from '../../components/common/Loading';
 
 const DepositPaymentPage: React.FC = () => {
@@ -67,7 +66,7 @@ const DepositPaymentPage: React.FC = () => {
       fetchData(Number(bookingId));
     }
   }, [bookingId, isPending]);
-
+  
   const fetchData = async (id: number) => {
     try {
       setLoading(true);
