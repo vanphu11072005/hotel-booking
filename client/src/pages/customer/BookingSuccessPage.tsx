@@ -20,10 +20,8 @@ import {
   Check,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import {
-  getBookingById,
-  type Booking,
-} from '../../services/api/bookingService';
+import { getBookingById } from '../../services/api/bookingService';
+import type { Booking } from '../../types/booking';
 import Loading from '../../components/common/Loading';
 
 const BookingSuccessPage: React.FC = () => {

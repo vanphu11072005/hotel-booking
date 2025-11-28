@@ -16,11 +16,8 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import {
-  getMyBookings,
-  cancelBooking,
-  type Booking,
-} from '../../services/api/bookingService';
+import { getMyBookings, cancelBooking } from '../../services/api/bookingService';
+import type { Booking } from '../../types/booking';
 import useAuthStore from '../../store/useAuthStore';
 import Loading from '../../components/common/Loading';
 import EmptyState from '../../components/common/EmptyState';

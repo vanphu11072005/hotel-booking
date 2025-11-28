@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { toast } from 'react-toastify';
-import authService, { 
-  LoginCredentials, 
+import authService from '../services/api/authService';
+import type {
+  LoginCredentials,
   RegisterData,
   ForgotPasswordData,
-  ResetPasswordData
-} from '../services/api/authService';
+  ResetPasswordData,
+} from '../types/auth';
 
 // Types
 interface UserInfo {

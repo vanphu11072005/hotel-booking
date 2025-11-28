@@ -24,11 +24,8 @@ import {
   Check,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import {
-  getBookingById,
-  cancelBooking,
-  type Booking,
-} from '../../services/api/bookingService';
+import { getBookingById, cancelBooking } from '../../services/api/bookingService';
+import type { Booking } from '../../types/booking';
 import useAuthStore from '../../store/useAuthStore';
 import Loading from '../../components/common/Loading';
 import PaymentStatusBadge from 

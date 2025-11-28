@@ -16,11 +16,8 @@ import {
   FileText,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import {
-  getBookingById,
-  generateQRCode,
-  type Booking,
-} from '../../services/api/bookingService';
+import { getBookingById, generateQRCode } from '../../services/api/bookingService';
+import type { Booking } from '../../types/booking';
 import { confirmBankTransfer } from 
   '../../services/api/paymentService';
 import useAuthStore from '../../store/useAuthStore';

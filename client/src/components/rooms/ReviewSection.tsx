@@ -4,12 +4,10 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { toast } from 'react-toastify';
 import RatingStars from './RatingStars';
-import {
-  getRoomReviews,
-  createReview,
-  type Review,
-} from '../../services/api/reviewService';
-import { getMyBookings, type Booking } from '../../services/api/bookingService';
+import { getRoomReviews, createReview } from '../../services/api/reviewService';
+import type { Review } from '../../types/review';
+import { getMyBookings } from '../../services/api/bookingService';
+import type { Booking } from '../../types/booking';
 import useAuthStore from '../../store/useAuthStore';
 
 interface ReviewSectionProps {

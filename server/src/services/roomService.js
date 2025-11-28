@@ -548,54 +548,16 @@ class RoomService {
    * Update room status (for staff)
    */
   async updateRoomStatus(roomId, status) {
-const { Room, RoomType } = require('../databases/models');
-const roomRepository = require('../repositories/roomRepository');
+    // Delegate DB operations to repository
+    const updated = await roomRepository.updateRoomStatus(roomId, status);
+    if (!updated) {
+      const error = new Error('Room not found');
+      error.statusCode = 404;
+      throw error;
+    }
 
-async function updateRoomStatus(roomId, status) {
-  console.log(`[updateRoomStatus] Request -> RoomID: ${roomId}, New status: ${status}`);
-
-  // 1. Get old room info
-  const room = await Room.findByPk(roomId);
-  if (!room) {
-    console.log(`[updateRoomStatus] ERROR: Room ${roomId} not found`);
-    throw { statusCode: 404, message: 'Room not found' };
+    return updated;
   }
-
-  console.log(`[updateRoomStatus] Room ${room.room_number} - Old Status: ${room.status}`);
-
-  // 2. Update via repository (clean architecture)
-  const updatedCount = await roomRepository.updateRoomStatus(roomId, status);
-
-  if (!updatedCount) {
-    console.log(`[updateRoomStatus] ERROR: Update failed for Room ${roomId}`);
-    throw { statusCode: 404, message: 'Room not found or update failed' };
-  }
-
-  console.log(`[updateRoomStatus] Updated ${updatedCount} row(s)`);
-
-  // 3. Verify the update
-  const verifyRoom = await Room.findByPk(roomId, { raw: true });
-  console.log(`[updateRoomStatus] DB Verify - Room ${verifyRoom.room_number} now has status: "${verifyRoom.status}"`);
-
-  // 4. Return full room object including RoomType
-  const finalRoom = await Room.findByPk(roomId, {
-    include: [
-      {
-        model: RoomType,
-        as: 'room_type',
-        attributes: ['id', 'name', 'base_price', 'capacity', 'description'],
-      },
-    ],
-  });
-
-  console.log(`[updateRoomStatus] Final Response -> Room ${finalRoom.room_number} | Status: "${finalRoom.status}"`);
-
-  return finalRoom;
-}
-
-module.exports = {
-  updateRoomStatus,
-};
 }
 
 module.exports = new RoomService();

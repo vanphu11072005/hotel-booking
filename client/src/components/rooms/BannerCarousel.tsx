@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Banner } from '../../services/api/bannerService';
+import type { Banner } from '../../types/banner';
 
 interface BannerCarouselProps {
   banners: Banner[];
@@ -11,51 +11,69 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Derived values and handlers computed before JSX
+  const hasBanners = banners.length > 0;
+  const displayBanners = banners;
+  const currentIndexSafe = hasBanners
+    ? Math.min(currentIndex, displayBanners.length - 1)
+    : 0;
+  const currentBanner = hasBanners
+    ? displayBanners[currentIndexSafe]
+    : null;
+
+  // Resolve server URL once
+  const SERVER_URL = (import.meta.env.VITE_API_URL ||
+    'http://localhost:3000')
+    .replace(/\/api\/?$/i, '')
+    .replace(/\/$/, '');
+
+  // Resolve image src (absolute if under /uploads)
+  let imgSrcResolved = currentBanner
+    ? (currentBanner.image_url || '/images/default-banner.jpg')
+    : '/images/default-banner.jpg';
+  try {
+    if (imgSrcResolved.startsWith('/uploads')) {
+      imgSrcResolved = `${SERVER_URL}${imgSrcResolved}`;
+    }
+  } catch (e) {
+    imgSrcResolved = '/images/default-banner.jpg';
+  }
+
+  const altText = currentBanner?.title ??
+    'Chào mừng đến với Hotel Booking';
+  const titleText = currentBanner?.title ??
+    'Chào mừng đến với Hotel Booking';
+  const showNav = hasBanners && displayBanners.length > 1;
+  const showDots = hasBanners && displayBanners.length > 1;
+
   // Auto-slide every 5 seconds
   useEffect(() => {
-    if (banners.length <= 1) return;
+    if (!showNav) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) =>
-        prev === banners.length - 1 ? 0 : prev + 1
+        prev === displayBanners.length - 1 ? 0 : prev + 1
       );
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [banners.length]);
+  }, [displayBanners.length, showNav]);
 
   const goToPrevious = () => {
     setCurrentIndex((prev) =>
-      prev === 0 ? banners.length - 1 : prev - 1
+      prev === 0 ? displayBanners.length - 1 : prev - 1
     );
   };
 
   const goToNext = () => {
     setCurrentIndex((prev) =>
-      prev === banners.length - 1 ? 0 : prev + 1
+      prev === displayBanners.length - 1 ? 0 : prev + 1
     );
   };
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
   };
-
-  // Default fallback banner if no banners provided
-  const defaultBanner = {
-    id: 0,
-    title: 'Chào mừng đến với Hotel Booking',
-    image_url: '/images/default-banner.jpg',
-    position: 'home',
-    display_order: 0,
-    is_active: true,
-    created_at: '',
-    updated_at: '',
-  };
-
-  const displayBanners = banners.length > 0 
-    ? banners 
-    : [defaultBanner];
-  const currentBanner = displayBanners[currentIndex];
 
   return (
     <div
@@ -64,35 +82,17 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
     >
       {/* Banner Image */}
       <div className="relative w-full h-full">
-        {/* Resolve server URL for uploads so dev server proxies aren't required */}
-        {(() => {
-          const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
-            .replace(/\/api\/?$/i, '')
-            .replace(/\/$/, '');
-
-          let imgSrc = currentBanner.image_url || '/images/default-banner.jpg';
-          try {
-            if (imgSrc.startsWith('/uploads')) {
-              imgSrc = `${SERVER_URL}${imgSrc}`;
-            }
-            // If it's a relative client path (starts with '/images'), leave it as-is
-          } catch (e) {
-            imgSrc = '/images/default-banner.jpg';
-          }
-
-          return (
-            <img
-              src={imgSrc}
-              alt={currentBanner.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const img = e.currentTarget as HTMLImageElement;
-                img.onerror = null;
-                img.src = '/images/default-banner.jpg';
-              }}
-            />
-          );
-        })()}
+        {/* Image */}
+        <img
+          src={imgSrcResolved}
+          alt={altText}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            const img = e.currentTarget as HTMLImageElement;
+            img.onerror = null;
+            img.src = '/images/default-banner.jpg';
+          }}
+        />
 
         {/* Overlay */}
         <div 
@@ -101,7 +101,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
         />
 
         {/* Title */}
-        {currentBanner.title && (
+        {(currentBanner && titleText) && (
           <div 
             className="absolute bottom-8 left-8 right-8 
               text-white"
@@ -110,14 +110,14 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
               className="text-3xl md:text-5xl font-bold 
                 mb-2 drop-shadow-lg"
             >
-              {currentBanner.title}
+              {titleText}
             </h2>
           </div>
         )}
       </div>
 
       {/* Navigation Buttons */}
-      {displayBanners.length > 1 && (
+      {showNav && (
         <>
           <button
             onClick={goToPrevious}
@@ -144,7 +144,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
       )}
 
       {/* Dots Indicator */}
-      {displayBanners.length > 1 && (
+      {showDots && (
         <div 
           className="absolute bottom-4 left-1/2 
             -translate-x-1/2 flex gap-2"
@@ -156,7 +156,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
               className={`w-2 h-2 rounded-full 
                 transition-all
                 ${
-                  index === currentIndex
+                  index === currentIndexSafe
                     ? 'bg-white w-8'
                     : 'bg-white/50 hover:bg-white/75'
                 }`}
