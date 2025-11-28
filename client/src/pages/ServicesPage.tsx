@@ -4,7 +4,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { serviceService } from '../services/api';
-import type { Service } from '../services/api/serviceService';
+import type { Service } from '../types/service';
 
 const ServicesPage: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
