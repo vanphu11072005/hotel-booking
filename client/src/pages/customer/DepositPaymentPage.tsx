@@ -66,7 +66,7 @@ const DepositPaymentPage: React.FC = () => {
       fetchData(Number(bookingId));
     }
   }, [bookingId, isPending]);
-
+  
   const fetchData = async (id: number) => {
     try {
       setLoading(true);

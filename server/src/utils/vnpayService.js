@@ -19,14 +19,40 @@ const vnpay = new VNPay({
  */
 const createPaymentUrl = ({ amount, orderInfo, orderId, ipAddr, returnUrl }) => {
   try {
+    // Resolve TMN code: prefer explicit env var, then library options
+    const tmnFromEnv = process.env.VNP_TMN_CODE;
+    const configuredTmn = tmnFromEnv || (
+      vnpay.options && (vnpay.options.tmnCode || vnpay.options.TmnCode)
+    );
+
+    if (!configuredTmn) {
+      console.error(
+        'VNPay TMN code is not configured. Please set VNP_TMN_CODE in .env'
+      );
+      throw new Error(
+        'VNPay TMN code not configured. Set VNP_TMN_CODE in .env or in vnpay options'
+      );
+    }
+
+    const resolvedReturnUrl = returnUrl || process.env.VNP_RETURN_URL;
+    console.log('VNPay createPaymentUrl called with:', {
+      tmnCode: configuredTmn,
+      orderId,
+      amount,
+      resolvedReturnUrl,
+    });
+
+    // Amount should be an integer in VND (round if needed)
+    const vnpAmount = Math.round(Number(amount) || 0);
+
     const paymentUrl = vnpay.buildPaymentUrl({
-      vnp_Amount: amount, // Số tiền (VND)
+      vnp_Amount: vnpAmount,
       vnp_IpAddr: ipAddr,
-      vnp_TxnRef: orderId, // Mã đơn hàng
-      vnp_OrderInfo: orderInfo, // Thông tin đơn hàng
+      vnp_TxnRef: orderId,
+      vnp_OrderInfo: orderInfo,
       vnp_OrderType: 'other',
-      vnp_ReturnUrl: returnUrl || process.env.VNP_RETURN_URL,
-      vnp_Locale: 'vn', // Ngôn ngữ (vn/en)
+      vnp_ReturnUrl: resolvedReturnUrl,
+      vnp_Locale: 'vn',
     });
 
     return paymentUrl;
