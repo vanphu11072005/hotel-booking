@@ -10,7 +10,6 @@ import {
   X,
   Users,
   Upload,
-  AlertTriangle,
 } from 'lucide-react';
 import { bookingService, Booking, serviceService, Service, Payment } from '../../services/api';
 import { toast } from 'react-toastify';
@@ -298,12 +297,17 @@ const ServiceSelector: React.FC<{
 
   return (
     <div className="space-y-4">
-      {/* general */}
+      {/* general - dịch vụ chung cho tất cả phòng */}
       <div>
         <p className="text-xs font-semibold text-gray-600 mb-2 uppercase">Dịch vụ chung</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {services.map((svc) => {
             const alreadyBooked = booking?.service_usages?.some((u: any) => u.service_id === svc.id);
+            // Kiểm tra nếu booking có nhiều phòng
+            const rooms = booking?.booking_rooms || [];
+            const isChecked = rooms.length > 0
+              ? rooms.every((br: any) => isSelected(svc, br.room.id))
+              : isSelected(svc, null);
             return (
               <div key={`svc-general-${svc.id}`} className={`p-3 border rounded ${alreadyBooked ? 'bg-blue-50 border-blue-300' : 'bg-white'}`}>
                 <div className="flex items-start justify-between">
@@ -315,13 +319,50 @@ const ServiceSelector: React.FC<{
                   <div className="text-right">
                     <input
                       type="checkbox"
-                      checked={isSelected(svc, null)}
-                      onChange={() => onToggle(svc, null, null)}
+                      checked={isChecked}
+                      onChange={() => {
+                        if (rooms.length > 0) {
+                          if (!isChecked) {
+                            // Nếu chưa chọn, chọn cho tất cả các phòng
+                            rooms.forEach((br: any) => {
+                              if (!isSelected(svc, br.room.id)) {
+                                onToggle(svc, br.room.id, `Phòng ${br.room.room_number}`);
+                              }
+                            });
+                          } else {
+                            // Nếu đã chọn, bỏ chọn tất cả các phòng
+                            rooms.forEach((br: any) => {
+                              if (isSelected(svc, br.room.id)) {
+                                onToggle(svc, br.room.id, `Phòng ${br.room.room_number}`);
+                              }
+                            });
+                          }
+                        } else {
+                          onToggle(svc, null, null);
+                        }
+                      }}
                     />
                   </div>
                 </div>
-                {/* quantity */}
-                {isSelected(svc, null) && (
+                {/* quantity cho từng phòng nếu nhiều phòng */}
+                {isChecked && rooms.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {rooms.map((br: any) => {
+                      const idx = selected.findIndex(s => s.service_id === svc.id && s.room_id === br.room.id);
+                      const quantity = idx >= 0 ? selected[idx].quantity : 0;
+                      return (
+                        <div key={`svc-room-qty-${svc.id}-${br.room.id}`} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-600">{`Phòng ${br.room.room_number}`}</span>
+                          <button onClick={() => idx >= 0 && onQuantityChange(idx, Math.max(1, quantity - 1))} className="px-2 border rounded">-</button>
+                          <div className="px-3">{quantity || 1}</div>
+                          <button onClick={() => idx >= 0 && onQuantityChange(idx, quantity + 1)} className="px-2 border rounded">+</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {/* Nếu chỉ có 1 phòng thì giữ nguyên logic cũ */}
+                {isChecked && rooms.length === 0 && (
                   <div className="mt-2 flex items-center gap-2">
                     <button onClick={() => {
                       const idx = selected.findIndex(s => s.service_id === svc.id && !s.room_id);
@@ -920,7 +961,7 @@ const CheckInPage: React.FC = () => {
           {/* Payment summary */}
           <div className="bg-white p-6 rounded shadow-sm">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2"><DollarSign className="w-5 h-5 text-green-600" /> Thông tin thanh toán</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="p-3 bg-gray-50 rounded">
                 <div className="text-xs text-gray-600">Tổng phòng</div>
                 <div className="text-lg font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(roomTotal)}</div>
@@ -933,19 +974,9 @@ const CheckInPage: React.FC = () => {
                 <div className="text-xs text-gray-600">Phụ thu</div>
                 <div className="text-lg font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(surchargeTotal)}</div>
               </div>
-            </div>
-
-            <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded flex items-center justify-between">
-              <div>
-                <div className="text-sm text-gray-600">Đã thanh toán</div>
-                <div className="text-lg font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountPaid)}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Cần thu lúc check-in</div>
-                <div className="text-lg font-bold text-red-600">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountToCollect)}</div>
-              </div>
-              <div>
-                <button onClick={() => setShowConfirm(true)} className="px-4 py-2 bg-blue-600 text-white rounded">Xem chi tiết / Xác nhận</button>
+              <div className="p-3 bg-gray-50 rounded">
+                <div className="text-xs text-gray-600">Đã thanh toán</div>
+                <div className="text-lg font-bold text-green-600">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amountPaid)}</div>
               </div>
             </div>
           </div>
