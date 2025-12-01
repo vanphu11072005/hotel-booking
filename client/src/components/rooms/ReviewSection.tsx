@@ -4,7 +4,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { toast } from 'react-toastify';
 import RatingStars from './RatingStars';
-import { getRoomReviews, createReview } from '../../services/api/reviewService';
+import { getRoomReviews, createReview, updateReview } from '../../services/api/reviewService';
 import type { Review } from '../../types/review';
 import { getMyBookings } from '../../services/api/bookingService';
 import type { Booking } from '../../types/booking';
@@ -35,7 +35,11 @@ type ReviewFormData = {
 const ReviewSection: React.FC<ReviewSectionProps> = ({ 
   roomId 
 }) => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, userInfo } = useAuthStore();
+  const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
+  const [editRating, setEditRating] = useState<number>(0);
+  const [editComment, setEditComment] = useState<string>('');
+  const [editingSubmitting, setEditingSubmitting] = useState<boolean>(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -146,12 +150,23 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
         booking_id: eligibleBookingId,
       });
 
-      if (response && (response as any).success) {
+      // Server responds with `{ status: 'success', message, data: { review } }`
+      if (response && ((response as any).status === 'success' || (response as any).success)) {
+        const created: any = (response as any).data?.review || (response as any).data;
         toast.success('Đánh giá của bạn đã được gửi và đang chờ duyệt');
         reset();
         // Hide form for this booking
         setEligibleBookingId(null);
-        fetchReviews();
+
+        // Append the pending review locally so user sees their
+        // submission immediately with a 'Đang chờ duyệt' badge.
+        if (created) {
+          setReviews((prev) => [created, ...prev]);
+          setTotalReviews((t) => t + 1);
+        } else {
+          // Fallback: refresh approved reviews only (pending won't show)
+          fetchReviews();
+        }
       }
     } catch (error: any) {
       const message =
@@ -301,29 +316,123 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
           <div className="space-y-4">
             {reviews.map((review) => (
               <div
-                key={review.id}
-                className="bg-white rounded-lg shadow-md 
-                  p-6"
-              >
+                  key={review.id}
+                  className="relative bg-white rounded-lg shadow-md p-6"
+                >
+                {/* Determine if current user can edit this review */}
+                {(() => {
+                  if (!userInfo) return null;
+                  const isOwner = review.user?.id === userInfo.id;
+                  const EDIT_WINDOW_HOURS = 48; // must match server
+                  const createdAt = review.created_at ? new Date(review.created_at) : null;
+                  const hoursDiff = createdAt ? (Date.now() - createdAt.getTime()) / (1000 * 60 * 60) : Infinity;
+                    return isOwner && hoursDiff <= EDIT_WINDOW_HOURS ? (
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                      <button
+                        onClick={() => {
+                          setEditingReviewId(review.id);
+                          setEditRating(review.rating);
+                          setEditComment(review.comment || '');
+                        }}
+                        aria-label="Chỉnh sửa đánh giá"
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full
+                          bg-gradient-to-r from-indigo-500 via-pink-500 to-yellow-400
+                          text-white text-sm shadow-lg transform transition-transform
+                          hover:scale-105 focus:outline-none focus:ring-2
+                          focus:ring-offset-2 focus:ring-pink-300"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="w-4 h-4"
+                          aria-hidden
+                        >
+                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71
+                            7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42
+                            0l-1.83 1.83 3.75 3.75 1.84-1.82z" />
+                        </svg>
+                        <span className="whitespace-nowrap">Chỉnh sửa</span>
+                      </button>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Edit form */}
+                {editingReviewId === review.id ? (
+                  <div className="mb-4">
+                    <div className="mb-2">
+                      <RatingStars
+                        rating={editRating}
+                        interactive
+                        onRatingChange={(v) => setEditRating(v)}
+                        size="lg"
+                      />
+                    </div>
+                    <textarea
+                      value={editComment}
+                      onChange={(e) => setEditComment(e.target.value)}
+                      rows={4}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            setEditingSubmitting(true);
+                            const resp = await updateReview(review.id, {
+                              rating: editRating,
+                              comment: editComment,
+                            });
+                            if (resp && (resp.status === 'success' || resp.success)) {
+                              const updated: any = resp.data?.review || resp.data;
+                              // Replace review in list
+                              setReviews((prev) => prev.map((r) => (r.id === review.id ? updated : r)));
+                              toast.success('Cập nhật đánh giá thành công. Đang chờ duyệt.');
+                              setEditingReviewId(null);
+                            }
+                          } catch (err: any) {
+                            const msg = err.response?.data?.message || 'Không thể cập nhật đánh giá';
+                            toast.error(msg);
+                          } finally {
+                            setEditingSubmitting(false);
+                          }
+                        }}
+                        disabled={editingSubmitting}
+                        className="px-4 py-2 bg-green-600 text-white rounded"
+                      >
+                        {editingSubmitting ? 'Đang lưu...' : 'Lưu'}
+                      </button>
+                      <button
+                        onClick={() => setEditingReviewId(null)}
+                        className="px-4 py-2 bg-gray-200 rounded"
+                      >
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="flex items-start 
                   justify-between mb-3"
                 >
                   <div>
-                    <h5 className="font-semibold 
-                      text-gray-900"
-                    >
-                      {review.user?.full_name || 'Khách hàng'}
-                    </h5>
-                    <div className="flex items-center 
-                      gap-2 mt-1"
-                    >
-                      <RatingStars
-                        rating={review.rating}
-                        size="sm"
-                      />
-                      <span className="text-sm 
-                        text-gray-500"
-                      >
+                    <div className="flex items-center gap-3">
+                      <h5 className="font-semibold text-gray-900">
+                        {review.user?.full_name || 'Khách hàng'}
+                      </h5>
+                      {review.status !== 'approved' && (
+                        <span
+                          className="text-xs px-2 py-1 rounded-full 
+                            bg-yellow-100 text-yellow-800 font-medium"
+                        >
+                          Đang chờ duyệt
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-1">
+                      <RatingStars rating={review.rating} size="sm" />
+                      <span className="text-sm text-gray-500">
                         {formatDate(review.created_at)}
                       </span>
                     </div>

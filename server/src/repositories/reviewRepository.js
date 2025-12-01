@@ -10,9 +10,14 @@ class ReviewRepository {
    * Find reviews by room ID with approved status
    */
   async findApprovedReviewsByRoomId(roomId) {
+    // Look up the room to obtain its room_type_id, then return
+    // approved reviews attached to that room type.
+    const room = await Room.findByPk(roomId, { attributes: ['room_type_id'] });
+    if (!room) return [];
+
     return await Review.findAll({
       where: {
-        room_id: parseInt(roomId, 10),
+        room_type_id: parseInt(room.room_type_id, 10),
         status: 'approved',
       },
       include: [
@@ -37,10 +42,13 @@ class ReviewRepository {
    * Find existing review by user and room
    */
   async findReviewByUserAndRoom(userId, roomId) {
+    // Find by user and the room's room_type
+    const room = await Room.findByPk(roomId, { attributes: ['room_type_id'] });
+    if (!room) return null;
     return await Review.findOne({
       where: {
         user_id: userId,
-        room_id: roomId,
+        room_type_id: room.room_type_id,
       },
     });
   }
@@ -103,16 +111,9 @@ class ReviewRepository {
           attributes: ['id', 'full_name', 'email', 'phone'],
         },
         {
-          model: Room,
-          as: 'room',
-          attributes: ['id', 'room_number'],
-          include: [
-            {
-              model: RoomType,
-              as: 'room_type',
-              attributes: ['name'],
-            }
-          ]
+          model: RoomType,
+          as: 'room_type',
+          attributes: ['id', 'name'],
         },
       ],
       limit,

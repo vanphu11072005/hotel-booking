@@ -5,6 +5,10 @@ export interface RoomType {
   base_price?: number;
   capacity?: number;
   amenities: string[];
+  images?: string[];
+  featured?: boolean;
+  average_rating?: number | string | null;
+  total_reviews?: number | string | null;
 }
 
 export interface Room {
@@ -14,8 +18,6 @@ export interface Room {
   floor?: number;
   price?: number;
   status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
-  featured: boolean;
-  images: string[];
   created_at?: string;
   updated_at?: string;
   room_type?: RoomType;
@@ -70,5 +72,4 @@ export interface CreateRoomData {
   room_type_id: number;
   price?: number;
   status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
-  featured?: boolean;
 }

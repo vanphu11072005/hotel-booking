@@ -5,9 +5,10 @@ const fs = require('fs');
 // Ensure upload directories exist
 const avatarsDir = path.join(__dirname, '../../uploads/avatars');
 const roomsDir = path.join(__dirname, '../../uploads/rooms');
+const roomTypesDir = path.join(__dirname, '../../uploads/room_types');
 const bannersDir = path.join(__dirname, '../../uploads/banners');
 
-[avatarsDir, roomsDir, bannersDir].forEach(dir => {
+[avatarsDir, roomsDir, bannersDir, roomTypesDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -26,13 +27,16 @@ const avatarStorage = multer.diskStorage({
 });
 
 // Storage for room images
+// Previously room images were saved under uploads/rooms.
+// Images are now associated with room_types; upload storage
+// for room-type images will use `uploads/room_types`.
 const roomStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, roomsDir);
+    cb(null, roomTypesDir);
   },
   filename: function (req, file, cb) {
     const ext = path.extname(file.originalname) || '.jpg';
-    const name = `room_${Date.now()}_${Math.random().toString(36).substring(7)}${ext}`;
+    const name = `roomtype_${Date.now()}_${Math.random().toString(36).substring(7)}${ext}`;
     cb(null, name);
   }
 });

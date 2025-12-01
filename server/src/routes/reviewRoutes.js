@@ -24,6 +24,12 @@ router.post('/',
   reviewController.createReview
 );
 
+// Protected: Update a review (owner can edit within time window)
+router.patch('/:id',
+  authenticateToken,
+  reviewController.updateReview
+);
+
 // Public: Get reviews for a specific room
 router.get('/room/:roomId', 
   reviewController.getRoomReviews

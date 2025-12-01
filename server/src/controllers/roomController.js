@@ -12,9 +12,21 @@ const getRoomTypes = async (req, res, next) => {
   try {
     const roomTypes = await roomService.getRoomTypes();
 
+    // Normalize images to absolute URLs so client can render them directly.
+    const baseUrl = process.env.SERVER_URL || `http://${req.get('host')}`;
+    const normalized = roomTypes.map((rt) => {
+      const obj = rt.toJSON ? rt.toJSON() : { ...rt };
+      try {
+        obj.images = roomService.normalizeImages(obj.images, baseUrl);
+      } catch (e) {
+        obj.images = [];
+      }
+      return obj;
+    });
+
     res.status(200).json({
       status: 'success',
-      data: { room_types: roomTypes },
+      data: { room_types: normalized },
     });
   } catch (error) {
     next(error);

@@ -104,7 +104,24 @@ class RoomService {
    * Lấy tất cả room types
    */
   async getRoomTypes() {
-    return await roomRepository.findAllRoomTypes();
+    const roomTypes = await roomRepository.findAllRoomTypes();
+
+    // Attach review stats (average_rating, total_reviews) per room type
+    const enhanced = await Promise.all(
+      roomTypes.map(async (rt) => {
+        const stats = await roomRepository.getReviewStatsByRoomType(rt.id);
+        const obj = rt.toJSON ? rt.toJSON() : { ...rt };
+        obj.average_rating = stats?.average_rating
+          ? Math.round(parseFloat(stats.average_rating) * 10) / 10
+          : null;
+        obj.total_reviews = stats?.total_reviews
+          ? parseInt(stats.total_reviews, 10)
+          : 0;
+        return obj;
+      })
+    );
+
+    return enhanced;
   }
 
   /**
@@ -197,7 +214,10 @@ class RoomService {
     }
 
     // Get available rooms
-    const order = [['featured', 'DESC'], ['created_at', 'DESC']];
+    const order = [
+      [{ model: require('../databases/models').RoomType, as: 'room_type' }, 'featured', 'DESC'],
+      ['created_at', 'DESC'],
+    ];
     const { count, rows: availableRooms } = await roomRepository.findAllRooms(
       whereClause,
       roomTypeWhere,
@@ -230,7 +250,6 @@ class RoomService {
       room_number,
       floor,
       status,
-      featured,
       price,
     } = roomData;
 
@@ -255,7 +274,6 @@ class RoomService {
       room_number,
       floor,
       status: status || 'available',
-      featured: featured || false,
       price,
     });
 
@@ -318,17 +336,21 @@ class RoomService {
       throw error;
     }
 
-    // Get uploaded file URLs
-    const imageUrls = files.map(file => `/uploads/rooms/${file.filename}`);
-    
-    // Get existing images and parse them
-    const existingImages = this.parseImages(room.images);
-    
-    // Append new images
-    const updatedImages = [...existingImages, ...imageUrls];
+    // Save uploaded files as room-type images (images moved to room_types)
+    const imageUrls = files.map(file => `/uploads/room_types/${file.filename}`);
 
-    // Update room images
-    await roomRepository.updateRoom(room, { images: updatedImages });
+    // Load room type and its existing images
+    const roomType = await roomRepository.findRoomTypeById(room.room_type_id);
+    if (!roomType) {
+      const error = new Error('Room type not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const existing = this.parseImages(roomType.images);
+    const updatedImages = [...existing, ...imageUrls];
+
+    await roomRepository.updateRoomType(roomType, { images: updatedImages });
 
     return updatedImages;
   }
@@ -345,17 +367,21 @@ class RoomService {
       throw error;
     }
 
-    // Get existing images and parse them
-    const existingImages = this.parseImages(room.images);
-    
-    // Remove the specified image
+    const roomType = await roomRepository.findRoomTypeById(room.room_type_id);
+    if (!roomType) {
+      const error = new Error('Room type not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const existingImages = this.parseImages(roomType.images);
     const updatedImages = existingImages.filter(img => img !== imageUrl);
 
     // Delete file from disk
     this.deleteImageFile(imageUrl);
 
-    // Update room images
-    await roomRepository.updateRoom(room, { images: updatedImages });
+    // Update room_type images
+    await roomRepository.updateRoomType(roomType, { images: updatedImages });
 
     return updatedImages;
   }
@@ -378,10 +404,7 @@ class RoomService {
             : 0,
         };
 
-        // Clean up room_type images
-        if (item.room_type) {
-          delete item.room_type.images;
-        }
+        // Keep room_type.images; front-end expects images on room_type now.
 
         return item;
       })
@@ -418,9 +441,28 @@ class RoomService {
   formatRoomImages(room, baseUrl) {
     const formatted = { ...room };
     try {
-      formatted.images = this.normalizeImages(formatted.images, baseUrl);
+      // normalize images and keep them on room_type only (do not add top-level `images`)
+      const imgs = (formatted.room_type && formatted.room_type.images) || formatted.images;
+      const normalized = this.normalizeImages(imgs, baseUrl);
+      if (formatted.room_type) {
+        // ensure room_type is a plain object we can mutate
+        const rt = formatted.room_type.toJSON ? formatted.room_type.toJSON() : { ...formatted.room_type };
+        rt.images = normalized;
+        formatted.room_type = rt;
+      }
+      // remove any accidental top-level images to respect types
+      if (Object.prototype.hasOwnProperty.call(formatted, 'images')) {
+        delete formatted.images;
+      }
     } catch (e) {
-      formatted.images = [];
+      if (formatted.room_type) {
+        const rt = formatted.room_type.toJSON ? formatted.room_type.toJSON() : { ...formatted.room_type };
+        rt.images = [];
+        formatted.room_type = rt;
+      }
+      if (Object.prototype.hasOwnProperty.call(formatted, 'images')) {
+        delete formatted.images;
+      }
     }
     return formatted;
   }
@@ -455,7 +497,7 @@ class RoomService {
   deleteImageFile(imageUrl) {
     try {
       const filename = path.basename(imageUrl);
-      const filePath = path.join(__dirname, '../../uploads/rooms', filename);
+      const filePath = path.join(__dirname, '../../uploads/room_types', filename);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }

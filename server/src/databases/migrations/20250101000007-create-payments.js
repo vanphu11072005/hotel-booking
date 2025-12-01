@@ -56,6 +56,26 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true
       },
+      payment_type: {
+        type: Sequelize.ENUM('full', 'deposit', 'remaining'),
+        allowNull: false,
+        defaultValue: 'full'
+      },
+      deposit_percentage: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        defaultValue: null
+      },
+      related_payment_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'payments',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+      },
       created_at: {
         allowNull: false,
         type: Sequelize.DATE,

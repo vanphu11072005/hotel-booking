@@ -46,7 +46,7 @@ class ReviewService {
    * Create a new review
    */
   async createReview(userId, reviewData) {
-    const { room_id, rating, comment, booking_id } = reviewData;
+    const { rating, comment, booking_id } = reviewData;
 
     // Validate review data
     this.validateReviewData(rating, comment);
@@ -82,10 +82,16 @@ class ReviewService {
       throw { statusCode: 400, message: 'This booking already has a review' };
     }
 
-    // Create review: keep status 'pending' so admin can approve
+    // Derive room_type_id from the booked room
+    const roomRepo = require('../repositories/roomRepository');
+    const room = await roomRepo.findRoomById(booking.room_id);
+    if (!room) {
+      throw { statusCode: 404, message: 'Booked room not found' };
+    }
+
     const review = await reviewRepository.createReview({
       user_id: userId,
-      room_id,
+      room_type_id: room.room_type_id,
       booking_id,
       rating,
       comment,
@@ -133,6 +139,44 @@ class ReviewService {
     });
 
     return updatedReview;
+  }
+
+  /**
+   * Update review by owner within time window
+   */
+  async updateReview(userId, reviewId, updateData) {
+    const review = await reviewRepository.findReviewById(reviewId);
+
+    if (!review) {
+      throw { statusCode: 404, message: 'Review not found' };
+    }
+
+    // Only owner can update
+    if (review.user_id !== userId) {
+      throw { statusCode: 403, message: 'You can only edit your own review' };
+    }
+
+    // Time window check (in hours)
+    const windowHours = parseInt(process.env.REVIEW_EDIT_WINDOW_HOURS || '48', 10);
+    const createdAt = new Date(review.created_at || review.createdAt);
+    const now = new Date();
+    const hoursDiff = Math.abs(now - createdAt) / (1000 * 60 * 60);
+
+    if (hoursDiff > windowHours) {
+      throw { statusCode: 403, message: `Editing period expired (allowed ${windowHours} hours)` };
+    }
+
+    // Apply changes and set status back to pending for re-approval
+    const allowed = {};
+    if (updateData.rating !== undefined) allowed.rating = updateData.rating;
+    if (updateData.comment !== undefined) allowed.comment = updateData.comment;
+
+    // Force status to pending so admin can re-approve
+    allowed.status = 'pending';
+
+    const updated = await reviewRepository.updateReview(review, allowed);
+
+    return updated;
   }
 
   /**

@@ -34,6 +34,7 @@ module.exports = {
           'available',
           'occupied',
           'maintenance',
+          'dirty',
           'cleaning'
         ),
         allowNull: false,
@@ -42,10 +43,6 @@ module.exports = {
       price: {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false
-      },
-      images: {
-        type: Sequelize.JSON,
-        allowNull: true
       },
       description: {
         type: Sequelize.TEXT,

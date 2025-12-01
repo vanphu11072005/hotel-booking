@@ -51,6 +51,37 @@ const createReview = async (req, res, next) => {
 };
 
 /**
+ * Update review (Owner only, within allowed time window)
+ */
+const updateReview = async (req, res, next) => {
+  try {
+    const reviewId = req.params.id;
+    const userId = req.user.id;
+    const updateData = req.body;
+
+    const updated = await reviewService.updateReview(
+      userId,
+      reviewId,
+      updateData
+    );
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Review updated successfully and is pending approval',
+      data: { review: updated },
+    });
+  } catch (error) {
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        status: 'error',
+        message: error.message,
+      });
+    }
+    next(error);
+  }
+};
+
+/**
  * Approve review (Admin only)
  */
 const approveReview = async (req, res, next) => {
@@ -121,4 +152,5 @@ module.exports = {
   approveReview,
   rejectReview,
   getAllReviews,
+  updateReview,
 };

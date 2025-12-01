@@ -50,7 +50,6 @@ const RoomManagementPage: React.FC = () => {
     room_type_id: 1,
     price: 0,
     status: 'available' as 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning',
-    featured: false,
   });
   
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -103,7 +102,7 @@ const RoomManagementPage: React.FC = () => {
       console.log('=== ROOM DEBUG ===');
       console.log('First room:', response.data.rooms[0]);
       console.log('Room type:', response.data.rooms[0]?.room_type);
-      console.log('Images (room-level):', response.data.rooms[0]?.images);
+      console.log('Images (room-type):', response.data.rooms[0]?.room_type?.images);
       console.log('==================');
       setRooms(response.data.rooms);
       if (response.data.pagination) {
@@ -173,7 +172,6 @@ const RoomManagementPage: React.FC = () => {
       room_type_id: room.room_type_id ?? 1,
       price: room.price ?? 0,
       status: normalizedStatus,
-      featured: !!room.featured,
     });
     setShowModal(true);
   };
@@ -198,7 +196,6 @@ const RoomManagementPage: React.FC = () => {
       room_type_id: 1,
       price: 0,
       status: 'available',
-      featured: false,
     });
     setSelectedFiles([]);
     setPreviewUrls([]);
@@ -232,13 +229,13 @@ const RoomManagementPage: React.FC = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      // Nếu backend trả về images, cập nhật lại editingRoom.images
+      // Nếu backend trả về images, cập nhật lại editingRoom.room_type.images
       if (uploadRes.data?.data?.images) {
-        // Chuyển tất cả images về đường dẫn tương đối
+        // Chuyển tất cả images về đường dẫn tương đối (will refresh later)
         const fixedImages = uploadRes.data.data.images.map((img: string) =>
           img.startsWith('http') ? img.replace('http://localhost:3000', '') : img
         );
-        setEditingRoom(prev => prev ? { ...prev, images: fixedImages } : prev);
+        console.log('Uploaded images (relative):', fixedImages);
       }
 
       toast.success('Upload ảnh thành công');
@@ -395,14 +392,17 @@ const RoomManagementPage: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
                     {(() => {
-                      const images = parseImages(room.images);
+                      const images = parseImages(room.room_type?.images);
                       return images.length > 0 ? (
                         <div className="relative group">
                             <img
                               src={
-                                images[0].startsWith('http')
-                                  ? images[0]
-                                  : `http://localhost:3000${images[0].startsWith('/') ? images[0] : '/' + images[0]}`
+                                ((): string => {
+                                  const img0 = images[0];
+                                  if (img0.startsWith('http')) return img0;
+                                  if (img0.startsWith('/')) return `http://localhost:3000${img0}`;
+                                  return `http://localhost:3000/uploads/room_types/${img0}`;
+                                })()
                               }
                               alt={room.room_number}
                               className="w-16 h-16 object-cover rounded-lg"
@@ -440,7 +440,7 @@ const RoomManagementPage: React.FC = () => {
                   {getStatusBadge(room.status)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {room.featured ? (
+                  {room.room_type?.featured ? (
                     <span className="text-yellow-500">⭐</span>
                   ) : (
                     <span className="text-gray-400">-</span>
@@ -562,18 +562,7 @@ const RoomManagementPage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="featured"
-                  checked={formData.featured}
-                  onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label htmlFor="featured" className="ml-2 text-sm text-gray-700">
-                  Phòng nổi bật
-                </label>
-              </div>
+              {/* Featured flag is managed on room types now; removed from room form */}
 
               {/* Thêm mục upload ảnh khi thêm phòng */}
               {!editingRoom && (
@@ -641,7 +630,7 @@ const RoomManagementPage: React.FC = () => {
                 
                 {/* Current Images */}
                 {(() => {
-                  const images = parseImages(editingRoom.images);
+                  const images = parseImages(editingRoom.room_type?.images);
                   return images.length > 0 ? (
                     <div className="mb-4">
                       <p className="text-sm text-gray-600 mb-2">Ảnh hiện tại:</p>
@@ -663,8 +652,8 @@ const RoomManagementPage: React.FC = () => {
                             // Đường dẫn tương đối khác
                             src = `${SERVER_URL}${img}`;
                           } else {
-                            // Chỉ tên file
-                            src = `${SERVER_URL}/uploads/rooms/${img}`;
+                            // Chỉ tên file - room type images stored under room_types
+                            src = `${SERVER_URL}/uploads/room_types/${img}`;
                           }
                           
                           return (

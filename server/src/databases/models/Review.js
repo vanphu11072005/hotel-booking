@@ -9,9 +9,9 @@ module.exports = (sequelize, DataTypes) => {
         as: 'user'
       });
 
-      Review.belongsTo(models.Room, {
-        foreignKey: 'room_id',
-        as: 'room'
+      Review.belongsTo(models.RoomType, {
+        foreignKey: 'room_type_id',
+        as: 'room_type'
       });
        Review.belongsTo(models.Booking, {
          foreignKey: 'booking_id',
@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         allowNull: false
       },
-      room_id: {
+      room_type_id: {
         type: DataTypes.INTEGER,
         allowNull: false
       },

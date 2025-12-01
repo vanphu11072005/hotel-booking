@@ -13,7 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import { 
-  RoomCard, 
+  RoomTypeCard, 
   RoomCardSkeleton,
   Pagination,
 } from '../../components/rooms';
@@ -274,7 +274,7 @@ const SearchResultsPage: React.FC = () => {
                     gap-6"
                 >
                   {rooms.map((room) => (
-                    <RoomCard key={room.id} room={room} />
+                    <RoomTypeCard key={room.id} room={room} />
                   ))}
                 </div>
 

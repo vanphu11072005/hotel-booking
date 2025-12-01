@@ -30,11 +30,9 @@ module.exports = (sequelize, DataTypes) => {
         as: 'multi_bookings'
       });
       
-      // Room has many Reviews
-      Room.hasMany(models.Review, {
-        foreignKey: 'room_id',
-        as: 'reviews'
-      });
+      // Reviews now belong to RoomType (room_type_id). Do not
+      // associate Room -> Review by `room_id` to avoid queries
+      // referencing a removed column.
 
       // Room has many Favorites
       Room.hasMany(models.Favorite, {
@@ -88,15 +86,6 @@ module.exports = (sequelize, DataTypes) => {
         validate: {
           min: 0
         }
-      },
-      featured: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-      },
-      images: {
-        type: DataTypes.JSON,
-        allowNull: true
       },
       // `amenities` moved to `room_types` table; keep room model lean.
       description: {

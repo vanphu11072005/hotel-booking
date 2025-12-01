@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, AlertCircle, ArrowLeft } from 'lucide-react';
-import { RoomCard, RoomCardSkeleton } from 
+import { RoomTypeCard, RoomCardSkeleton } from 
   '../../components/rooms';
 import Pagination from '../../components/rooms/Pagination';
 import useFavoritesStore from 
@@ -192,7 +192,7 @@ const FavoritesPage: React.FC = () => {
                 .slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
                 .map((favorite) =>
                   favorite.room ? (
-                    <RoomCard key={favorite.id} room={favorite.room} />
+                    <RoomTypeCard key={favorite.id} room={favorite.room} />
                   ) : null
                 )}
             </div>

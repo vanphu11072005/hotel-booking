@@ -22,9 +22,19 @@ module.exports = {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false
       },
+      unit: {
+        type: Sequelize.STRING(50),
+        allowNull: true,
+        defaultValue: 'lần'
+      },
       category: {
         type: Sequelize.STRING(50),
         allowNull: true
+      },
+      status: {
+        type: Sequelize.ENUM('active', 'inactive'),
+        allowNull: false,
+        defaultValue: 'active'
       },
       is_active: {
         type: Sequelize.BOOLEAN,
