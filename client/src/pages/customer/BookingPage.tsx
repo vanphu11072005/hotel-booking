@@ -1365,14 +1365,27 @@ const BookingPage: React.FC = () => {
 
               {/* Room Info */}
               <div className="mb-4">
-                {room?.images?.[0] && (
-                  <img
-                    src={room.images[0]}
-                    alt={roomType.name}
-                    className="w-full h-48 object-cover 
-                      rounded-lg mb-3"
-                  />
-                )}
+                {(() => {
+                  const firstImage = room?.room_type?.images && room.room_type.images.length > 0
+                    ? room.room_type.images[0]
+                    : undefined;
+                  if (!firstImage) return null;
+                  const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+                    .replace(/\/api\/?$/i, '')
+                    .replace(/\/$/, '');
+                  let src = '';
+                  if (firstImage.startsWith('http')) src = firstImage;
+                  else if (firstImage.startsWith('/uploads')) src = `${SERVER_URL}${firstImage}`;
+                  else if (firstImage.startsWith('/')) src = firstImage;
+                  else src = `${SERVER_URL}/uploads/room_types/${firstImage}`;
+                  return (
+                    <img
+                      src={src}
+                      alt={roomType.name}
+                      className="w-full h-48 object-cover rounded-lg mb-3"
+                    />
+                  );
+                })()}
                 <h3 className="font-bold text-gray-900">
                   {roomType.name}
                 </h3>
@@ -1766,136 +1779,82 @@ const BookingPage: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 
                     lg:grid-cols-3 gap-6"
                   >
-                    {availableRoomTypes
-                      .filter(roomOption => 
-                        !selectedRoomTypes.some(
-                          rt => rt.room.id === roomOption.id
-                        )
-                      )
-                      .map(roomOption => {
-                        const roomType = 
-                          roomOption.room_type || 
-                          { name: 'N/A', base_price: 0 };
-                        const imageUrl = 
-                          roomOption.images?.[0] || 
-                          '/placeholder-room.jpg';
-                        
-                        return (
-                          <div
-                            key={roomOption.id}
-                            className="bg-white rounded-xl 
-                              border-2 border-gray-200 
-                              hover:border-indigo-500 
-                              transition-all hover:shadow-xl 
-                              cursor-pointer group"
-                            onClick={() => handleAddRoomType(roomOption)}
-                          >
-                            {/* Room Image */}
-                            <div className="relative h-48 
-                              overflow-hidden rounded-t-xl"
+                    {
+                      (() => {
+                        // Group available rooms by room_type id and
+                        // render one representative per type.
+                        const map = new Map();
+                        for (const ro of availableRoomTypes) {
+                          const typeId = ro.room_type?.id ?? ro.id;
+                          if (!map.has(typeId)) map.set(typeId, ro);
+                        }
+
+                        const unique = Array.from(map.values()).filter(rt =>
+                          !selectedRoomTypes.some(
+                            sel => sel.room.room_type?.id === rt.room_type?.id
+                          )
+                        );
+
+                        return unique.map((roomOption) => {
+                          const roomType = roomOption.room_type || { name: 'N/A', base_price: 0 };
+                          const firstImage = roomType.images && roomType.images.length > 0
+                            ? roomType.images[0]
+                            : undefined;
+                          const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+                            .replace(/\/api\/?$/i, '')
+                            .replace(/\/$/, '');
+                          const imageUrl = (() => {
+                            if (!firstImage) return '/placeholder-room.jpg';
+                            if (firstImage.startsWith('http')) return firstImage;
+                            if (firstImage.startsWith('/uploads')) return `${SERVER_URL}${firstImage}`;
+                            if (firstImage.startsWith('/')) return firstImage;
+                            return `${SERVER_URL}/uploads/room_types/${firstImage}`;
+                          })();
+
+                          return (
+                            <div
+                              key={roomOption.id}
+                              className="bg-white rounded-xl border-2 border-gray-200 hover:border-indigo-500 transition-all hover:shadow-xl cursor-pointer group"
+                              onClick={() => handleAddRoomType(roomOption)}
                             >
-                              <img
-                                src={imageUrl}
-                                alt={roomType.name}
-                                className="w-full h-full 
-                                  object-cover 
-                                  group-hover:scale-110 
-                                  transition-transform 
-                                  duration-300"
-                              />
-                              <div className="absolute inset-0 
-                                bg-gradient-to-t 
-                                from-black/60 to-transparent"
-                              />
-                              <div className="absolute bottom-3 
-                                left-3 right-3"
-                              >
-                                <h4 className="text-white 
-                                  font-bold text-lg"
+                              <div className="relative h-48 overflow-hidden rounded-t-xl">
+                                <img
+                                  src={imageUrl}
+                                  alt={roomType.name}
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                <div className="absolute bottom-3 left-3 right-3">
+                                  <h4 className="text-white font-bold text-lg">{roomType.name}</h4>
+                                  <p className="text-white/90 text-sm">Loại phòng</p>
+                                </div>
+                              </div>
+
+                              <div className="p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-gray-600">Giá/đêm</span>
+                                  <span className="text-lg font-bold text-indigo-600">{formatPrice(Number(roomType.base_price ?? 0))}</span>
+                                </div>
+
+                                {roomType.capacity && (
+                                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                                    <Users className="w-4 h-4" />
+                                    <span> Tối đa {roomType.capacity} người</span>
+                                  </div>
+                                )}
+
+                                <button
+                                  type="button"
+                                  className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg shadow-indigo-500/30"
                                 >
-                                  {roomType.name}
-                                </h4>
-                                <p className="text-white/90 
-                                  text-sm"
-                                >
-                                  Phòng {roomOption.room_number}
-                                </p>
+                                  Chọn loại này
+                                </button>
                               </div>
                             </div>
-
-                            {/* Room Details */}
-                            <div className="p-4 space-y-3">
-                                <div className="flex items-center \
-                                  justify-between"
-                                >
-                                  <span className="text-sm \
-                                    text-gray-600"
-                                  >
-                                    Giá/đêm
-                                  </span>
-                                  {/**
-                                   * `roomType.base_price` may be undefined depending
-                                   * on the shared type. Coerce to a number to satisfy
-                                   * `formatPrice` which expects a `number`.
-                                   */}
-                                  <span className="text-lg \
-                                    font-bold text-indigo-600"
-                                  >
-                                    {formatPrice(Number(roomType.base_price ?? 0))}
-                                  </span>
-                                </div>
-
-                              {roomOption.room_type?.capacity && (
-                                <div className="flex items-center 
-                                  gap-2 text-sm text-gray-600"
-                                >
-                                  <Users className="w-4 h-4" />
-                                  <span>
-                                    Tối đa {roomOption.room_type.capacity} người
-                                  </span>
-                                </div>
-                              )}
-
-                              {roomOption.status && (
-                                <div className="flex items-center 
-                                  gap-2"
-                                >
-                                  <div className={`w-2 h-2 
-                                    rounded-full 
-                                    ${roomOption.status === 'available' 
-                                      ? 'bg-green-500' 
-                                      : 'bg-gray-400'
-                                    }`}
-                                  />
-                                  <span className="text-xs 
-                                    text-gray-600"
-                                  >
-                                    {roomOption.status === 'available' 
-                                      ? 'Còn trống' 
-                                      : 'Đang bận'
-                                    }
-                                  </span>
-                                </div>
-                              )}
-
-                              <button
-                                type="button"
-                                className="w-full py-2.5 
-                                  bg-gradient-to-r 
-                                  from-indigo-600 to-purple-600 
-                                  text-white rounded-lg 
-                                  hover:from-indigo-700 
-                                  hover:to-purple-700 
-                                  transition-all font-semibold 
-                                  shadow-lg 
-                                  shadow-indigo-500/30"
-                              >
-                                Chọn phòng này
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        });
+                      })()
+                    }
                   </div>
                 )}
 

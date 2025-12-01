@@ -48,9 +48,38 @@ module.exports = {
         allowNull: false,
         defaultValue: 1
       },
+      guest_info: {
+        type: Sequelize.JSON,
+        allowNull: true
+      },
       total_price: {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false
+      },
+      deposit_amount: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true,
+        defaultValue: 0
+      },
+      payment_method: {
+        type: Sequelize.ENUM('cash', 'bank_transfer', 'vnpay'),
+        allowNull: true,
+        defaultValue: 'cash'
+      },
+      parent_booking_id: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'bookings',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
+      },
+      room_quantity: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 1
       },
       status: {
         type: Sequelize.ENUM(
@@ -63,8 +92,30 @@ module.exports = {
         allowNull: false,
         defaultValue: 'pending'
       },
+      deposit_paid: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+      },
+      requires_deposit: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+      },
       special_requests: {
         type: Sequelize.TEXT,
+        allowNull: true
+      },
+      cancellation_reason: {
+        type: Sequelize.STRING(100),
+        allowNull: true
+      },
+      cancellation_details: {
+        type: Sequelize.TEXT,
+        allowNull: true
+      },
+      cancelled_at: {
+        type: Sequelize.DATE,
         allowNull: true
       },
       created_at: {

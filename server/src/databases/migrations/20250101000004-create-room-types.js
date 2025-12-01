@@ -31,6 +31,16 @@ module.exports = {
         type: Sequelize.JSON,
         allowNull: true
       },
+      images: {
+        type: Sequelize.JSON,
+        allowNull: true,
+        defaultValue: []
+      },
+      featured: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+      },
       created_at: {
         allowNull: false,
         type: Sequelize.DATE,
@@ -44,6 +54,7 @@ module.exports = {
         )
       }
     });
+    await queryInterface.addIndex('room_types', ['featured']);
   },
 
   async down(queryInterface, Sequelize) {

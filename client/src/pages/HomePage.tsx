@@ -7,14 +7,14 @@ import {
 import {
   BannerCarousel,
   BannerSkeleton,
-  RoomCard,
+  RoomTypeCard,
   RoomCardSkeleton,
   SearchRoomForm,
 } from '../components/rooms';
-import { 
-  bannerService, 
+import {
+  bannerService,
   roomService,
-  serviceService 
+  serviceService
 } from '../services/api';
 import type { Banner } from '../types/banner';
 import type { Room } from '../types/rooms';
@@ -22,8 +22,8 @@ import type { Service } from '../types/service';
 
 const HomePage: React.FC = () => {
   const [banners, setBanners] = useState<Banner[]>([]);
-  const [featuredRooms, setFeaturedRooms] = useState<Room[]>([]);
-  const [newestRooms, setNewestRooms] = useState<Room[]>([]);
+  const [featuredRoomTypes, setFeaturedRoomTypes] = useState<any[]>([]);
+  const [newestRoomTypes, setNewestRoomTypes] = useState<any[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [isLoadingBanners, setIsLoadingBanners] = 
     useState(true);
@@ -56,62 +56,48 @@ const HomePage: React.FC = () => {
     fetchBanners();
   }, []);
 
-  // Fetch featured rooms
+  // Fetch featured room types
   useEffect(() => {
-    const fetchFeaturedRooms = async () => {
+    const fetchFeaturedRoomTypes = async () => {
       try {
         setIsLoadingRooms(true);
         setError(null);
-        const response = await roomService.getFeaturedRooms({
-          featured: true,
-          limit: 6,
-        });
-
-        if (
-          response.success || 
-          response.status === 'success'
-        ) {
-          setFeaturedRooms(response.data.rooms || []);
+        const response = await roomService.getRoomTypes();
+        if (response?.data?.room_types) {
+          const types = response.data.room_types.filter((t: any) => !!t.featured);
+          setFeaturedRoomTypes(types.slice(0, 6));
         }
       } catch (err: any) {
-        console.error('Error fetching rooms:', err);
-        setError(
-          err.response?.data?.message ||
-            'Không thể tải danh sách phòng'
-        );
+        console.error('Error fetching room types:', err);
+        setError(err.response?.data?.message || 'Không thể tải danh sách phòng');
       } finally {
         setIsLoadingRooms(false);
       }
     };
 
-    fetchFeaturedRooms();
+    fetchFeaturedRoomTypes();
   }, []);
 
-  // Fetch newest rooms
+  // Fetch newest room types
   useEffect(() => {
-    const fetchNewestRooms = async () => {
+    const fetchNewestRoomTypes = async () => {
       try {
         setIsLoadingNewest(true);
-        const response = await roomService.getRooms({
-          page: 1,
-          limit: 6,
-          sort: 'newest',
-        });
-
-        if (
-          response.success || 
-          response.status === 'success'
-        ) {
-          setNewestRooms(response.data.rooms || []);
+        const response = await roomService.getRoomTypes();
+        if (response?.data?.room_types) {
+          const sorted = [...response.data.room_types].sort((a: any, b: any) => {
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          });
+          setNewestRoomTypes(sorted.slice(0, 6));
         }
       } catch (err: any) {
-        console.error('Error fetching newest rooms:', err);
+        console.error('Error fetching newest room types:', err);
       } finally {
         setIsLoadingNewest(false);
       }
     };
 
-    fetchNewestRooms();
+    fetchNewestRoomTypes();
   }, []);
 
   // Fetch services
@@ -179,7 +165,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Featured Rooms Section */}
+      {/* Featured Room Types Section */}
       <section className="container mx-auto px-4 py-12">
         {/* Section Header with Gradient */}
         <div className="flex items-center justify-between mb-8">
@@ -214,14 +200,14 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* Loading State */}
-        {isLoadingRooms && (
+            {isLoadingRooms && (
           <div 
             className="grid grid-cols-1 md:grid-cols-2 
               lg:grid-cols-3 gap-6"
           >
-            {[...Array(6)].map((_, index) => (
-              <RoomCardSkeleton key={index} />
-            ))}
+                {[...Array(6)].map((_, index) => (
+                  <RoomCardSkeleton key={index} />
+                ))}
           </div>
         )}
 
@@ -250,30 +236,22 @@ const HomePage: React.FC = () => {
         )}
 
         {/* Rooms Grid */}
-        {!isLoadingRooms && !error && (
+            {!isLoadingRooms && !error && (
           <>
-            {featuredRooms.length > 0 ? (
-              <div 
-                className="grid grid-cols-1 md:grid-cols-2 
-                  lg:grid-cols-3 gap-6"
-              >
-                {featuredRooms.map((room) => (
-                  <RoomCard key={room.id} room={room} />
-                ))}
-              </div>
-            ) : (
-              <div 
-                className="bg-gray-100 rounded-lg 
-                  p-12 text-center"
-              >
-                <p className="text-gray-600 text-lg">
-                  Hiện chưa có phòng nổi bật
-                </p>
-              </div>
-            )}
+              {featuredRoomTypes.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {featuredRoomTypes.map((rt: any) => (
+                    <RoomTypeCard key={rt.id} roomType={rt} />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-gray-100 rounded-lg p-12 text-center">
+                  <p className="text-gray-600 text-lg">Hiện chưa có phòng nổi bật</p>
+                </div>
+              )}
 
             {/* View All Button (Mobile) */}
-            {featuredRooms.length > 0 && (
+            {featuredRoomTypes.length > 0 && (
               <div className="mt-8 text-center md:hidden">
                 <Link
                   to="/rooms"
@@ -344,13 +322,13 @@ const HomePage: React.FC = () => {
         {/* Rooms Grid */}
         {!isLoadingNewest && (
           <>
-            {newestRooms.length > 0 ? (
+            {newestRoomTypes.length > 0 ? (
               <div 
                 className="grid grid-cols-1 md:grid-cols-2 
                   lg:grid-cols-3 gap-6"
               >
-                {newestRooms.map((room) => (
-                  <RoomCard key={room.id} room={room} />
+                {newestRoomTypes.map((room) => (
+                  <RoomTypeCard key={room.id} roomType={room} />
                 ))}
               </div>
             ) : (
@@ -365,7 +343,7 @@ const HomePage: React.FC = () => {
             )}
 
             {/* View All Button (Mobile) */}
-            {newestRooms.length > 0 && (
+            {newestRoomTypes.length > 0 && (
               <div className="mt-8 text-center md:hidden">
                 <Link
                   to="/rooms"

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -14,7 +14,12 @@ const VNPayReturnPage: React.FC = () => {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentType, setPaymentType] = useState<'full' | 'deposit' | 'remaining' | null>(null);
 
+  // Guard to ensure verification runs only once (prevents double toasts
+  // in React Strict Mode which mounts/unmounts components twice in dev).
+  const didVerifyRef = useRef(false);
   useEffect(() => {
+    if (didVerifyRef.current) return;
+    didVerifyRef.current = true;
     verifyPayment();
   }, []);
 

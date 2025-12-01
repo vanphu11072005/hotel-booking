@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { getRooms } from '../../services/api/roomService';
-import type { Room } from '../../types/rooms';
+import { getRooms, getRoomTypes } from '../../services/api/roomService';
+import type { Room, RoomType } from '../../types/rooms';
 import RoomFilter from '../../components/rooms/RoomFilter';
-import RoomCard from '../../components/rooms/RoomCard';
+import RoomTypeCard from '../../components/rooms/RoomTypeCard';
 import RoomCardSkeleton from '../../components/rooms/RoomCardSkeleton';
 import Pagination from '../../components/rooms/Pagination';
 import { ArrowLeft } from 'lucide-react';
 
 const RoomListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  const [representativeRooms, setRepresentativeRooms] = useState<Record<number, Room | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({
@@ -44,16 +45,45 @@ const RoomListPage: React.FC = () => {
           limit: 12,
         };
 
-        const response = await getRooms(params);
+          const response = await getRoomTypes();
+          if (response?.data?.room_types) {
+            // simple client-side filtering
+            let types = response.data.room_types as RoomType[];
+            // capacity filter
+            if (params.capacity) {
+              types = types.filter((t) => (t.capacity || 0) >= params.capacity!);
+            }
+            // price filter
+            if (params.minPrice) types = types.filter((t) => Number(t.base_price || 0) >= params.minPrice!);
+            if (params.maxPrice) types = types.filter((t) => Number(t.base_price || 0) <= params.maxPrice!);
 
-        if (response.status === 'success' && response.data) {
-          setRooms(response.data.rooms || []);
-          if (response.data.pagination) {
-            setPagination(response.data.pagination);
+            const sliced = types.slice(0, params.limit || 12);
+            setRoomTypes(sliced);
+            setPagination({ ...pagination, total: types.length, totalPages: Math.ceil(types.length / (params.limit || 12)) });
+
+            // Fetch one representative room per displayed room type so
+            // the card can link to `/rooms/:id` (fast, small requests)
+            try {
+              const samples = await Promise.all(sliced.map(async (t) => {
+                try {
+                  const res = await getRooms({ type: String(t.id), limit: 1 });
+                  const room = res?.data?.rooms?.[0] ?? null;
+                  return { typeId: t.id, room };
+                } catch (e) {
+                  return { typeId: t.id, room: null };
+                }
+              }));
+
+              const map: Record<number, Room | null> = {};
+              samples.forEach((s) => { map[s.typeId] = s.room; });
+              setRepresentativeRooms(map);
+            } catch (e) {
+              // ignore sample fetch failures, fallback to existing behavior
+              console.warn('Failed to fetch representative rooms', e);
+            }
+          } else {
+            throw new Error('Failed to fetch room types');
           }
-        } else {
-          throw new Error('Failed to fetch rooms');
-        }
       } catch (err) {
         console.error('Error fetching rooms:', err);
         setError('Không thể tải danh sách phòng. Vui lòng thử lại.');
@@ -86,7 +116,7 @@ const RoomListPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <aside className="lg:col-span-1">
+          <aside className="lg:col-span-1 z-50">
             <div className="lg:sticky lg:top-16 lg:self-start">
               <RoomFilter />
             </div>
@@ -133,7 +163,7 @@ const RoomListPage: React.FC = () => {
               </div>
             )}
 
-            {!loading && !error && rooms.length === 0 && (
+            {!loading && !error && roomTypes.length === 0 && (
               <div className="bg-white rounded-lg shadow-md 
                 p-12 text-center"
               >
@@ -170,13 +200,17 @@ const RoomListPage: React.FC = () => {
               </div>
             )}
 
-            {!loading && !error && rooms.length > 0 && (
+            {!loading && !error && roomTypes.length > 0 && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 
                   xl:grid-cols-2 gap-6"
                 >
-                  {rooms.map((room) => (
-                    <RoomCard key={room.id} room={room} />
+                  {roomTypes.map((rt) => (
+                    <RoomTypeCard
+                      key={rt.id}
+                      roomType={rt}
+                      room={representativeRooms[rt.id] ?? undefined}
+                    />
                   ))}
                 </div>
 

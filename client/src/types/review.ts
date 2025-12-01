@@ -1,7 +1,7 @@
 export interface Review {
   id: number;
   user_id: number;
-  room_id: number;
+  room_type_id?: number;
   rating: number;
   comment: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -18,6 +18,6 @@ export interface ReviewListResponse {
   message?: string;
 }
 
-export interface CreateReviewData { room_id: number; rating: number; comment: string; booking_id?: string | number }
+export interface CreateReviewData { room_id?: number; room_type_id?: number; rating: number; comment: string; booking_id?: string | number }
 
 export default Review;

@@ -1,4 +1,3 @@
-export { default as RoomCard } from './RoomCard';
 export { default as RoomCardSkeleton } from './RoomCardSkeleton';
 export { default as BannerCarousel } from './BannerCarousel';
 export { default as BannerSkeleton } from './BannerSkeleton';
@@ -10,3 +9,4 @@ export { default as RatingStars } from './RatingStars';
 export { default as ReviewSection } from './ReviewSection';
 export { default as SearchRoomForm } from './SearchRoomForm';
 export { default as FavoriteButton } from './FavoriteButton';
+export { default as RoomTypeCard } from './RoomTypeCard';

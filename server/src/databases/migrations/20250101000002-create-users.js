@@ -50,6 +50,24 @@ module.exports = {
         allowNull: false,
         defaultValue: true
       },
+      lock_count: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+      },
+      login_attempts: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+      },
+      locked_until: {
+        type: Sequelize.DATE,
+        allowNull: true
+      },
+      last_failed_login: {
+        type: Sequelize.DATE,
+        allowNull: true
+      },
       created_at: {
         allowNull: false,
         type: Sequelize.DATE,

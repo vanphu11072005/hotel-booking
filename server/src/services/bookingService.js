@@ -129,46 +129,53 @@ class BookingService {
     // Start transaction early and perform allocation inside it using
     // row-level locks to avoid race conditions.
     const transaction = await bookingRepository.beginTransaction();
-    let allocatedRoomId = room_id;
+    // Will hold allocated room ids (one per room to be booked)
+    let allocatedRoomIds = [];
 
     try {
-      // Allocate (inside transaction) — lock candidate room rows
+      // Allocate required number of distinct physical rooms inside
+      // the transaction to avoid assigning the same room multiple times.
+      const allocateQty = parseInt(room_quantity, 10) || 1;
       const available = await roomService.getAvailableRoomsForType(
         room_id,
         check_in_date,
         check_out_date,
-        1,
+        allocateQty,
         { transaction }
       );
-      if (Array.isArray(available) && available.length > 0) {
-        allocatedRoomId = available[0].id;
-        console.log('🔒 Allocated physical room inside tx:', allocatedRoomId);
+
+      if (Array.isArray(available) && available.length >= allocateQty) {
+        allocatedRoomIds = available.map((r) => r.id);
+        console.log('🔒 Allocated physical rooms inside tx:', allocatedRoomIds);
       } else {
         throw {
           statusCode: 409,
-          message: 'Room already booked for the selected dates',
+          message: 'Not enough rooms available for the selected dates',
         };
       }
 
-      // Check if room exists (use repository, can accept transaction if needed)
-      const room = await bookingRepository.findRoomById(allocatedRoomId);
+      // Check rooms exist (use repository, can accept transaction if needed)
+      const room = await bookingRepository.findRoomById(allocatedRoomIds[0]);
       if (!room) {
         throw { statusCode: 404, message: 'Room not found' };
       }
       // Check for overlapping bookings for the specific room within
       // the same transaction to be safe.
-      let overlapping = await bookingRepository.findOverlappingBooking(
-        allocatedRoomId,
-        check_in_date,
-        check_out_date,
-        transaction
-      );
+      // Check overlapping bookings for each allocated room
+      for (const rid of allocatedRoomIds) {
+        let overlapping = await bookingRepository.findOverlappingBooking(
+          rid,
+          check_in_date,
+          check_out_date,
+          transaction
+        );
 
-      if (overlapping) {
-        throw {
-          statusCode: 409,
-          message: 'Room already booked for the selected dates',
-        };
+        if (overlapping) {
+          throw {
+            statusCode: 409,
+            message: 'Room already booked for the selected dates',
+          };
+        }
       }
 
       const { 
@@ -184,61 +191,50 @@ class BookingService {
       const pricePerRoom = total_price / room_quantity;
       const depositPerRoom = depositAmount / room_quantity;
 
-      // Create parent booking (first room)
+      // Create bookings for each allocated room. Use a parent booking
+      // for the first room and child bookings for the rest.
       const bookingNumber = this.generateBookingNumber();
-      const parentBooking = await bookingRepository.createBooking(
-        {
-          booking_number: bookingNumber,
-          user_id: userId,
-          room_id: allocatedRoomId,
-          check_in_date: this.parseLocalDate(check_in_date),
-          check_out_date: this.parseLocalDate(check_out_date),
-          num_guests: guest_count || 1,
-          guest_info: guest_info || null,
-          total_price: pricePerRoom,
-          deposit_amount: depositPerRoom,
-          room_quantity: 1,
-          parent_booking_id: null,
-          special_requests: notes || null,
-          payment_method: payment_method,
-          status: 'pending',
-          requires_deposit: requiresDeposit,
-          deposit_paid: false,
-        },
-        transaction
-      );
+      const allBookings = [];
 
-      // Create child bookings for additional rooms
-      const allBookings = [parentBooking];
-      if (room_quantity > 1) {
-        for (let i = 1; i < room_quantity; i++) {
-          const childBookingNumber = `${bookingNumber}-R${i + 1}`;
-          const childBooking = await bookingRepository.createBooking(
-            {
-              booking_number: childBookingNumber,
-              user_id: userId,
-              room_id: allocatedRoomId,
-              check_in_date: this.parseLocalDate(check_in_date),
-              check_out_date: this.parseLocalDate(check_out_date),
-              num_guests: guest_count || 1,
-              guest_info: guest_info || null,
-              total_price: pricePerRoom,
-              deposit_amount: depositPerRoom,
-              room_quantity: 1,
-              parent_booking_id: parentBooking.id,
-              special_requests: notes || null,
-              payment_method: payment_method,
-              status: 'pending',
-              requires_deposit: requiresDeposit,
-              deposit_paid: false,
-            },
-            transaction
-          );
-          allBookings.push(childBooking);
+      for (let i = 0; i < allocatedRoomIds.length; i++) {
+        const rid = allocatedRoomIds[i];
+        const isParent = i === 0;
+        const bookingNum = isParent ? bookingNumber : `${bookingNumber}-R${i + 1}`;
+
+        const created = await bookingRepository.createBooking(
+          {
+            booking_number: bookingNum,
+            user_id: userId,
+            room_id: rid,
+            check_in_date: this.parseLocalDate(check_in_date),
+            check_out_date: this.parseLocalDate(check_out_date),
+            num_guests: guest_count || 1,
+            guest_info: guest_info || null,
+            total_price: pricePerRoom,
+            deposit_amount: depositPerRoom,
+            room_quantity: 1,
+            parent_booking_id: isParent ? null : null, // link children later
+            special_requests: notes || null,
+            payment_method: payment_method,
+            status: 'pending',
+            requires_deposit: requiresDeposit,
+            deposit_paid: false,
+          },
+          transaction
+        );
+
+        allBookings.push(created);
+      }
+
+      // Link child bookings to parent (if more than 1)
+      if (allBookings.length > 1) {
+        const parentBooking = allBookings[0];
+        for (let i = 1; i < allBookings.length; i++) {
+          await bookingRepository.updateBooking(allBookings[i], { parent_booking_id: parentBooking.id }, transaction);
         }
       }
 
-      const booking = parentBooking; // Use parent for payment
+      const booking = allBookings[0]; // Use parent for payment
 
       // Create payment record for TOTAL amount (all rooms)
       if (requiresDeposit) {

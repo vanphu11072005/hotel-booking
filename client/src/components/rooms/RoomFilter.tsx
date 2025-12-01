@@ -259,12 +259,18 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               rounded-lg focus:ring-2 focus:ring-blue-500 
               focus:border-transparent"
           >
-            <option value="">Tất cả</option>
-            <option value="Phòng Tiêu chuẩn">Phòng Tiêu chuẩn</option>
-            <option value="Phòng Cao cấp">Phòng Cao cấp</option>
-            <option value="Phòng Hạng sang">Phòng Hạng sang</option>
-            <option value="Phòng Gia đình">Phòng Gia đình</option>
-            <option value="Phòng 2 giường đơn">Phòng 2 giường đơn</option>
+            <option value="">Tất cả phòng</option>
+            <option value="Standard Room">Standard Room</option>
+            <option value="Superior Room">Superior Room</option>
+            <option value="Deluxe Room">Deluxe Room</option>
+            <option value="Executive Room">Executive Room</option>
+            <option value="Junior Suite">Junior Suite</option>
+            <option value="Suite">Suite</option>
+            <option value="Presidential Suite">Presidential Suite</option>
+            <option value="Family Room">Family Room</option>
+            <option value="Twin Room">Twin Room</option>
+            <option value="Double Room">Double Room</option>
+            <option value="Accessible Room">Accessible Room</option>
           </select>
         </div>
 
@@ -284,7 +290,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               startDate={checkInDate}
               endDate={checkOutDate}
               minDate={new Date()}
-              dateFormat="dd/MM/yyyy"
+              dateFormat="dd/MM"
               placeholderText=""
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
@@ -304,7 +310,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               startDate={checkInDate}
               endDate={checkOutDate}
               minDate={checkInDate || new Date()}
-              dateFormat="dd/MM/yyyy"
+              dateFormat="dd/MM"
               placeholderText=""
               className="w-full px-4 py-2 border border-gray-300 rounded-lg"
             />
@@ -386,7 +392,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">Tất cả</option>
-            {Array.from({ length: 4 }, (_, i) => i + 1).map((v) => (
+            {Array.from({ length: 6 }, (_, i) => i + 1).map((v) => (
               <option key={v} value={v}>{v} người</option>
             ))}
           </select>

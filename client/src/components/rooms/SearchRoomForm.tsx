@@ -145,12 +145,18 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
               onChange={(e) => setRoomType(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
             >
-              <option value="">Tất cả loại</option>
-                <option value="Phòng Tiêu chuẩn">Phòng Tiêu chuẩn</option>
-                <option value="Phòng Cao cấp">Phòng Cao cấp</option>
-                <option value="Phòng Hạng sang">Phòng Hạng sang</option>
-                <option value="Phòng Gia đình">Phòng Gia đình</option>
-                <option value="Phòng 2 giường đơn">Phòng 2 giường đơn</option>
+              <option value="">Tất cả phòng</option>
+              <option value="Standard Room">Standard Room</option>
+              <option value="Superior Room">Superior Room</option>
+              <option value="Deluxe Room">Deluxe Room</option>
+              <option value="Executive Room">Executive Room</option>
+              <option value="Junior Suite">Junior Suite</option>
+              <option value="Suite">Suite</option>
+              <option value="Presidential Suite">Presidential Suite</option>
+              <option value="Family Room">Family Room</option>
+              <option value="Twin Room">Twin Room</option>
+              <option value="Double Room">Double Room</option>
+              <option value="Accessible Room">Accessible Room</option>
             </select>
           </div>
 
@@ -161,7 +167,7 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
               onChange={(e) => setGuestCount(Number(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
             >
-              {Array.from({ length: 4 }, (_, i) => i + 1).map((v) => (
+              {Array.from({ length: 6 }, (_, i) => i + 1).map((v) => (
                 <option key={v} value={v}>{v} khách</option>
               ))}
             </select>

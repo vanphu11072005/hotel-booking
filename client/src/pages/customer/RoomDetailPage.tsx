@@ -5,6 +5,8 @@ import {
   DollarSign,
   ArrowLeft,
 } from 'lucide-react';
+import RoomTypeCard from '../../components/rooms/RoomTypeCard';
+import { getRoomTypes } from '../../services/api/roomService';
 import { getRoomById } from '../../services/api/roomService';
 import type { Room } from '../../types/rooms';
 import RoomGallery from '../../components/rooms/RoomGallery';
@@ -19,6 +21,8 @@ const RoomDetailPage: React.FC = () => {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [suggestedTypes, setSuggestedTypes] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -36,6 +40,8 @@ const RoomDetailPage: React.FC = () => {
       if ((response as any).success || (response as any).status === 'success') {
         if (response.data && response.data.room) {
           setRoom(response.data.room);
+          // fetch suggested room types after we have room data
+          fetchSuggestedRoomTypes(response.data.room.room_type?.id);
         } else {
           throw new Error('Failed to fetch room details');
         }
@@ -50,6 +56,30 @@ const RoomDetailPage: React.FC = () => {
       setError(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSuggestedRoomTypes = async (currentRoomTypeId?: number) => {
+    try {
+      setLoadingSuggestions(true);
+      const resp = await getRoomTypes();
+      if (resp && (resp as any).data && Array.isArray((resp as any).data.room_types)) {
+        let types = (resp as any).data.room_types as any[];
+        // Exclude current room type
+        if (currentRoomTypeId) {
+          types = types.filter((t) => t.id !== currentRoomTypeId);
+        }
+
+        // Prefer featured types first, then slice to 3
+        const featured = types.filter((t) => t.featured);
+        const others = types.filter((t) => !t.featured);
+        const ordered = [...featured, ...others];
+        setSuggestedTypes(ordered.slice(0, 3));
+      }
+    } catch (err) {
+      console.error('Error fetching suggested room types', err);
+    } finally {
+      setLoadingSuggestions(false);
     }
   };
 
@@ -133,7 +163,7 @@ const RoomDetailPage: React.FC = () => {
         {/* Image Gallery */}
         <div className="mb-8">
           <RoomGallery
-              images={room.images}
+              images={roomType?.images || []}
               roomName={roomType?.name || 'Room'}
             />
         </div>
@@ -174,24 +204,7 @@ const RoomDetailPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Status Badge */}
-              <div
-                className={`inline-block px-4 py-2 
-                  rounded-full text-sm font-semibold
-                  ${
-                    room.status === 'available'
-                      ? 'bg-green-100 text-green-800'
-                      : room.status === 'occupied'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-              >
-                {room.status === 'available'
-                  ? 'Còn phòng'
-                  : room.status === 'occupied'
-                  ? 'Đã đặt'
-                  : 'Bảo trì'}
-              </div>
+              {/* Status display removed from room detail UI */}
             </div>
 
             {/* Description */}
@@ -235,16 +248,12 @@ const RoomDetailPage: React.FC = () => {
               <div className="mt-4">
                 <Link
                   to={`/booking/${room.id}`}
-                  className={`block w-full py-3 text-center font-semibold rounded-md transition-colors ${
-                    room.status === 'available'
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  }`}
-                  onClick={(e) => {
-                    if (room.status !== 'available') e.preventDefault();
-                  }}
+                  className={
+                    'block w-full py-3 text-center font-semibold rounded-md '
+                    + 'transition-colors bg-indigo-600 text-white hover:bg-indigo-700'
+                  }
                 >
-                  {room.status === 'available' ? 'Đặt ngay' : 'Không khả dụng'}
+                  Đặt ngay
                 </Link>
               </div>
 
@@ -267,6 +276,24 @@ const RoomDetailPage: React.FC = () => {
         {/* Reviews Section */}
         <div className="mb-12">
           <ReviewSection roomId={room.id} />
+        </div>
+
+        {/* Suggested Room Types */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Phòng đề xuất</h2>
+          {loadingSuggestions ? (
+            <div className="flex gap-4">
+              <div className="w-80 h-56 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="w-80 h-56 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="w-80 h-56 bg-gray-100 rounded-lg animate-pulse" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {suggestedTypes.map((rt) => (
+                <RoomTypeCard key={rt.id} roomType={rt} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

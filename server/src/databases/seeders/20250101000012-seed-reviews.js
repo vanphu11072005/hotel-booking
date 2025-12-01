@@ -5,95 +5,56 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     const now = new Date();
 
-    // Fetch some existing room ids to avoid FK constraint errors.
-    const [rooms] = await queryInterface.sequelize.query(
-      'SELECT id FROM rooms ORDER BY id ASC LIMIT 20'
+    // Fetch all room_type ids to seed reviews per type
+    const [types] = await queryInterface.sequelize.query(
+      'SELECT id FROM room_types ORDER BY id ASC'
     );
 
-    if (!rooms || rooms.length === 0) {
+    if (!types || types.length === 0) {
       throw new Error(
-        'No rooms found in database. Please run rooms seeders before seeding reviews.'
+        'No room types found in database. Please run room_types seeders before seeding reviews.'
       );
     }
 
-    // simple helper to pick a room id by index
-    const roomId = (idx) => rooms[idx % rooms.length].id;
+    // Try to fetch some customer user ids to attribute reviews to real users
+    const [users] = await queryInterface.sequelize.query(
+      'SELECT id FROM users WHERE role_id = 3 ORDER BY id ASC LIMIT 20'
+    );
 
-    const reviews = [
-      {
-        user_id: 4,
-        room_id: roomId(0),
-        rating: 5,
-        comment: 'Phòng sạch, nhân viên thân thiện. Trải nghiệm rất tốt!',
-        status: 'approved',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        user_id: 5,
-        room_id: roomId(1),
-        rating: 4,
-        comment: 'Vị trí thuận tiện, phòng nhỏ nhưng ấm cúng.',
-        status: 'approved',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        user_id: 6,
-        room_id: roomId(2),
-        rating: 5,
-        comment: 'View đẹp, đồ ăn sáng ngon. Sẽ quay lại.',
-        status: 'approved',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        user_id: 4,
-        room_id: roomId(3),
-        rating: 3,
-        comment:
-          'Phòng hơi ồn do gần thang máy, nhưng bù lại tiện nghi đầy đủ.',
-        status: 'approved',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        user_id: 5,
-        room_id: roomId(4),
-        rating: 4,
-        comment: 'Dịch vụ tốt, giá cả hợp lý.',
-        status: 'approved',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        user_id: 6,
-        room_id: roomId(5),
-        rating: 5,
-        comment: 'Suite rất rộng rãi, phù hợp gia đình.',
-        status: 'approved',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        user_id: 4,
-        room_id: roomId(6),
-        rating: 2,
-        comment: 'Một vài thiết bị cũ, cần bảo trì.',
-        status: 'approved',
-        created_at: now,
-        updated_at: now,
-      },
-      {
-        user_id: 5,
-        room_id: roomId(7),
-        rating: 4,
-        comment: 'Nhân viên lễ tân hỗ trợ nhiệt tình, check-in nhanh.',
-        status: 'approved',
-        created_at: now,
-        updated_at: now,
-      },
+    const userIds = (users && users.length > 0)
+      ? users.map((u) => u.id)
+      : [4,5,6];
+
+    const pickUser = (i) => userIds[i % userIds.length];
+
+    const reviews = [];
+
+    // Clear, user-friendly Vietnamese sample comments.
+    const sampleComments = [
+      'Phòng sạch sẽ, tiện nghi và có vị trí thuận tiện.',
+      'Nhân viên thân thiện, dịch vụ tốt. Sẽ quay lại.',
+      'Giá cả hợp lý, phòng rộng rãi và thoải mái.',
+      'Ăn sáng phong phú, không gian yên tĩnh, rất hài lòng.',
+      'Vị trí thuận lợi, di chuyển dễ dàng, phù hợp cho chuyến đi.'
     ];
+
+    // Create exactly 2 approved reviews per room_type using the samples.
+    types.forEach((t, ti) => {
+      for (let r = 0; r < 2; r++) {
+        const idx = (ti * 2 + r) % sampleComments.length;
+        const comment = sampleComments[idx];
+
+        reviews.push({
+          user_id: pickUser(ti + r),
+          room_type_id: t.id,
+          rating: Math.floor(Math.random() * 3) + 3, // 3..5
+          comment,
+          status: 'approved',
+          created_at: now,
+          updated_at: now,
+        });
+      }
+    });
 
     await queryInterface.bulkInsert('reviews', reviews);
   },

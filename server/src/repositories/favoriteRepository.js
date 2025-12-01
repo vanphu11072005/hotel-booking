@@ -95,9 +95,13 @@ class FavoriteRepository {
    * Get review stats for a room
    */
   async getReviewStats(roomId) {
+    // Resolve room_type_id from the room, then aggregate reviews for that room type
+    const room = await Room.findByPk(roomId, { attributes: ['room_type_id'] });
+    if (!room) return null;
+
     return await Review.findOne({
       where: {
-        room_id: roomId,
+        room_type_id: room.room_type_id,
         status: 'approved',
       },
       attributes: [

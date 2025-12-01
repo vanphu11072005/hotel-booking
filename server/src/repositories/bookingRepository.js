@@ -288,8 +288,10 @@ class BookingRepository {
   /**
    * Update a booking
    */
-  async updateBooking(booking, updateData) {
-    return await booking.update(updateData);
+  async updateBooking(booking, updateData, transaction = null) {
+    const opts = {};
+    if (transaction) opts.transaction = transaction;
+    return await booking.update(updateData, opts);
   }
 
   /**

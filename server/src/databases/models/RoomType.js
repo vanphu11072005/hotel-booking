@@ -9,6 +9,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'room_type_id',
         as: 'rooms'
       });
+      // RoomType has many Reviews (reviews now reference room_type_id)
+      RoomType.hasMany(models.Review, {
+        foreignKey: 'room_type_id',
+        as: 'reviews'
+      });
     }
   }
 
@@ -54,6 +59,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.JSON,
         allowNull: true,
         defaultValue: []
+      },
+      featured: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
       }
     },
     {
