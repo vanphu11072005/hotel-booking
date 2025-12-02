@@ -10,7 +10,6 @@ import { getRooms } from '../../services/api/roomService';
 import FavoriteButton from './FavoriteButton';
 
 interface RoomTypeCardProps {
-  // accept either a full Room (legacy) or a RoomType directly
   room?: Room;
   roomType?: RoomType;
 }

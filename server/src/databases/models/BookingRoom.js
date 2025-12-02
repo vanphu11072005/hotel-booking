@@ -41,12 +41,6 @@ module.exports = (sequelize, DataTypes) => {
           model: 'rooms',
           key: 'id'
         }
-      },
-      quantity: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 1,
-        comment: 'Number of this room type'
       }
     },
     {

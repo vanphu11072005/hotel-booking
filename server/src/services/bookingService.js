@@ -55,8 +55,6 @@ class BookingService {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to start of day
 
-    console.log('📅 Validating dates:', { checkInDate, checkOutDate, today: today.toISOString() });
-
     if (checkIn >= checkOut) {
       console.error('❌ Check-out phải sau check-in');
       throw {
@@ -98,8 +96,6 @@ class BookingService {
    * Create a new booking
    */
   async createBooking(userId, bookingData) {
-    console.log('📝 Tạo booking với data:', bookingData);
-    
     const {
       room_id,
       check_in_date,
@@ -183,9 +179,6 @@ class BookingService {
         depositPercentage, 
         depositAmount 
       } = this.calculateDeposit(total_price, payment_method);
-
-      console.log('💳 Payment calculation:', { requiresDeposit, depositPercentage, depositAmount });
-      console.log('🏨 Room quantity:', room_quantity);
 
       // Calculate price per room
       const pricePerRoom = total_price / room_quantity;
@@ -480,12 +473,9 @@ class BookingService {
           // Check-in → Phòng đang ở
           room.status = 'occupied';
           await room.save();
-          console.log(`✅ Phòng ${room.room_number} đã chuyển sang trạng thái: occupied`);
         } else if (status === 'checked_out') {
-          // Check-out → Phòng bẩn (cần dọn)
           room.status = 'dirty';
           await room.save();
-          console.log(`✅ Phòng ${room.room_number} đã chuyển sang trạng thái: dirty`);
         }
       }
     }
@@ -499,8 +489,6 @@ class BookingService {
    * Creates 1 booking record + N booking_rooms records
    */
   async createMultiRoomTypeBooking(userId, bookingData) {
-    console.log('📝 Tạo single booking với nhiều loại phòng:', bookingData);
-    
     const {
       rooms, // [{ room_id, quantity }]
       check_in_date,
@@ -540,22 +528,14 @@ class BookingService {
         depositAmount 
       } = this.calculateDeposit(total_price, payment_method);
 
-      console.log('💳 Payment calc:', { 
-        requiresDeposit, 
-        depositPercentage, 
-        depositAmount 
-      });
-
       // Calculate total rooms
       let totalRoomCount = 0;
       for (const roomItem of rooms) {
         totalRoomCount += roomItem.quantity;
       }
 
-      console.log(`🛏️ Total rooms requested: ${totalRoomCount}`);
-
       // Validate and collect room allocations
-      const roomAllocations = []; // [{room_id, quantity, allocated_rooms: [{id, room_number}]}]
+      const roomAllocations = [];
       
       for (const roomItem of rooms) {
         const { room_id, quantity } = roomItem;
@@ -577,11 +557,6 @@ class BookingService {
           check_out_date,
           { transaction }
         );
-
-        console.log(`🏨 ${room.room_type?.name || 'Room'} (${room.room_number}):`, {
-          requested: quantity,
-          available: availableCount
-        });
 
         if (availableCount < quantity) {
           throw {
@@ -638,8 +613,6 @@ class BookingService {
         transaction
       );
 
-      console.log(`✅ Created booking ${bookingNumber} (ID: ${booking.id})`);
-
       // Create booking_rooms entries for all allocated rooms
       const { BookingRoom } = require('../databases/models');
       for (const allocation of roomAllocations) {
@@ -647,12 +620,10 @@ class BookingService {
           await BookingRoom.create(
             {
               booking_id: booking.id,
-              room_id: allocatedRoom.id,
-              quantity: 1 // Each physical room = 1
+              room_id: allocatedRoom.id
             },
             { transaction }
           );
-          console.log(`📌 Linked room ${allocatedRoom.room_number} to booking`);
         }
       }
 
@@ -714,13 +685,6 @@ class BookingService {
       }
 
       await transaction.commit();
-
-      console.log('✅ Single booking created with multiple rooms:', {
-        bookingId: booking.id,
-        bookingNumber: bookingNumber,
-        totalRoomCount,
-        roomTypes: roomAllocations.length
-      });
 
       // Fetch complete booking with relations
       const bookingWithDetails = await bookingRepository.findBookingById(booking.id);

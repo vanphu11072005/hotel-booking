@@ -90,13 +90,13 @@ class PaymentService {
         is_full_payment: isFullPayment
       };
 
-      // Send email
-      await sendEmail({
+      // Send email (non-blocking)
+      sendEmail({
         to: recipientEmail,
         subject: `Xác nhận đặt phòng ${booking.booking_number}`,
         html: bookingConfirmationEmail(emailData),
         text: bookingConfirmationText(emailData)
-      });
+      }).catch(err => console.error('Failed to send booking confirmation email:', err));
 
       console.log('✅ Đã gửi email xác nhận đến:', recipientEmail);
     } catch (error) {

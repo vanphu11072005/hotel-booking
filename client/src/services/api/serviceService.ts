@@ -13,13 +13,11 @@ import type {
 export const getServices = async (
   params: ServiceSearchParams = {}
 ): Promise<ServiceListResponse> => {
-  // Chỉ truyền category nếu có giá trị
   const queryParams = { ...params };
   if (!params.category) {
     delete queryParams.category;
   }
   const response = await apiClient.get('/services', { params: queryParams });
-  // Map is_active to status cho frontend
   if (response.data.data?.services) {
     response.data.data.services = response.data.data.services.map((service: any) => ({
       ...service,
