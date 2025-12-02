@@ -257,6 +257,43 @@ const BookingDetailPage: React.FC = () => {
     );
   };
 
+  // Move hooks above early returns
+  const room = booking?.room;
+  const roomType = room?.room_type;
+  
+  // Get all rooms (from booking_rooms if available, fallback to single room)
+  const bookingRooms = React.useMemo(() => {
+    if (!booking) return [];
+    return booking.booking_rooms && booking.booking_rooms.length > 0
+      ? booking.booking_rooms
+      : room ? [{ room, quantity: booking.room_quantity || 1 }] : [];
+  }, [booking, room]);
+
+  // Group rooms by room type
+  const groupedRooms = React.useMemo(() => {
+    if (!booking) return [];
+    const groups: Record<string, { room: any, count: number }> = {};
+    
+    bookingRooms.forEach((br: any) => {
+      const roomData = br.room || room;
+      const roomTypeData = roomData?.room_type || roomType;
+      const typeId = roomTypeData?.id || 'unknown';
+      
+      if (!groups[typeId]) {
+        groups[typeId] = {
+          room: roomData,
+          count: 0
+        };
+      }
+      // If quantity exists (fallback), use it. Otherwise count as 1 per entry.
+      // Note: Backend removed quantity column, so for new bookings each entry is 1 room.
+      const qty = br.quantity || 1; 
+      groups[typeId].count += qty;
+    });
+    
+    return Object.values(groups);
+  }, [bookingRooms, room, roomType, booking]);
+
   if (loading) {
     return <Loading fullScreen text="Đang tải..." />;
   }
@@ -290,8 +327,6 @@ const BookingDetailPage: React.FC = () => {
     );
   }
 
-  const room = booking.room;
-  const roomType = room?.room_type;
   const statusConfig = getStatusConfig(booking.status);
   const StatusIcon = statusConfig.icon;
 
@@ -302,14 +337,9 @@ const BookingDetailPage: React.FC = () => {
       (1000 * 60 * 60 * 24)
   );
 
-  // Get all rooms (from booking_rooms if available, fallback to single room)
-  const bookingRooms = booking.booking_rooms && booking.booking_rooms.length > 0
-    ? booking.booking_rooms
-    : room ? [{ room, quantity: booking.room_quantity || 1 }] : [];
-
   // Calculate total room count
-  const totalRoomCount = bookingRooms.reduce(
-    (sum: number, br: any) => sum + (br.quantity || 1), 
+  const totalRoomCount = groupedRooms.reduce(
+    (sum, group) => sum + group.count, 
     0
   );
 
@@ -429,13 +459,13 @@ const BookingDetailPage: React.FC = () => {
               </div>
 
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-indigo-300 scrollbar-track-indigo-50">
-                {bookingRooms.map((bookingRoom: any, index: number) => {
-                  const roomData = bookingRoom.room || room;
+                {groupedRooms.map((group: any, index: number) => {
+                  const roomData = group.room;
                   const roomTypeData = roomData?.room_type || roomType;
-                  const quantity = bookingRoom.quantity || 1;
+                  const quantity = group.count;
                   
                   // Resolve image
-                  const imagesField = roomData?.images as any;
+                  const imagesField = roomTypeData?.images || roomData?.images as any;
                   let firstImage: string | undefined;
                   if (Array.isArray(imagesField)) {
                     firstImage = imagesField[0];

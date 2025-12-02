@@ -102,13 +102,8 @@ const LoginPage: React.FC = () => {
       const { userInfo, error: loginError } = useAuthStore.getState();
       
       if (!loginError && userInfo) {
-        // Redirect dựa trên role
-        let redirectPath = '/';
-        if (userInfo.role === 'admin') {
-          redirectPath = '/admin/dashboard';
-        } else if (userInfo.role === 'staff') {
-          redirectPath = '/staff/dashboard';
-        }
+        // Redirect về trang home cho tất cả role
+        const redirectPath = '/';
         
         // Nếu có location.state.from thì ưu tiên redirect về đó
         const from = location.state?.from?.pathname || redirectPath;

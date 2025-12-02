@@ -8,7 +8,6 @@ import type {
   CreateRoomData,
 } from '../../types/rooms';
 
-export type { Room };
 // API functions
 export const getRoomTypes = async (): Promise<{
   success: boolean;
@@ -17,8 +16,6 @@ export const getRoomTypes = async (): Promise<{
   const response = await apiClient.get('/rooms/room-types');
   return response.data;
 };
-
-/** Room API Service */
 
 /**
  * Get featured rooms for homepage
@@ -44,7 +41,6 @@ export const getRooms = async (
   const response = await apiClient.get('/rooms', {
     params,
   });
-  // Xoá log debug nếu có
   return response.data;
 };
 
