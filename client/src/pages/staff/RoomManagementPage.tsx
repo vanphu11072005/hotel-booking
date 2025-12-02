@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Eye, AlertCircle, Loader } from 'lucide-react';
 import { roomService } from '../../services/api';
-import type { Room } from '../../services/api/roomService';
+import type { Room } from '../../types/rooms';
 import { toast } from 'react-toastify';
 import Loading from '../../components/common/Loading';
 

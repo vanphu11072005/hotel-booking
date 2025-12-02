@@ -114,11 +114,10 @@ class AuthService {
     delete userResponse.password;
 
     // Send welcome email (non-blocking)
-    try {
-      await sendEmail({
-        to: user.email,
-        subject: 'Chào mừng đến với Hotel Booking',
-        html: `
+    sendEmail({
+      to: user.email,
+      subject: 'Chào mừng đến với Hotel Booking',
+      html: `
           <div style="font-family: Arial, sans-serif; 
             max-width: 600px; margin: 0 auto;">
             <h2 style="color: #4F46E5;">
@@ -156,11 +155,9 @@ class AuthService {
             </p>
           </div>
         `
-      });
-    } catch (err) {
-      console.error('Failed to send welcome email:', err);
-      // Don't fail registration if email fails
-    }
+    }).catch(err => {
+      console.error('Error sending welcome email:', err);
+    });
 
     return {
       user: userResponse,
@@ -432,23 +429,21 @@ class AuthService {
     const resetUrl = 
       `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
-    // Try to send email
-    try {
-      await sendEmail({
-        to: user.email,
-        subject: 'Reset password - Hotel Booking',
-        html: `
+    // Try to send email (non-blocking)
+    sendEmail({
+      to: user.email,
+      subject: 'Reset password - Hotel Booking',
+      html: `
           <p>Bạn (hoặc ai đó) đã yêu cầu đặt lại mật khẩu.</p>
           <p>Nhấn vào liên kết bên dưới để đặt lại mật khẩu 
              (hết hạn sau 1 giờ):</p>
           <p><a href="${resetUrl}">${resetUrl}</a></p>
         `
-      });
-    } catch (err) {
+    }).catch(err => {
       console.error('Failed to send reset email:', err);
       // Do NOT log the raw reset token or URL in production.
       // Errors are logged above; token must remain secret.
-    }
+    });
 
     return {
       success: true,
@@ -517,18 +512,16 @@ class AuthService {
     await authRepository.deletePasswordResetToken(resetToken.id);
 
     // Send confirmation email (non-blocking)
-    try {
-      await sendEmail({
-        to: user.email,
-        subject: 'Mật khẩu đã được thay đổi',
-        html: `
+    sendEmail({
+      to: user.email,
+      subject: 'Mật khẩu đã được thay đổi',
+      html: `
           <p>Mật khẩu tài khoản ${user.email} đã được thay đổi 
              thành công.</p>
         `
-      });
-    } catch (err) {
+    }).catch(err => {
       console.error('Failed to send confirmation email:', err);
-    }
+    });
 
     return {
       success: true,

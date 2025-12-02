@@ -3,6 +3,15 @@ import { Link } from 'react-router-dom';
 import { 
   ArrowRight,
   AlertCircle,
+  Home,
+  DollarSign,
+  Headphones,
+  MapPin,
+  ShoppingBag,
+  ShoppingCart,
+  Coffee,
+  Truck,
+  Heart,
 } from 'lucide-react';
 import {
   BannerCarousel,
@@ -11,119 +20,60 @@ import {
   RoomCardSkeleton,
   SearchRoomForm,
 } from '../components/rooms';
-import {
-  bannerService,
-  roomService,
-  serviceService
-} from '../services/api';
-import type { Banner } from '../types/banner';
-import type { Service } from '../types/service';
+import useRoomStore from '../store/useRoomStore';
+import useBannerStore from '../store/useBannerStore';
+import useServiceStore from '../store/useServiceStore';
 
 const HomePage: React.FC = () => {
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const { banners, fetchBannersByPosition, isLoading: isLoadingBanners } = useBannerStore();
   const [featuredRoomTypes, setFeaturedRoomTypes] = useState<any[]>([]);
   const [newestRoomTypes, setNewestRoomTypes] = useState<any[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [isLoadingBanners, setIsLoadingBanners] = 
-    useState(true);
+  const { roomTypes, fetchRoomTypes, isLoading: isLoadingRoomTypes, error: roomError } = useRoomStore();
+  const { services, isLoading: isLoadingServices, fetchServices } = useServiceStore();
+
   const [isLoadingRooms, setIsLoadingRooms] = useState(true);
   const [isLoadingNewest, setIsLoadingNewest] = useState(true);
-  const [isLoadingServices, setIsLoadingServices] = 
-    useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch banners
+  // Fetch banners via store
   useEffect(() => {
-    const fetchBanners = async () => {
-      try {
-        setIsLoadingBanners(true);
-        const response = await bannerService.getBannersByPosition('home');
-        
-        if (
-          response.success || 
-          response.status === 'success'
-        ) {
-          setBanners(response.data.banners || []);
-        }
-      } catch (err) {
-        console.error('Error fetching banners:', err);
-      } finally {
-        setIsLoadingBanners(false);
-      }
-    };
+    fetchBannersByPosition('home');
+  }, [fetchBannersByPosition]);
 
-    fetchBanners();
-  }, []);
-
-  // Fetch featured room types
+  // Fetch room types from store (used for featured and newest lists)
   useEffect(() => {
-    const fetchFeaturedRoomTypes = async () => {
-      try {
-        setIsLoadingRooms(true);
-        setError(null);
-        const response = await roomService.getRoomTypes();
-        if (response?.data?.room_types) {
-          const types = response.data.room_types.filter((t: any) => !!t.featured);
-          setFeaturedRoomTypes(types.slice(0, 6));
-        }
-      } catch (err: any) {
-        console.error('Error fetching room types:', err);
-        setError(err.response?.data?.message || 'Không thể tải danh sách phòng');
-      } finally {
-        setIsLoadingRooms(false);
-      }
-    };
+    fetchRoomTypes();
+  }, [fetchRoomTypes]);
 
-    fetchFeaturedRoomTypes();
-  }, []);
-
-  // Fetch newest room types
+  // Derive featured room types when store updates
   useEffect(() => {
-    const fetchNewestRoomTypes = async () => {
-      try {
-        setIsLoadingNewest(true);
-        const response = await roomService.getRoomTypes();
-        if (response?.data?.room_types) {
-          const sorted = [...response.data.room_types].sort((a: any, b: any) => {
-            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-          });
-          setNewestRoomTypes(sorted.slice(0, 6));
-        }
-      } catch (err: any) {
-        console.error('Error fetching newest room types:', err);
-      } finally {
-        setIsLoadingNewest(false);
-      }
-    };
+    setIsLoadingRooms(isLoadingRoomTypes);
+    if (roomTypes && roomTypes.length > 0) {
+      const types = roomTypes.filter((t: any) => !!t.featured);
+      setFeaturedRoomTypes(types.slice(0, 6));
+    } else {
+      setFeaturedRoomTypes([]);
+    }
+    if (roomError) setError(roomError);
+  }, [roomTypes, isLoadingRoomTypes, roomError]);
 
-    fetchNewestRoomTypes();
-  }, []);
-
-  // Fetch services
+  // Derive newest room types when store updates
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        setIsLoadingServices(true);
-        const response = await serviceService.getServices({
-          status: 'active',
-          limit: 8,
-        });
+    setIsLoadingNewest(isLoadingRoomTypes);
+    if (roomTypes && roomTypes.length > 0) {
+      const sorted = [...roomTypes].sort((a: any, b: any) => {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+      setNewestRoomTypes(sorted.slice(0, 6));
+    } else {
+      setNewestRoomTypes([]);
+    }
+  }, [roomTypes, isLoadingRoomTypes]);
 
-        if (
-          response.success || 
-          response.status === 'success'
-        ) {
-          setServices(response.data.services || []);
-        }
-      } catch (err: any) {
-        console.error('Error fetching services:', err);
-      } finally {
-        setIsLoadingServices(false);
-      }
-    };
-
-    fetchServices();
-  }, []);
+  // Fetch services via store
+  useEffect(() => {
+    fetchServices({ status: 'active', limit: 8 });
+  }, [fetchServices]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br 
@@ -438,7 +388,7 @@ const HomePage: React.FC = () => {
                 key={service.id}
                 className="bg-white rounded-lg shadow-sm 
                   hover:shadow-md transition-shadow 
-                  p-6 border border-gray-100"
+                  p-6 border border-gray-100 text-center"
               >
                 {/* Service Icon with Gradient */}
                 <div 
@@ -447,18 +397,20 @@ const HomePage: React.FC = () => {
                     rounded-2xl flex items-center 
                     justify-center mb-4 shadow-lg 
                     transform transition-transform 
-                    hover:scale-110 hover:rotate-6"
+                    hover:scale-110 hover:rotate-6 mx-auto"
                 >
                   <span className="text-2xl">
-                    {service.category === 'Ăn uống' 
-                      ? '🍽️'
-                      : service.category === 'Giặt ủi'
-                      ? '👔'
-                      : service.category === 'Spa & Sức khỏe'
-                      ? '💆'
-                      : service.category === 'Vận chuyển'
-                      ? '🚗'
-                      : '🛎️'}
+                    {service.category === 'Ăn uống' ? (
+                      <Coffee className="w-6 h-6" />
+                    ) : service.category === 'Giặt ủi' ? (
+                      <ShoppingBag className="w-6 h-6" />
+                    ) : service.category === 'Spa & Sức khỏe' ? (
+                      <Heart className="w-6 h-6" />
+                    ) : service.category === 'Vận chuyển' ? (
+                      <Truck className="w-6 h-6" />
+                    ) : (
+                      <Home className="w-6 h-6" />
+                    )}
                   </span>
                 </div>
 
@@ -481,7 +433,7 @@ const HomePage: React.FC = () => {
                 )}
 
                 {/* Service Price with Gradient */}
-                <div className="flex items-baseline gap-1">
+                <div className="flex items-baseline gap-1 justify-center">
                   <span 
                     className="text-xl font-bold 
                       bg-gradient-to-r from-purple-600 
@@ -589,7 +541,7 @@ const HomePage: React.FC = () => {
             lg:grid-cols-3 gap-6"
         >
           {/* Beach */}
-          <div
+          <div 
             className="bg-white rounded-2xl shadow-lg 
               hover:shadow-2xl hover:scale-105 
               transition-all duration-300 
@@ -605,7 +557,7 @@ const HomePage: React.FC = () => {
                 shadow-lg group-hover:rotate-12 
                 transition-transform"
             >
-              <span className="text-2xl">🏖️</span>
+              <MapPin className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
               <h3 
@@ -640,7 +592,7 @@ const HomePage: React.FC = () => {
                 shadow-lg group-hover:rotate-12 
                 transition-transform"
             >
-              <span className="text-2xl">🛍️</span>
+              <ShoppingBag className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
               <h3 
@@ -675,7 +627,7 @@ const HomePage: React.FC = () => {
                 shadow-lg group-hover:rotate-12 
                 transition-transform"
             >
-              <span className="text-2xl">🛒</span>
+              <ShoppingCart className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
               <h3 
@@ -710,7 +662,7 @@ const HomePage: React.FC = () => {
                 shadow-lg group-hover:rotate-12 
                 transition-transform"
             >
-              <span className="text-2xl">🌉</span>
+              <MapPin className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
               <h3 
@@ -745,7 +697,7 @@ const HomePage: React.FC = () => {
                 shadow-lg group-hover:rotate-12 
                 transition-transform"
             >
-              <span className="text-2xl">🎡</span>
+              <MapPin className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
               <h3 
@@ -780,7 +732,7 @@ const HomePage: React.FC = () => {
                 shadow-lg group-hover:rotate-12 
                 transition-transform"
             >
-              <span className="text-2xl">🛫</span>
+              <MapPin className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
               <h3 
@@ -838,16 +790,16 @@ const HomePage: React.FC = () => {
               border-2 border-transparent 
               hover:border-indigo-200 group"
           >
-            <div 
-              className="w-20 h-20 bg-gradient-to-br 
+              <div 
+                className="w-20 h-20 bg-gradient-to-br 
                 from-indigo-400 to-purple-400 
                 rounded-2xl flex items-center 
                 justify-center mx-auto mb-6 
                 shadow-lg group-hover:rotate-12 
                 transition-transform"
-            >
-              <span className="text-4xl">🏨</span>
-            </div>
+              >
+                <Home className="w-10 h-10 text-white" />
+              </div>
             <h3 
               className="text-2xl font-bold mb-3 
                 bg-gradient-to-r from-indigo-700 
@@ -878,7 +830,7 @@ const HomePage: React.FC = () => {
                 shadow-lg group-hover:rotate-12 
                 transition-transform"
             >
-              <span className="text-4xl">💰</span>
+              <DollarSign className="w-10 h-10 text-white" />
             </div>
             <h3 
               className="text-2xl font-bold mb-3 
@@ -910,7 +862,7 @@ const HomePage: React.FC = () => {
                 shadow-lg group-hover:rotate-12 
                 transition-transform"
             >
-              <span className="text-4xl">🎧</span>
+              <Headphones className="w-10 h-10 text-white" />
             </div>
             <h3 
               className="text-2xl font-bold mb-3 

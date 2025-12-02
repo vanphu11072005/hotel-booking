@@ -1,9 +1,6 @@
 import apiClient from './apiClient';
 import type { Review, ReviewListResponse, CreateReviewData } from '../../types/review';
 
-// Generic API response used across the frontend. Server sometimes
-// returns `{ status: 'success', ... }` or `{ success: true, ... }`,
-// so include both fields as optional.
 export type ApiResponse<T = any> = {
   success?: boolean;
   status?: string;

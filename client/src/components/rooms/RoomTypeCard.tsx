@@ -10,12 +10,13 @@ import { getRooms } from '../../services/api/roomService';
 import FavoriteButton from './FavoriteButton';
 
 interface RoomTypeCardProps {
-  // accept either a full Room (legacy) or a RoomType directly
   room?: Room;
   roomType?: RoomType;
+  onSelect?: () => void;
+  actionLabel?: string;
 }
 
-const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp }) => {
+const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onSelect, actionLabel }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [loadingSample, setLoadingSample] = useState(false);
@@ -195,44 +196,60 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp }) =
             <p className="text-xs text-gray-500">/ đêm</p>
           </div>
 
-          <Link
-            to={
-              room
-                ? `/rooms/${room.id}${location.search || ''}`
-                : `/rooms?type=${roomType.id}${location.search || ''}`
-            }
-            onClick={async (e) => {
-              // If we already have a room, allow normal navigation.
-              if (room) return;
-
-              // Prevent default link and try to fetch a sample room
-              e.preventDefault();
-              if (loadingSample) return;
-              setLoadingSample(true);
-              try {
-                const res = await getRooms({ type: String(roomType.id), limit: 1 });
-                const sample = res?.data?.rooms?.[0] ?? null;
-                if (sample) {
-                  navigate(`/rooms/${sample.id}${location.search || ''}`);
-                } else {
-                  // Fallback to filtered list if no sample found
-                  navigate(`/rooms?type=${roomType.id}${location.search || ''}`);
-                }
-              } catch (err) {
-                // On error fallback to filtered list
-                navigate(`/rooms?type=${roomType.id}${location.search || ''}`);
-              } finally {
-                setLoadingSample(false);
+          {onSelect ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                onSelect();
+              }}
+              className="flex items-center gap-1 
+                bg-indigo-600 text-white px-4 py-2 
+                rounded-lg hover:bg-indigo-700 
+                transition-colors text-sm font-medium"
+            >
+              {actionLabel || 'Chọn'}
+            </button>
+          ) : (
+            <Link
+              to={
+                room
+                  ? `/rooms/${room.id}${location.search || ''}`
+                  : `/rooms?type=${roomType.id}${location.search || ''}`
               }
-            }}
-            className="flex items-center gap-1 
-              bg-indigo-600 text-white px-4 py-2 
-              rounded-lg hover:bg-indigo-700 
-              transition-colors text-sm font-medium"
-          >
-            Xem chi tiết
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+              onClick={async (e) => {
+                // If we already have a room, allow normal navigation.
+                if (room) return;
+
+                // Prevent default link and try to fetch a sample room
+                e.preventDefault();
+                if (loadingSample) return;
+                setLoadingSample(true);
+                try {
+                  const res = await getRooms({ type: String(roomType.id), limit: 1 });
+                  const sample = res?.data?.rooms?.[0] ?? null;
+                  if (sample) {
+                    navigate(`/rooms/${sample.id}${location.search || ''}`);
+                  } else {
+                    // Fallback to filtered list if no sample found
+                    navigate(`/rooms?type=${roomType.id}${location.search || ''}`);
+                  }
+                } catch (err) {
+                  // On error fallback to filtered list
+                  navigate(`/rooms?type=${roomType.id}${location.search || ''}`);
+                } finally {
+                  setLoadingSample(false);
+                }
+              }}
+              className="flex items-center gap-1 
+                bg-indigo-600 text-white px-4 py-2 
+                rounded-lg hover:bg-indigo-700 
+                transition-colors text-sm font-medium"
+            >
+              Xem chi tiết
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
         </div>
       </div>
     </div>

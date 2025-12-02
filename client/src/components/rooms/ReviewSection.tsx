@@ -4,8 +4,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { toast } from 'react-toastify';
 import RatingStars from './RatingStars';
-import { getRoomReviews, createReview, updateReview } from '../../services/api/reviewService';
-import type { Review } from '../../types/review';
+import useReviewStore from '../../store/useReviewStore';
 import { getMyBookings } from '../../services/api/bookingService';
 import type { Booking } from '../../types/booking';
 import useAuthStore from '../../store/useAuthStore';
@@ -40,8 +39,8 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
   const [editRating, setEditRating] = useState<number>(0);
   const [editComment, setEditComment] = useState<string>('');
   const [editingSubmitting, setEditingSubmitting] = useState<boolean>(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const reviews = useReviewStore((s) => s.reviewsByRoom[roomId] || []);
+  const loading = useReviewStore((s) => s.isLoading);
   const [submitting, setSubmitting] = useState(false);
   const [averageRating, setAverageRating] = useState<number>(0);
   const [totalReviews, setTotalReviews] = useState<number>(0);
@@ -64,9 +63,11 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
 
   const rating = watch('rating');
 
+  const fetchRoomReviews = useReviewStore((s) => s.fetchRoomReviews);
+
   useEffect(() => {
-    fetchReviews();
-  }, [roomId]);
+    fetchRoomReviews(roomId);
+  }, [roomId, fetchRoomReviews]);
 
   useEffect(() => {
     // If user is authenticated, try to find an eligible booking
@@ -78,30 +79,16 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, roomId]);
 
-  const fetchReviews = async () => {
-    try {
-      setLoading(true);
-      const response = await getRoomReviews(roomId);
-      if (response.status === 'success' && response.data) {
-        const reviewsData = response.data.reviews || [];
-        setReviews(reviewsData);
-        
-        // Calculate average rating and total from the reviews array
-        const total = reviewsData.length;
-        const avgRating = total > 0
-          ? reviewsData.reduce((sum, r) => sum + r.rating, 0) / total
-          : 0;
-        
-        setAverageRating(avgRating);
-        setTotalReviews(total);
-      }
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-      toast.error('Không thể tải đánh giá');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // compute derived stats when reviews change
+  useEffect(() => {
+    const reviewsData = reviews || [];
+    const total = reviewsData.length;
+    const avgRating = total > 0
+      ? reviewsData.reduce((sum, r) => sum + r.rating, 0) / total
+      : 0;
+    setAverageRating(avgRating);
+    setTotalReviews(total);
+  }, [reviews]);
 
   const checkEligibleBooking = async () => {
     try {
@@ -143,34 +130,20 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
       }
 
       setSubmitting(true);
-      const response = await createReview({
+      const added = await useReviewStore.getState().addReview({
         room_id: roomId,
         rating: data.rating,
         comment: data.comment,
         booking_id: eligibleBookingId,
-      });
+      }, true);
 
-      // Server responds with `{ status: 'success', message, data: { review } }`
-      if (response && ((response as any).status === 'success' || (response as any).success)) {
-        const created: any = (response as any).data?.review || (response as any).data;
+      if (added) {
         toast.success('Đánh giá của bạn đã được gửi và đang chờ duyệt');
         reset();
-        // Hide form for this booking
         setEligibleBookingId(null);
-
-        // Append the pending review locally so user sees their
-        // submission immediately with a 'Đang chờ duyệt' badge.
-        if (created) {
-          setReviews((prev) => [created, ...prev]);
-          setTotalReviews((t) => t + 1);
-        } else {
-          // Fallback: refresh approved reviews only (pending won't show)
-          fetchReviews();
-        }
       }
     } catch (error: any) {
-      const message =
-        error.response?.data?.message || 'Không thể gửi đánh giá';
+      const message = error.response?.data?.message || 'Không thể gửi đánh giá';
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -377,27 +350,24 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
                     />
                     <div className="flex gap-2 mt-2">
                       <button
-                        onClick={async () => {
-                          try {
-                            setEditingSubmitting(true);
-                            const resp = await updateReview(review.id, {
-                              rating: editRating,
-                              comment: editComment,
-                            });
-                            if (resp && (resp.status === 'success' || resp.success)) {
-                              const updated: any = resp.data?.review || resp.data;
-                              // Replace review in list
-                              setReviews((prev) => prev.map((r) => (r.id === review.id ? updated : r)));
-                              toast.success('Cập nhật đánh giá thành công. Đang chờ duyệt.');
-                              setEditingReviewId(null);
+                          onClick={async () => {
+                            try {
+                              setEditingSubmitting(true);
+                              const updated = await useReviewStore.getState().editReview(review.id, {
+                                rating: editRating,
+                                comment: editComment,
+                              });
+                              if (updated) {
+                                toast.success('Cập nhật đánh giá thành công. Đang chờ duyệt.');
+                                setEditingReviewId(null);
+                              }
+                            } catch (err: any) {
+                              const msg = err.response?.data?.message || 'Không thể cập nhật đánh giá';
+                              toast.error(msg);
+                            } finally {
+                              setEditingSubmitting(false);
                             }
-                          } catch (err: any) {
-                            const msg = err.response?.data?.message || 'Không thể cập nhật đánh giá';
-                            toast.error(msg);
-                          } finally {
-                            setEditingSubmitting(false);
-                          }
-                        }}
+                          }}
                         disabled={editingSubmitting}
                         className="px-4 py-2 bg-green-600 text-white rounded"
                       >
