@@ -45,6 +45,7 @@ import {
   type BookingFormData 
 } from '../../validators/bookingValidator';
 import Loading from '../../components/common/Loading';
+import RoomTypeSelectorModal from '../../components/rooms/RoomTypeSelectorModal';
 
 const BookingPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -1718,181 +1719,13 @@ const BookingPage: React.FC = () => {
         )}
 
         {/* Room Type Selector Modal */}
-        {showRoomTypeSelector && (
-          <div className="fixed inset-0 z-50 flex 
-            items-center justify-center p-4 
-            bg-black/60 backdrop-blur-sm"
-          >
-            <div className="bg-white rounded-2xl shadow-2xl 
-              max-w-6xl w-full max-h-[90vh] overflow-hidden 
-              animate-fade-in"
-            >
-              {/* Modal Header */}
-              <div className="bg-gradient-to-r from-indigo-600 
-                to-purple-600 px-6 py-5"
-              >
-                <div className="flex items-center 
-                  justify-between"
-                >
-                  <div>
-                    <h3 className="text-2xl font-bold 
-                      text-white flex items-center gap-3"
-                    >
-                      <Building2 className="w-7 h-7" />
-                      Chọn loại phòng
-                    </h3>
-                    <p className="text-indigo-100 text-sm mt-1">
-                      Chọn thêm loại phòng muốn đặt
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowRoomTypeSelector(false)}
-                    className="text-white/80 hover:text-white 
-                      transition-colors p-2 hover:bg-white/10 
-                      rounded-lg"
-                  >
-                    <svg className="w-6 h-6" fill="none" 
-                      stroke="currentColor" viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" 
-                        strokeLinejoin="round" strokeWidth={2} 
-                        d="M6 18L18 6M6 6l12 12" 
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-                {availableRoomTypes.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Loader2 className="w-12 h-12 animate-spin 
-                      text-indigo-500 mx-auto mb-4" 
-                    />
-                    <p className="text-gray-600">
-                      Đang tải danh sách phòng...
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 
-                    lg:grid-cols-3 gap-6"
-                  >
-                    {
-                      (() => {
-                        // Group available rooms by room_type id and
-                        // render one representative per type.
-                        const map = new Map();
-                        for (const ro of availableRoomTypes) {
-                          const typeId = ro.room_type?.id ?? ro.id;
-                          if (!map.has(typeId)) map.set(typeId, ro);
-                        }
-
-                        const unique = Array.from(map.values()).filter(rt =>
-                          !selectedRoomTypes.some(
-                            sel => sel.room.room_type?.id === rt.room_type?.id
-                          )
-                        );
-
-                        return unique.map((roomOption) => {
-                          const roomType = roomOption.room_type || { name: 'N/A', base_price: 0 };
-                          const firstImage = roomType.images && roomType.images.length > 0
-                            ? roomType.images[0]
-                            : undefined;
-                          const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
-                            .replace(/\/api\/?$/i, '')
-                            .replace(/\/$/, '');
-                          const imageUrl = (() => {
-                            if (!firstImage) return '/placeholder-room.jpg';
-                            if (firstImage.startsWith('http')) return firstImage;
-                            if (firstImage.startsWith('/uploads')) return `${SERVER_URL}${firstImage}`;
-                            if (firstImage.startsWith('/')) return firstImage;
-                            return `${SERVER_URL}/uploads/room_types/${firstImage}`;
-                          })();
-
-                          return (
-                            <div
-                              key={roomOption.id}
-                              className="bg-white rounded-xl border-2 border-gray-200 hover:border-indigo-500 transition-all hover:shadow-xl cursor-pointer group"
-                              onClick={() => handleAddRoomType(roomOption)}
-                            >
-                              <div className="relative h-48 overflow-hidden rounded-t-xl">
-                                <img
-                                  src={imageUrl}
-                                  alt={roomType.name}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                                <div className="absolute bottom-3 left-3 right-3">
-                                  <h4 className="text-white font-bold text-lg">{roomType.name}</h4>
-                                  <p className="text-white/90 text-sm">Loại phòng</p>
-                                </div>
-                              </div>
-
-                              <div className="p-4 space-y-3">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm text-gray-600">Giá/đêm</span>
-                                  <span className="text-lg font-bold text-indigo-600">{formatPrice(Number(roomType.base_price ?? 0))}</span>
-                                </div>
-
-                                {roomType.capacity && (
-                                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <Users className="w-4 h-4" />
-                                    <span> Tối đa {roomType.capacity} người</span>
-                                  </div>
-                                )}
-
-                                <button
-                                  type="button"
-                                  className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg shadow-indigo-500/30"
-                                >
-                                  Chọn loại này
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        });
-                      })()
-                    }
-                  </div>
-                )}
-
-                {availableRoomTypes.length > 0 && 
-                  availableRoomTypes.filter(roomOption => 
-                    !selectedRoomTypes.some(
-                      rt => rt.room.id === roomOption.id
-                    )
-                  ).length === 0 && (
-                  <div className="text-center py-12">
-                    <AlertCircle className="w-12 h-12 
-                      text-gray-400 mx-auto mb-4" 
-                    />
-                    <p className="text-gray-600">
-                      Đã chọn tất cả các phòng có sẵn
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="bg-gray-50 px-6 py-4 
-                flex justify-end border-t border-gray-200"
-              >
-                <button
-                  type="button"
-                  onClick={() => setShowRoomTypeSelector(false)}
-                  className="px-5 py-2.5 bg-white 
-                    border border-gray-300 text-gray-700 
-                    rounded-lg hover:bg-gray-50 
-                    transition-colors font-medium"
-                >
-                  Đóng
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <RoomTypeSelectorModal
+          isOpen={showRoomTypeSelector}
+          onClose={() => setShowRoomTypeSelector(false)}
+          availableRoomTypes={availableRoomTypes}
+          selectedRoomTypes={selectedRoomTypes}
+          onSelect={handleAddRoomType}
+        />
       </div>
     </div>
   );
