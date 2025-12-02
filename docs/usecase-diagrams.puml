@@ -1,0 +1,79 @@
+@startuml
+
+left to right direction
+skinparam actorStyle stick
+
+actor Guest
+actor Customer
+actor Staff
+actor Admin
+
+' Guest Use Cases
+Guest --> (Khám phá website)
+(Khám phá website) --> (Xem thông tin khách sạn)
+(Khám phá website) --> (Tìm kiếm phòng)
+(Khám phá website) --> (Xem chi tiết phòng)
+(Khám phá website) --> (Xem dịch vụ)
+Guest --> (Đăng ký tài khoản)
+Guest --> (Đăng nhập)
+
+' Customer Use Cases
+Customer --> (Quản lý tài khoản)
+(Quản lý tài khoản) --> (Quản lý thông tin cá nhân)
+(Quản lý tài khoản) --> (Đăng xuất)
+(Quản lý tài khoản) --> (Nhận thông báo)
+Customer --> (Đặt phòng)
+(Đặt phòng) --> (Chọn phòng)
+(Đặt phòng) --> (Chọn ngày nhận/trả)
+(Đặt phòng) --> (Thêm phòng vào yêu thích)
+Customer --> (Thanh toán)
+(Thanh toán) --> (Chọn phương thức thanh toán)
+(Thanh toán) --> (Nhận hóa đơn)
+Customer --> (Quản lý đặt phòng)
+(Quản lý đặt phòng) --> (Xem lịch sử đặt phòng)
+(Quản lý đặt phòng) --> (Hủy/Sửa đặt phòng)
+Customer --> (Đánh giá phòng/dịch vụ)
+
+' Staff Use Cases
+Staff --> (Quản lý phòng)
+(Quản lý phòng) --> (Cập nhật trạng thái phòng)
+(Quản lý phòng) --> (Kiểm tra phòng)
+Staff --> (Quản lý đặt phòng của khách)
+(Quản lý đặt phòng của khách) --> (Xác nhận đặt phòng)
+(Quản lý đặt phòng của khách) --> (Hỗ trợ khách hàng)
+Staff --> (Quản lý dịch vụ)
+(Quản lý dịch vụ) --> (Cập nhật dịch vụ)
+Staff --> (Quản lý check-in/check-out)
+(Quản lý check-in/check-out) --> (Xác nhận check-in)
+(Quản lý check-in/check-out) --> (Xác nhận check-out)
+Staff --> (Xem báo cáo công việc)
+
+' Admin Use Cases
+Admin --> (Quản lý người dùng)
+(Quản lý người dùng) --> (Quản lý khách hàng)
+(Quản lý người dùng) --> (Quản lý nhân viên)
+Admin --> (Quản lý phòng)
+(Quản lý phòng) --> (Thêm phòng)
+(Quản lý phòng) --> (Sửa phòng)
+(Quản lý phòng) --> (Xóa phòng)
+Admin --> (Quản lý dịch vụ)
+(Quản lý dịch vụ) --> (Thêm dịch vụ)
+(Quản lý dịch vụ) --> (Sửa dịch vụ)
+(Quản lý dịch vụ) --> (Xóa dịch vụ)
+Admin --> (Quản lý khuyến mãi)
+(Quản lý khuyến mãi) --> (Thêm khuyến mãi)
+(Quản lý khuyến mãi) --> (Sửa khuyến mãi)
+(Quản lý khuyến mãi) --> (Xóa khuyến mãi)
+Admin --> (Quản lý đánh giá)
+(Quản lý đánh giá) --> (Kiểm duyệt đánh giá)
+Admin --> (Quản lý báo cáo, thống kê)
+(Quản lý báo cáo, thống kê) --> (Xem báo cáo doanh thu)
+(Quản lý báo cáo, thống kê) --> (Xem báo cáo hoạt động)
+Admin --> (Quản lý booking, payment)
+(Quản lý booking, payment) --> (Xem tất cả booking)
+(Quản lý booking, payment) --> (Xem tất cả payment)
+Admin --> (Quản lý hệ thống)
+(Quản lý hệ thống) --> (Cấu hình hệ thống)
+(Quản lý hệ thống) --> (Xem logs)
+
+@enduml

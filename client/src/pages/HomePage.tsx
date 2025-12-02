@@ -17,7 +17,6 @@ import {
   serviceService
 } from '../services/api';
 import type { Banner } from '../types/banner';
-import type { Room } from '../types/rooms';
 import type { Service } from '../types/service';
 
 const HomePage: React.FC = () => {
