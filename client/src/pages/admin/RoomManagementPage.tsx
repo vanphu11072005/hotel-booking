@@ -25,15 +25,37 @@ const RoomManagementPage: React.FC = () => {
           const res = await roomService.getRoomTypes?.();
           if (res?.data?.room_types) {
             setRoomTypes(res.data.room_types);
+          } else {
+            // Fallback: 12 loại phòng từ seeder
+            setRoomTypes([
+              { id: 1, name: 'Standard Room' },
+              { id: 2, name: 'Twin Room' },
+              { id: 3, name: 'Deluxe Room' },
+              { id: 4, name: 'Family Room' },
+              { id: 5, name: 'Premium Room' },
+              { id: 6, name: 'Suite' },
+              { id: 7, name: 'Executive Suite' },
+              { id: 8, name: 'Presidential Suite' },
+              { id: 9, name: 'Studio' },
+              { id: 10, name: 'Connecting Room' },
+              { id: 11, name: 'Accessible Room' },
+              { id: 12, name: 'Penthouse' },
+            ]);
           }
         } catch (err) {
-          // Nếu không có API getRoomTypes thì giữ nguyên option cứng
           setRoomTypes([
-            { id: 1, name: 'Phòng Tiêu chuẩn' },
-            { id: 2, name: 'Phòng 2 giường đơn' },
-            { id: 3, name: 'Phòng Cao cấp' },
-            { id: 4, name: 'Phòng Gia đình' },
-            { id: 5, name: 'Phòng Hạng sang' },
+            { id: 1, name: 'Standard Room' },
+            { id: 2, name: 'Twin Room' },
+            { id: 3, name: 'Deluxe Room' },
+            { id: 4, name: 'Family Room' },
+            { id: 5, name: 'Premium Room' },
+            { id: 6, name: 'Suite' },
+            { id: 7, name: 'Executive Suite' },
+            { id: 8, name: 'Presidential Suite' },
+            { id: 9, name: 'Studio' },
+            { id: 10, name: 'Connecting Room' },
+            { id: 11, name: 'Accessible Room' },
+            { id: 12, name: 'Penthouse' },
           ]);
         }
       };
@@ -52,10 +74,6 @@ const RoomManagementPage: React.FC = () => {
     status: 'available' as 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning',
   });
   
-  const [uploadingImages, setUploadingImages] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-
   // Helper function to parse images (handle both string and array)
   const parseImages = (images: any): string[] => {
     if (!images) return [];
@@ -79,13 +97,6 @@ const RoomManagementPage: React.FC = () => {
     fetchRooms();
   }, [filters.search, filters.status, filters.type, currentPage]);
 
-  // Cleanup preview URLs khi component unmount
-  useEffect(() => {
-    return () => {
-      previewUrls.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [previewUrls]);
-
   const fetchRooms = async () => {
     try {
       setLoading(true);
@@ -99,12 +110,7 @@ const RoomManagementPage: React.FC = () => {
         params.type = filters.type;
       }
       const response = await roomService.getRooms(params);
-      console.log('=== ROOM DEBUG ===');
-      console.log('First room:', response.data.rooms[0]);
-      console.log('Room type:', response.data.rooms[0]?.room_type);
-      console.log('Images (room-type):', response.data.rooms[0]?.room_type?.images);
-      console.log('==================');
-      setRooms(response.data.rooms);
+      setRooms(response.data.rooms || []);
       if (response.data.pagination) {
         setTotalPages(response.data.pagination.totalPages);
         setTotalItems(response.data.pagination.total);
@@ -133,21 +139,8 @@ const RoomManagementPage: React.FC = () => {
         newRoomId = editingRoom.id;
       } else {
         // Create room
-        const res = await roomService.createRoom(formData);
+        await roomService.createRoom(formData);
         toast.success('Thêm phòng thành công');
-        newRoomId = res.data?.room?.id;
-      }
-      // Nếu có file ảnh, upload luôn sau khi tạo phòng
-      if (selectedFiles.length > 0 && newRoomId) {
-        const formImg = new FormData();
-        selectedFiles.forEach(file => {
-          formImg.append('images', file);
-        });
-        await apiClient.post(`/rooms/${newRoomId}/images`, formImg, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
       }
       setShowModal(false);
       resetForm();
@@ -161,10 +154,10 @@ const RoomManagementPage: React.FC = () => {
     setEditingRoom(room);
     // Use safe fallbacks for possibly-undefined fields and
     // normalize status to the form's allowed values.
-    const normalizedStatus =
-      room.status === 'available' || room.status === 'occupied' || room.status === 'maintenance'
-        ? room.status
-        : 'maintenance';
+    const validStatuses = ['available', 'occupied', 'maintenance', 'dirty', 'cleaning'];
+    const normalizedStatus = validStatuses.includes(room.status) 
+      ? (room.status as any)
+      : 'available';
 
     setFormData({
       room_number: room.room_number ?? '',
@@ -197,82 +190,6 @@ const RoomManagementPage: React.FC = () => {
       price: 0,
       status: 'available',
     });
-    setSelectedFiles([]);
-    setPreviewUrls([]);
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setSelectedFiles(files);
-      
-      // Tạo preview URLs cho các file đã chọn
-      const urls = files.map(file => URL.createObjectURL(file));
-      setPreviewUrls(urls);
-    }
-  };
-
-  const handleUploadImages = async () => {
-    if (!editingRoom || selectedFiles.length === 0) return;
-
-    try {
-      setUploadingImages(true);
-      const formData = new FormData();
-      selectedFiles.forEach(file => {
-        formData.append('images', file);
-      });
-
-
-      // Upload ảnh, backend sẽ trả về mảng đường dẫn tương đối
-      const uploadRes = await apiClient.post(`/rooms/${editingRoom.id}/images`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      // Nếu backend trả về images, cập nhật lại editingRoom.room_type.images
-      if (uploadRes.data?.data?.images) {
-        // Chuyển tất cả images về đường dẫn tương đối (will refresh later)
-        const fixedImages = uploadRes.data.data.images.map((img: string) =>
-          img.startsWith('http') ? img.replace('http://localhost:3000', '') : img
-        );
-        console.log('Uploaded images (relative):', fixedImages);
-      }
-
-      toast.success('Upload ảnh thành công');
-      setSelectedFiles([]);
-      setPreviewUrls([]);
-      fetchRooms();
-      
-      // Refresh editing room data
-      const response = await roomService.getRoomById(editingRoom.id);
-      setEditingRoom(response.data.room);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể upload ảnh');
-    } finally {
-      setUploadingImages(false);
-    }
-  };
-
-  const handleDeleteImage = async (imageUrl: string) => {
-    // Luôn chuyển về đường dẫn tương đối
-    const relativeUrl = imageUrl.startsWith('http') ? imageUrl.replace('http://localhost:3000', '') : imageUrl;
-    if (!editingRoom) return;
-    if (!window.confirm('Bạn có chắc muốn xóa ảnh này?')) return;
-
-    try {
-      await apiClient.delete(`/rooms/${editingRoom.id}/images`, {
-        data: { imageUrl: relativeUrl },
-      });
-
-      toast.success('Xóa ảnh thành công');
-      fetchRooms();
-      
-      // Refresh editing room data
-      const response = await roomService.getRoomById(editingRoom.id);
-      setEditingRoom(response.data.room);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Không thể xóa ảnh');
-    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -280,6 +197,8 @@ const RoomManagementPage: React.FC = () => {
       available: { bg: 'bg-green-100', text: 'text-green-800', label: 'Trống' },
       occupied: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Đang sử dụng' },
       maintenance: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Bảo trì' },
+      dirty: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cần dọn dẹp' },
+      cleaning: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Đang dọn' },
     };
     const badge = badges[status] || badges.available;
     return (
@@ -335,6 +254,8 @@ const RoomManagementPage: React.FC = () => {
             <option value="available">Trống</option>
             <option value="occupied">Đang sử dụng</option>
             <option value="maintenance">Bảo trì</option>
+            <option value="dirty">Cần dọn dẹp</option>
+            <option value="cleaning">Đang dọn</option>
           </select>
           <select
             value={filters.type}
@@ -559,49 +480,10 @@ const RoomManagementPage: React.FC = () => {
                   <option value="available">Trống</option>
                   <option value="occupied">Đang sử dụng</option>
                   <option value="maintenance">Bảo trì</option>
+                  <option value="dirty">Cần dọn dẹp</option>
+                  <option value="cleaning">Đang dọn</option>
                 </select>
               </div>
-
-              {/* Featured flag is managed on room types now; removed from room form */}
-
-              {/* Thêm mục upload ảnh khi thêm phòng */}
-              {!editingRoom && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thêm ảnh phòng (tối đa 5 ảnh):
-                  </label>
-                  <div className="flex gap-3">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileSelect}
-                      className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
-                  </div>
-                  {selectedFiles.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-sm text-gray-600 mb-2">
-                        {selectedFiles.length} file đã chọn - Preview:
-                      </p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {previewUrls.map((url, index) => (
-                          <div key={index} className="relative">
-                            <img
-                              src={url}
-                              alt={`Preview ${index + 1}`}
-                              className="w-full h-20 object-cover rounded-lg border border-gray-200"
-                            />
-                            <span className="absolute bottom-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded">
-                              {selectedFiles[index].name.substring(0, 15)}...
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
 
               <div className="flex gap-3">
                 <button
@@ -620,121 +502,54 @@ const RoomManagementPage: React.FC = () => {
               </div>
             </form>
 
-            {/* Image Upload Section - Only for editing */}
-            {editingRoom && (
+            {/* Hiển thị ảnh từ room_type - Only for viewing */}
+            {editingRoom && editingRoom.room_type?.images && (
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <ImageIcon className="w-5 h-5" />
-                  Hình ảnh phòng
+                  Hình ảnh loại phòng
                 </h3>
-                
-                {/* Current Images */}
+                <p className="text-sm text-gray-600 mb-3">
+                  Ảnh được quản lý tại trang <strong>Quản lý loại phòng</strong>
+                </p>
                 {(() => {
                   const images = parseImages(editingRoom.room_type?.images);
                   return images.length > 0 ? (
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-600 mb-2">Ảnh hiện tại:</p>
-                      <div className="grid grid-cols-3 gap-3">
-                        {images.map((img, index) => {
-                          // Xử lý đường dẫn - ưu tiên dùng VITE_API_URL nếu có
-                          const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
-                            .replace(/\/api\/?$/i, '')
-                            .replace(/\/$/, '');
-                          
-                          let src = '';
-                          if (img.startsWith('http')) {
-                            // URL đầy đủ
-                            src = img;
-                          } else if (img.startsWith('/uploads/')) {
-                            // Đường dẫn tương đối bắt đầu từ /uploads
-                            src = `${SERVER_URL}${img}`;
-                          } else if (img.startsWith('/')) {
-                            // Đường dẫn tương đối khác
-                            src = `${SERVER_URL}${img}`;
-                          } else {
-                            // Chỉ tên file - room type images stored under room_types
-                            src = `${SERVER_URL}/uploads/room_types/${img}`;
-                          }
-                          
-                          return (
-                            <div key={index} className="relative group">
-                              <img
-                                src={src}
-                                alt={`Room ${index + 1}`}
-                                className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const parent = target.parentElement;
-                                  if (parent && !parent.querySelector('.error-msg')) {
-                                    const errorDiv = document.createElement('div');
-                                    errorDiv.innerText = `Không load được ảnh\n${src}`;
-                                    errorDiv.className = 'error-msg text-xs text-red-500 bg-red-50 p-2 rounded break-all';
-                                    parent.appendChild(errorDiv);
-                                  }
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteImage(img)}
-                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                                title="Xóa ảnh"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ) : null;
-                })()}
-
-                {/* Upload New Images */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Thêm ảnh mới (tối đa 5 ảnh):
-                  </label>
-                  <div className="flex gap-3">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileSelect}
-                      className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleUploadImages}
-                      disabled={selectedFiles.length === 0 || uploadingImages}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      {uploadingImages ? 'Đang tải...' : 'Upload'}
-                    </button>
-                  </div>
-                  {selectedFiles.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-sm text-gray-600 mb-2">
-                        {selectedFiles.length} file đã chọn - Preview:
-                      </p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {previewUrls.map((url, index) => (
+                    <div className="grid grid-cols-3 gap-3">
+                      {images.map((img, index) => {
+                        const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
+                          .replace(/\/api\/?$/i, '')
+                          .replace(/\/$/, '');
+                        
+                        let src = '';
+                        if (img.startsWith('http')) {
+                          src = img;
+                        } else if (img.startsWith('/uploads/')) {
+                          src = `${SERVER_URL}${img}`;
+                        } else if (img.startsWith('/')) {
+                          src = `${SERVER_URL}${img}`;
+                        } else {
+                          src = `${SERVER_URL}/uploads/room_types/${img}`;
+                        }
+                        
+                        return (
                           <div key={index} className="relative">
                             <img
-                              src={url}
-                              alt={`Preview ${index + 1}`}
-                              className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                              src={src}
+                              alt={`Room type ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
                             />
-                            <span className="absolute bottom-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-0.5 rounded">
-                              {selectedFiles[index].name.substring(0, 15)}...
-                            </span>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Chưa có ảnh cho loại phòng này</p>
+                  );
+                })()}
               </div>
             )}
           </div>
