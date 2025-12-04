@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
-import { 
-  BrowserRouter, 
-  Routes, 
-  Route, 
-  Navigate 
+import {
+  Routes,
+  Route,
+  Navigate
 } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -19,45 +18,45 @@ import StaffLayout from './pages/StaffLayout';
 import ScrollToTop from './components/common/ScrollToTop';
 
 // Auth Components
-import { 
-  ProtectedRoute, 
+import {
+  ProtectedRoute,
   AdminRoute,
-  StaffRoute 
+  StaffRoute
 } from './components/auth';
 
 // Pages
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/customer/AboutPage';
 import ServicesPage from './pages/ServicesPage';
-import RoomListPage from 
+import RoomListPage from
   './pages/customer/RoomListPage';
-import RoomDetailPage from 
+import RoomDetailPage from
   './pages/customer/RoomDetailPage';
-import SearchResultsPage from 
+import SearchResultsPage from
   './pages/customer/SearchResultsPage';
-import FavoritesPage from 
+import FavoritesPage from
   './pages/customer/FavoritesPage';
-import MyBookingsPage from 
+import MyBookingsPage from
   './pages/customer/MyBookingsPage';
-import BookingPage from 
+import BookingPage from
   './pages/customer/BookingPage';
-import BookingSuccessPage from 
+import BookingSuccessPage from
   './pages/customer/BookingSuccessPage';
-import BookingDetailPage from 
+import BookingDetailPage from
   './pages/customer/BookingDetailPage';
-import DepositPaymentPage from 
+import DepositPaymentPage from
   './pages/customer/DepositPaymentPage';
-import PaymentConfirmationPage from 
+import PaymentConfirmationPage from
   './pages/customer/PaymentConfirmationPage';
-import PaymentResultPage from 
+import PaymentResultPage from
   './pages/customer/PaymentResultPage';
 import VNPayReturnPage from
   './pages/customer/VNPayReturnPage';
-import { 
-  LoginPage, 
+import {
+  LoginPage,
   RegisterPage,
   ForgotPasswordPage,
-  ResetPasswordPage 
+  ResetPasswordPage
 } from './pages/auth';
 import ProfilePage from './pages/customer/ProfilePage';
 
@@ -98,16 +97,16 @@ const DemoPage: React.FC<{ title: string }> = ({ title }) => (
 
 function App() {
   // Sử dụng Zustand store
-  const { 
-    isAuthenticated, 
-    userInfo, 
-    logout, 
+  const {
+    isAuthenticated,
+    userInfo,
+    logout,
     initializeAuth,
     refreshAuthToken
   } = useAuthStore();
-  
-  const { 
-    fetchFavorites, 
+
+  const {
+    fetchFavorites,
     syncGuestFavorites,
     loadGuestFavorites,
   } = useFavoritesStore();
@@ -142,8 +141,8 @@ function App() {
       loadGuestFavorites();
     }
   }, [
-    isAuthenticated, 
-    fetchFavorites, 
+    isAuthenticated,
+    fetchFavorites,
     syncGuestFavorites,
     loadGuestFavorites,
   ]);
@@ -154,226 +153,119 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
+    <>
       <ScrollToTop />
       <Routes>
         {/* Public Routes with Main Layout */}
-        <Route 
-          path="/" 
-          element={
-            <LayoutMain 
-              isAuthenticated={isAuthenticated}
-              userInfo={userInfo}
-              onLogout={handleLogout}
-            />
-          }
+        <Route path="/" element={
+          <LayoutMain
+            isAuthenticated={isAuthenticated}
+            userInfo={userInfo}
+            onLogout={handleLogout}
+          />
+        }
         >
           <Route index element={<HomePage />} />
-          <Route 
-            path="rooms" 
-            element={<RoomListPage />} 
+          <Route path="rooms" element={<RoomListPage />} />
+          <Route path="rooms/search" element={<SearchResultsPage />} />
+          <Route path="rooms/:id" element={<RoomDetailPage />} />
+          <Route path="favorites" element={<FavoritesPage />} />
+          <Route path="payment-result" element={<PaymentResultPage />} />
+          <Route path="payment/vnpay-return" element={<VNPayReturnPage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="services" element={<ServicesPage />} />
+
+          <Route path="booking/:id" element={
+            <ProtectedRoute>
+              <BookingPage />
+            </ProtectedRoute>
+          }
           />
-          <Route 
-            path="rooms/search" 
-            element={<SearchResultsPage />} 
+          <Route path="/booking-success/:id" element={
+            <ProtectedRoute>
+              <BookingSuccessPage />
+            </ProtectedRoute>
+          }
           />
-          <Route 
-            path="rooms/:id" 
-            element={<RoomDetailPage />} 
+          <Route path="/deposit-payment/:bookingId" element={
+            <ProtectedRoute>
+              <DepositPaymentPage />
+            </ProtectedRoute>
+          }
           />
-          <Route 
-            path="favorites" 
-            element={<FavoritesPage />} 
+          <Route path="bookings" element={
+            <ProtectedRoute>
+              <MyBookingsPage />
+            </ProtectedRoute>
+          }
           />
-          <Route 
-            path="payment-result" 
-            element={<PaymentResultPage />} 
+          <Route path="bookings/:id" element={
+            <ProtectedRoute>
+              <BookingDetailPage />
+            </ProtectedRoute>
+          }
           />
-          <Route 
-            path="payment/vnpay-return" 
-            element={<VNPayReturnPage />} 
+          <Route path="payment/:id" element={
+            <ProtectedRoute>
+              <PaymentConfirmationPage />
+            </ProtectedRoute>
+          }
           />
-          <Route 
-            path="about" 
-            element={<AboutPage />} 
-          />
-          <Route 
-            path="services" 
-            element={<ServicesPage />} 
-          />
-          
-          <Route 
-            path="booking/:id" 
-            element={
-              <ProtectedRoute>
-                <BookingPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/booking-success/:id" 
-            element={
-              <ProtectedRoute>
-                <BookingSuccessPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/deposit-payment/:bookingId" 
-            element={
-              <ProtectedRoute>
-                <DepositPaymentPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="bookings" 
-            element={
-              <ProtectedRoute>
-                <MyBookingsPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="bookings/:id" 
-            element={
-              <ProtectedRoute>
-                <BookingDetailPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="payment/:id" 
-            element={
-              <ProtectedRoute>
-                <PaymentConfirmationPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="profile" 
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            } 
+          <Route path="profile" element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
           />
         </Route>
 
         {/* Auth Routes (no layout) */}
-        <Route 
-          path="/login" 
-          element={<LoginPage />} 
-        />
-        <Route 
-          path="/register" 
-          element={<RegisterPage />} 
-        />
-        <Route 
-          path="/forgot-password" 
-          element={<ForgotPasswordPage />} 
-        />
-        <Route 
-          path="/reset-password/:token" 
-          element={<ResetPasswordPage />} 
-        />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
         {/* Admin Routes - Chỉ admin mới truy cập được */}
-        <Route 
-          path="/admin" 
-          element={
-            <AdminRoute>
-              <AdminLayout />
-            </AdminRoute>
-          }
+        <Route path="/admin" element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }
         >
-          <Route 
-            index 
-            element={<Navigate to="dashboard" replace />} 
-          />
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboardPage />} />
-          <Route 
-            path="users" 
-            element={<UserManagementPage />} 
-          />
-          <Route 
-            path="rooms" 
-            element={<RoomManagementPage />} 
-          />
-          <Route 
-            path="room-types" 
-            element={<RoomTypeManagementPage />} 
-          />
-          <Route 
-            path="services" 
-            element={<ServiceManagementPage />} 
-          />
-          <Route 
-            path="promotions" 
-            element={<PromotionManagementPage />} 
-          />
-          <Route 
-            path="reviews" 
-            element={<ReviewManagementPage />} 
-          />
-          <Route 
-            path="payments" 
-            element={<PaymentManagementPage />} 
-          />
-          <Route 
-            path="banners" 
-            element={<BannerManagementPage />} 
-          />
-          <Route 
-            path="reports" 
-            element={<AdminDashboardPage />} 
-          />
-          <Route 
-            path="settings" 
-            element={<SettingsPage />} 
-          />
+          <Route path="users" element={<UserManagementPage />} />
+          <Route path="rooms" element={<RoomManagementPage />} />
+          <Route path="room-types" element={<RoomTypeManagementPage />} />
+          <Route path="services" element={<ServiceManagementPage />} />
+          <Route path="promotions" element={<PromotionManagementPage />} />
+          <Route path="reviews" element={<ReviewManagementPage />} />
+          <Route path="payments" element={<PaymentManagementPage />} />
+          <Route path="banners" element={<BannerManagementPage />} />
+          <Route path="reports" element={<AdminDashboardPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* Staff Routes - Cho staff và admin */}
-        <Route 
-          path="/staff" 
-          element={
-            <StaffRoute>
-              <StaffLayout />
-            </StaffRoute>
-          }
+        <Route path="/staff" element={
+          <StaffRoute>
+            <StaffLayout />
+          </StaffRoute>
+        }
         >
-          <Route 
-            index 
-            element={<Navigate to="dashboard" replace />} 
-          />
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<StaffDashboard />} />
-          <Route 
-            path="bookings" 
-            element={<StaffBookingPage />} 
-          />
-          <Route 
-            path="check-in" 
-            element={<StaffCheckInPage />} 
-          />
-          <Route 
-            path="check-out" 
-            element={<StaffCheckOutPage />} 
-          />
-          <Route 
-            path="rooms" 
-            element={<StaffRoomPage />} 
-          />
+          <Route path="bookings" element={<StaffBookingPage />} />
+          <Route path="check-in" element={<StaffCheckInPage />} />
+          <Route path="check-out" element={<StaffCheckOutPage />} />
+          <Route path="rooms" element={<StaffRoomPage />} />
         </Route>
 
         {/* 404 Route */}
-        <Route 
-          path="*" 
-          element={<DemoPage title="404 - Không tìm thấy trang" />} 
-        />
+        <Route path="*" element={<DemoPage title="404 - Không tìm thấy trang" />} />
       </Routes>
-      
-      <ToastContainer 
+
+      <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -383,8 +275,10 @@ function App() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
+        theme="colored"
+        limit={3}
       />
-    </BrowserRouter>
+    </>
   );
 }
 

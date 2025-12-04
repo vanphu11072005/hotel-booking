@@ -2,19 +2,10 @@ import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useSearchParams } from 'react-router-dom';
-// no debounce needed when apply-on-submit is used
+import { FilterValues } from '../../types/rooms';
 
 interface RoomFilterProps {
   onFilterChange?: (filters: FilterValues) => void;
-}
-
-export interface FilterValues {
-  type?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  capacity?: number;
-  from?: string;
-  to?: string;
 }
 
 const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
@@ -49,8 +40,6 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
     searchParams.get('to') ? new Date(searchParams.get('to')!) : null
   );
 
-  // no debounce needed — apply on submit
-
   // Sync filters with URL on mount and URL changes
   useEffect(() => {
     const type = searchParams.get('type') || '';
@@ -76,12 +65,20 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
   // Load amenities from API
   useEffect(() => {
     let mounted = true;
-    import('../../services/api/roomService').then((mod) => {
-      mod.getAmenities().then((res) => {
+    
+    const loadAmenities = async () => {
+      try {
+        const mod = await import('../../services/api/roomService');
+        const res = await mod.getAmenities();
         const list = res.data?.amenities || [];
-        if (mounted) setAvailableAmenities(list.slice(0, 8));
-      }).catch(() => {});
-    });
+        if (mounted) setAvailableAmenities(list);
+      } catch (error) {
+        console.error('Tải tiện nghi không thành công:', error);
+      }
+    };
+    
+    loadAmenities();
+    
     return () => {
       mounted = false;
     };

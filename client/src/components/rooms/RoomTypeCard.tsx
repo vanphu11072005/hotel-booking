@@ -31,10 +31,24 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
 
   const PLACEHOLDER = '/images/room-placeholder.jpg';
 
-  // Prefer images from room_type (images moved there)
-  const firstImage = Array.isArray(roomType?.images) && roomType.images.length > 0
-    ? roomType.images[0]
-    : undefined;
+  // Helper to safely parse images
+  const getImages = (imgs: any): string[] => {
+    if (!imgs) return [];
+    if (Array.isArray(imgs)) return imgs;
+    if (typeof imgs === 'string') {
+      try {
+        const parsed = JSON.parse(imgs);
+        if (Array.isArray(parsed)) return parsed;
+        return [imgs];
+      } catch {
+        return [imgs];
+      }
+    }
+    return [];
+  };
+
+  const images = getImages(roomType?.images);
+  const firstImage = images.length > 0 ? images[0] : undefined;
 
   // Final image source resolution
   let imageSrc = PLACEHOLDER;

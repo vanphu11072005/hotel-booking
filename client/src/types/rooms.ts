@@ -18,6 +18,7 @@ export interface Room {
   floor?: number;
   price?: number;
   status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
+  // images moved to RoomType
   created_at?: string;
   updated_at?: string;
   room_type?: RoomType;
@@ -62,8 +63,19 @@ export interface AvailableSearchParams {
   to: string;
   type?: string;
   capacity?: number;
+  minPrice?: number;
+  maxPrice?: number;
   page?: number;
   limit?: number;
+}
+
+export interface FilterValues {
+  type?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  capacity?: number;
+  from?: string;
+  to?: string;
 }
 
 export interface CreateRoomData {
