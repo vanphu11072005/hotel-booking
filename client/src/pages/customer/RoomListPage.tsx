@@ -44,6 +44,7 @@ const RoomListPage: React.FC = () => {
           limit: 12,
           from: searchParams.get('from') || undefined,
           to: searchParams.get('to') || undefined,
+          amenities: searchParams.get('amenities') || undefined,
         };
 
         // If dates are provided, use availability search
@@ -55,6 +56,7 @@ const RoomListPage: React.FC = () => {
             capacity: params.capacity,
             minPrice: params.minPrice,
             maxPrice: params.maxPrice,
+            amenities: params.amenities,
             page: params.page,
             limit: params.limit,
           });
@@ -107,6 +109,48 @@ const RoomListPage: React.FC = () => {
           }
           if (params.maxPrice) {
             types = types.filter((t) => Number(t.base_price || 0) <= params.maxPrice!);
+          }
+          
+          // Apply amenities filter
+          if (params.amenities) {
+            const selectedAmenities = params.amenities
+              .split(',')
+              .map(s => s.trim())
+              .filter(Boolean);
+            
+            console.log('🔍 Selected amenities:', selectedAmenities);
+            console.log('🔍 Total types before filter:', types.length);
+            
+            if (selectedAmenities.length > 0) {
+              types = types.filter((t) => {
+                // Parse amenities - handle both string and array
+                let roomAmenities: string[] = [];
+                if (Array.isArray(t.amenities)) {
+                  roomAmenities = t.amenities;
+                } else if (typeof t.amenities === 'string') {
+                  try {
+                    const parsed = JSON.parse(t.amenities);
+                    roomAmenities = Array.isArray(parsed) ? parsed : [];
+                  } catch {
+                    roomAmenities = [];
+                  }
+                }
+                
+                console.log(`Room ${t.name} amenities:`, roomAmenities);
+                
+                // Check if room has all selected amenities
+                const hasAllAmenities = selectedAmenities.every(amenity => 
+                  roomAmenities.some(ra => 
+                    String(ra).toLowerCase().includes(amenity.toLowerCase())
+                  )
+                );
+                
+                console.log(`Room ${t.name} has all amenities:`, hasAllAmenities);
+                return hasAllAmenities;
+              });
+              
+              console.log('🔍 Total types after filter:', types.length);
+            }
           }
 
           const sliced = types.slice(0, params.limit || 12);
