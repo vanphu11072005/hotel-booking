@@ -23,6 +23,8 @@ class FavoriteRepository {
       'base_price',
       'capacity',
       'amenities',
+      'images',
+      'featured',
       'created_at',
       'updated_at',
     ];

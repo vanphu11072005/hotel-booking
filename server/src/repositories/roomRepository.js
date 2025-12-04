@@ -68,6 +68,26 @@ class RoomRepository {
   }
 
   /**
+   * Tìm room types có phòng available
+   */
+  async findAvailableRoomTypes(roomTypeWhere, roomWhere, limit, offset) {
+    return await RoomType.findAndCountAll({
+      where: roomTypeWhere,
+      include: [
+        {
+          model: Room,
+          as: 'rooms',
+          where: roomWhere,
+          required: true,
+        },
+      ],
+      limit,
+      offset,
+      distinct: true,
+    });
+  }
+
+  /**
    * Tìm room theo ID
    */
   async findRoomById(id) {

@@ -167,7 +167,7 @@ class RoomService {
   }
 
   /**
-   * Tìm phòng có sẵn
+   * Tìm phòng có sẵn (trả về Room Types)
    */
   async searchAvailableRooms(filters) {
     const { from, to, type, capacity, amenities, page = 1, limit = 12 } = filters;
@@ -182,7 +182,7 @@ class RoomService {
     const checkOutDate = this.parseLocalDate(to);
 
     if (checkInDate >= checkOutDate) {
-      const error = new Error('Check-out date must be after check-in date');
+      const error = new Error('Ngày trả phòng phải sau ngày nhận phòng');
       error.statusCode = 400;
       throw error;
     }
@@ -193,11 +193,39 @@ class RoomService {
       roomTypeWhere.name = { [Op.like]: `%${type}%` };
     }
     if (capacity) {
-      // Match room types with capacity greater than or equal to requested
-      roomTypeWhere.capacity = { [Op.gte]: parseInt(capacity) };
+      roomTypeWhere.capacity = parseInt(capacity);
     }
 
-    // Pagination
+    // Add price filter to roomTypeWhere
+    const { minPrice, maxPrice } = filters;
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      roomTypeWhere.base_price = {};
+      if (minPrice !== undefined) {
+        roomTypeWhere.base_price[Op.gte] = parseFloat(minPrice);
+      }
+      if (maxPrice !== undefined) {
+        roomTypeWhere.base_price[Op.lte] = parseFloat(maxPrice);
+      }
+    }
+
+    // Add amenities filter to roomTypeWhere
+    if (amenities) {
+      const amenitiesArr = String(amenities)
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      
+      if (amenitiesArr.length > 0) {
+        // Assuming amenities are stored as JSON array in room_types table
+        // We use Op.and to ensure all requested amenities are present
+        // Note: This depends on how amenities are stored and queried. 
+        // If stored as JSON string, we might need multiple LIKE clauses.
+        roomTypeWhere[Op.and] = amenitiesArr.map((a) => ({
+          amenities: { [Op.like]: `%${a}%` },
+        }));
+      }
+    }
+
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 12;
     const offset = (pageNum - 1) * limitNum;
@@ -205,38 +233,71 @@ class RoomService {
     // Build where clause for available rooms
     const whereClause = { status: 'available' };
     
-    // Add amenities filter
-    if (amenities) {
-      const roomWhereWithAmenities = roomRepository.buildRoomWhereClause({ amenities });
-      if (roomWhereWithAmenities[Op.and]) {
-        whereClause[Op.and] = roomWhereWithAmenities[Op.and];
-      }
-    }
-
-    // Get available rooms
-    const order = [
-      [{ model: require('../databases/models').RoomType, as: 'room_type' }, 'featured', 'DESC'],
-      ['created_at', 'DESC'],
-    ];
-    const { count, rows: availableRooms } = await roomRepository.findAllRooms(
-      whereClause,
+    // Get room types that have at least one room with status 'available'
+    const { count, rows: availableRoomTypes } = await roomRepository.findAvailableRoomTypes(
       roomTypeWhere,
+      whereClause,
       limitNum,
-      offset,
-      order
+      offset
     );
 
-    // Get ratings for available rooms
-    const roomsWithRatings = await this.addRatingsToRooms(availableRooms);
+    // Compute available count per type for the selected date range
+    const typesWithAvailability = await Promise.all(
+      availableRoomTypes.map(async (rt) => {
+        const obj = rt.toJSON ? rt.toJSON() : { ...rt };
+
+        // Fetch all rooms of this type that are currently 'available'
+        const allRooms = await roomRepository.findRoomsByTypeAvailable(rt.id, {});
+
+        // If no dates provided (shouldn't happen due to validation), use length
+        if (!from || !to) {
+          obj.available_count = allRooms.length;
+        } else {
+          // Get booked room IDs overlapping the date range
+          const bookedIds = await roomRepository.findBookedRoomIdsByTypeInRange(
+            rt.id,
+            checkInDate,
+            checkOutDate,
+            null
+          );
+          const availableRooms = allRooms.filter((r) => !bookedIds.includes(r.id));
+          obj.available_count = availableRooms.length;
+        }
+
+        // Attach review stats
+        const stats = await roomRepository.getReviewStatsByRoomType(rt.id);
+        obj.average_rating = stats?.average_rating
+          ? Math.round(parseFloat(stats.average_rating) * 10) / 10
+          : null;
+        obj.total_reviews = stats?.total_reviews
+          ? parseInt(stats.total_reviews, 10)
+          : 0;
+
+        // Normalize capacity to a number to avoid UI showing wrong values
+        obj.capacity = Number(
+          obj.capacity !== undefined ? obj.capacity : (rt.capacity ?? 0)
+        );
+
+        return obj;
+      })
+    );
+
+    // Filter out room types that have zero availability in the selected range
+    const filteredTypes = typesWithAvailability.filter(
+      (rt) => (rt.available_count ?? 0) > 0
+    );
+
+    // Adjust pagination totals to reflect filtered results
+    const totalFiltered = filteredTypes.length;
 
     return {
-      rooms: roomsWithRatings,
+      rooms: filteredTypes,
       search: { from, to, type, capacity },
       pagination: {
-        total: count,
+        total: totalFiltered,
         page: pageNum,
         limit: limitNum,
-        totalPages: Math.ceil(count / limitNum),
+        totalPages: Math.max(1, Math.ceil(totalFiltered / limitNum)),
       },
     };
   }
@@ -439,29 +500,34 @@ class RoomService {
    * Format room với normalized images
    */
   formatRoomImages(room, baseUrl) {
-    const formatted = { ...room };
+    const formatted = room.toJSON ? room.toJSON() : { ...room };
     try {
-      // normalize images and keep them on room_type only (do not add top-level `images`)
-      const imgs = (formatted.room_type && formatted.room_type.images) || formatted.images;
-      const normalized = this.normalizeImages(imgs, baseUrl);
       if (formatted.room_type) {
+        // It is a Room object
+        const imgs = formatted.room_type.images;
+        const normalized = this.normalizeImages(imgs, baseUrl);
+        
         // ensure room_type is a plain object we can mutate
         const rt = formatted.room_type.toJSON ? formatted.room_type.toJSON() : { ...formatted.room_type };
         rt.images = normalized;
         formatted.room_type = rt;
-      }
-      // remove any accidental top-level images to respect types
-      if (Object.prototype.hasOwnProperty.call(formatted, 'images')) {
-        delete formatted.images;
+        
+        // remove any accidental top-level images to respect types
+        if (Object.prototype.hasOwnProperty.call(formatted, 'images')) {
+          delete formatted.images;
+        }
+      } else {
+        // It is likely a RoomType object (or Room without room_type loaded)
+        if (formatted.images) {
+          formatted.images = this.normalizeImages(formatted.images, baseUrl);
+        }
       }
     } catch (e) {
+      // Fallback
       if (formatted.room_type) {
         const rt = formatted.room_type.toJSON ? formatted.room_type.toJSON() : { ...formatted.room_type };
         rt.images = [];
         formatted.room_type = rt;
-      }
-      if (Object.prototype.hasOwnProperty.call(formatted, 'images')) {
-        delete formatted.images;
       }
     }
     return formatted;
