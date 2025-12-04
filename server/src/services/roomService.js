@@ -215,16 +215,16 @@ class RoomService {
         .map((s) => s.trim())
         .filter(Boolean);
       
+      console.log('🔍 Filtering by amenities:', amenitiesArr);
+      
       if (amenitiesArr.length > 0) {
-        // Assuming amenities are stored as JSON array in room_types table
-        // We use Op.and to ensure all requested amenities are present
-        // Note: This depends on how amenities are stored and queried. 
-        // If stored as JSON string, we might need multiple LIKE clauses.
         roomTypeWhere[Op.and] = amenitiesArr.map((a) => ({
           amenities: { [Op.like]: `%${a}%` },
         }));
       }
     }
+
+    console.log('🔍 Room type WHERE clause:', JSON.stringify(roomTypeWhere, null, 2));
 
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 12;
@@ -292,7 +292,7 @@ class RoomService {
 
     return {
       rooms: filteredTypes,
-      search: { from, to, type, capacity },
+      search: { from, to, type, capacity, amenities },
       pagination: {
         total: totalFiltered,
         page: pageNum,

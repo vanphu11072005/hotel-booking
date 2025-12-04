@@ -65,6 +65,7 @@ export interface AvailableSearchParams {
   capacity?: number;
   minPrice?: number;
   maxPrice?: number;
+  amenities?: string;
   page?: number;
   limit?: number;
 }
@@ -76,6 +77,7 @@ export interface FilterValues {
   capacity?: number;
   from?: string;
   to?: string;
+  amenities?: string;
 }
 
 export interface CreateRoomData {
