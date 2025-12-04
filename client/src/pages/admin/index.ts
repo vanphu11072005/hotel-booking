@@ -1,5 +1,6 @@
 export { default as DashboardPage } from './DashboardPage';
 export { default as RoomManagementPage } from './RoomManagementPage';
+export { default as RoomTypeManagementPage } from './RoomTypeManagementPage';
 export { default as UserManagementPage } from './UserManagementPage';
 export { default as ServiceManagementPage } from './ServiceManagementPage';
 export { default as ReviewManagementPage } from './ReviewManagementPage';

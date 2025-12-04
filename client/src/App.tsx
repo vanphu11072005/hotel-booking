@@ -64,6 +64,7 @@ import ProfilePage from './pages/customer/ProfilePage';
 import {
   DashboardPage as AdminDashboardPage,
   RoomManagementPage,
+  RoomTypeManagementPage,
   UserManagementPage,
   ServiceManagementPage,
   ReviewManagementPage,
@@ -235,6 +236,7 @@ function App() {
           <Route path="dashboard" element={<AdminDashboardPage />} />
           <Route path="users" element={<UserManagementPage />} />
           <Route path="rooms" element={<RoomManagementPage />} />
+          <Route path="room-types" element={<RoomTypeManagementPage />} />
           <Route path="services" element={<ServiceManagementPage />} />
           <Route path="promotions" element={<PromotionManagementPage />} />
           <Route path="reviews" element={<ReviewManagementPage />} />

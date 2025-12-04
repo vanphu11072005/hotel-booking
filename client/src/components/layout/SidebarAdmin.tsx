@@ -57,6 +57,11 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({
       label: 'Phòng' 
     },
     { 
+      path: '/admin/room-types', 
+      icon: Hotel, 
+      label: 'Loại phòng' 
+    },
+    { 
       path: '/admin/services', 
       icon: Settings, 
       label: 'Dịch vụ' 

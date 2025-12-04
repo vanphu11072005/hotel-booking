@@ -20,6 +20,7 @@ const favoriteRoutes = require('./routes/favoriteRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const promotionRoutes = require('./routes/promotionRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const roomTypeRoutes = require('./routes/roomTypeRoutes');
 
 // Import middleware
 const errorHandler = require('./middlewares/errorHandler');
@@ -94,6 +95,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/rooms', roomRoutes);
+app.use('/api/room-types', roomTypeRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/banners', bannerRoutes);
