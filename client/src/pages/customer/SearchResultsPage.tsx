@@ -273,8 +273,12 @@ const SearchResultsPage: React.FC = () => {
                     md:grid-cols-2 lg:grid-cols-3 
                     gap-6"
                 >
-                  {rooms.map((room) => (
-                    <RoomTypeCard key={room.id} room={room} />
+                  {rooms.map((item: any) => (
+                    <RoomTypeCard 
+                      key={item.id} 
+                      room={item.room_type ? item : undefined}
+                      roomType={!item.room_type ? item : undefined}
+                    />
                   ))}
                 </div>
 
