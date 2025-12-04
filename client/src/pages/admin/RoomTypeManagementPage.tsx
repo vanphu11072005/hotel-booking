@@ -5,7 +5,6 @@ import { Plus, Search, Edit, Trash2, X, Image as ImageIcon, Upload } from 'lucid
 import Pagination from '../../components/common/Pagination';
 import apiClient from '../../services/api/apiClient';
 import useRoomTypeStore, { RoomType } from '../../store/useRoomTypeStore';
-import { RoomTypeData } from '../../services/api/roomTypeService';
 
 const initialForm: RoomType = {
   name: '',

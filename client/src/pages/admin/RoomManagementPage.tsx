@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Edit, Trash2, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Image as ImageIcon } from 'lucide-react';
 import { roomService } from '../../services/api';
 import type { Room } from '../../types/rooms';
 import { toast } from 'react-toastify';
 import Loading from '../../components/common/Loading';
 import Pagination from '../../components/common/Pagination';
-import apiClient from '../../services/api/apiClient';
 
 const RoomManagementPage: React.FC = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -131,12 +130,10 @@ const RoomManagementPage: React.FC = () => {
       return;
     }
     try {
-      let newRoomId = null;
       if (editingRoom) {
         // Update room
         await roomService.updateRoom(editingRoom.id, formData);
         toast.success('Cập nhật phòng thành công');
-        newRoomId = editingRoom.id;
       } else {
         // Create room
         await roomService.createRoom(formData);
