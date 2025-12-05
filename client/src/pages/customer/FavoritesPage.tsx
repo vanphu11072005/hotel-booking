@@ -35,24 +35,24 @@ const FavoritesPage: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div 
-            className="bg-yellow-50 border 
-              border-yellow-200 rounded-lg 
+            className="bg-yellow-50 dark:bg-yellow-900/20 border 
+              border-yellow-200 dark:border-yellow-700 rounded-lg 
               p-8 text-center"
           >
             <AlertCircle 
-              className="w-12 h-12 text-yellow-500 
+              className="w-12 h-12 text-yellow-500 dark:text-yellow-300
                 mx-auto mb-3" 
             />
             <h3 
               className="text-xl font-bold 
-                text-gray-900 mb-2"
+                text-gray-900 dark:text-gray-100 mb-2"
             >
               Vui lòng đăng nhập
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Bạn cần đăng nhập để xem danh sách yêu thích
             </p>
             <Link
@@ -71,7 +71,7 @@ const FavoritesPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -85,15 +85,15 @@ const FavoritesPage: React.FC = () => {
             <span>Quay lại trang chủ</span>
           </Link>
 
-          <div className="flex items-center gap-3">
-            <div>
+          <div className="flex items-center justify-center">
+            <div className="text-center">
               <h1 
                 className="text-3xl font-bold 
-                  text-gray-900"
+                  text-gray-900 dark:text-gray-100"
               >
                 Danh sách yêu thích
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
                 {favorites.length > 0
                   ? `${favorites.length} phòng`
                   : 'Chưa có phòng yêu thích'}
@@ -117,14 +117,14 @@ const FavoritesPage: React.FC = () => {
         {/* Error State */}
         {error && !isLoading && (
           <div 
-            className="bg-red-50 border border-red-200 
+            className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700
               rounded-lg p-8 text-center"
           >
             <AlertCircle 
-              className="w-12 h-12 text-red-500 
+              className="w-12 h-12 text-red-500 dark:text-red-300
                 mx-auto mb-3" 
             />
-            <p className="text-red-700 font-medium mb-4">
+            <p className="text-red-700 dark:text-red-300 font-medium mb-4">
               {error}
             </p>
             <button
@@ -143,28 +143,28 @@ const FavoritesPage: React.FC = () => {
           !error && 
           favorites.length === 0 && (
           <div 
-            className="bg-white rounded-lg shadow-sm 
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm 
               p-12 text-center"
           >
             <div 
-              className="w-24 h-24 bg-gray-100 
+              className="w-24 h-24 bg-gray-100 dark:bg-gray-700 
                 rounded-full flex items-center 
                 justify-center mx-auto mb-6"
             >
               <Heart 
-                className="w-12 h-12 text-gray-400" 
+                className="w-12 h-12 text-gray-400 dark:text-gray-300" 
               />
             </div>
             
             <h3 
               className="text-2xl font-bold 
-                text-gray-900 mb-3"
+                text-gray-900 dark:text-gray-100 mb-3"
             >
               Chưa có phòng yêu thích
             </h3>
             
             <p 
-              className="text-gray-600 mb-6 
+              className="text-gray-600 dark:text-gray-300 mb-6 
                 max-w-md mx-auto"
             >
               Bạn chưa thêm phòng nào vào danh sách 

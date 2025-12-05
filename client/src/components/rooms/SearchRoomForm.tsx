@@ -4,6 +4,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { Search } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 interface SearchRoomFormProps {
   className?: string;
@@ -12,6 +13,7 @@ interface SearchRoomFormProps {
 const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
   className = '',
 }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [checkInDate, setCheckInDate] = useState<Date | null>(null);
   const [checkOutDate, setCheckOutDate] = useState<Date | null>(null);
@@ -28,12 +30,12 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
 
     // Validation
     if (!checkInDate) {
-      toast.error('Vui lòng chọn ngày nhận phòng');
+      toast.error(t('search.errorCheckIn'));
       return;
     }
 
     if (!checkOutDate) {
-      toast.error('Vui lòng chọn ngày trả phòng');
+      toast.error(t('search.errorCheckOut'));
       return;
     }
 
@@ -42,17 +44,13 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
     checkInStart.setHours(0, 0, 0, 0);
     
     if (checkInStart < today) {
-      toast.error(
-        'Ngày nhận phòng không thể là ngày trong quá khứ'
-      );
+      toast.error(t('search.errorPastDate'));
       return;
     }
 
     // Check if check-out is after check-in
     if (checkOutDate <= checkInDate) {
-      toast.error(
-        'Ngày trả phòng phải sau ngày nhận phòng'
-      );
+      toast.error(t('search.errorDateOrder'));
       return;
     }
 
@@ -85,17 +83,17 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
   };
 
   return (
-    <div className={`w-full bg-gray-100 border border-gray-200 rounded-lg shadow-sm p-4 ${className}`}>
+    <div className={`w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 ${className}`}>
       <div className="flex items-center justify-center gap-3 mb-6">
-        <h3 className="text-xl font-bold text-gray-900">
-          Tìm phòng trống
+        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          {t('search.title')}
         </h3>
       </div>
 
       <form onSubmit={handleSearch}>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
           <div className="md:col-span-3">
-            <label className="sr-only">Ngày nhận phòng</label>
+            <label className="sr-only">{t('search.checkInDate')}</label>
             <DatePicker
               selected={checkInDate}
               onChange={(date) => setCheckInDate(date)}
@@ -103,7 +101,7 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
               startDate={checkInDate}
               endDate={checkOutDate}
               minDate={today}
-              placeholderText="Ngày nhận phòng"
+              placeholderText={t('search.checkInDate')}
               dateFormat="dd/MM"
               popperPlacement="bottom-start"
               popperClassName="shadow-lg z-50"
@@ -112,12 +110,12 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
                 { name: 'flip', options: { fallbackPlacements: [] } }
               ] as any}
               withPortal
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
             />
           </div>
 
           <div className="md:col-span-3">
-            <label className="sr-only">Ngày trả phòng</label>
+            <label className="sr-only">{t('search.checkOutDate')}</label>
             <DatePicker
               selected={checkOutDate}
               onChange={(date) => setCheckOutDate(date)}
@@ -125,7 +123,7 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
               startDate={checkInDate}
               endDate={checkOutDate}
               minDate={checkInDate || today}
-              placeholderText="Ngày trả phòng"
+              placeholderText={t('search.checkOutDate')}
               dateFormat="dd/MM"
               popperPlacement="bottom-start"
               popperClassName="shadow-lg z-50"
@@ -134,18 +132,18 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
                 { name: 'flip', options: { fallbackPlacements: [] } }
               ] as any}
               withPortal
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="sr-only">Loại phòng</label>
+            <label className="sr-only">{t('search.roomType')}</label>
             <select
               value={roomType}
               onChange={(e) => setRoomType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
-              <option value="">Tất cả phòng</option>
+              <option value="">{t('search.allRooms')}</option>
               <option value="Standard Room">Standard Room</option>
               <option value="Superior Room">Superior Room</option>
               <option value="Deluxe Room">Deluxe Room</option>
@@ -161,14 +159,14 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
           </div>
 
           <div className="md:col-span-2">
-            <label className="sr-only">Số khách</label>
+            <label className="sr-only">{t('search.guestCount')}</label>
             <select
               value={guestCount}
               onChange={(e) => setGuestCount(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               {Array.from({ length: 6 }, (_, i) => i + 1).map((v) => (
-                <option key={v} value={v}>{v} khách</option>
+                <option key={v} value={v}>{v} {t('search.guests')}</option>
               ))}
             </select>
           </div>
@@ -176,11 +174,11 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
             <button
               type="submit"
               disabled={isSearching}
-              className="w-full bg-indigo-600 text-white px-3 py-2 rounded-md text-sm hover:bg-indigo-700 disabled:bg-gray-400"
+              className="w-full bg-indigo-600 dark:bg-indigo-700 text-white px-3 py-2 rounded-md text-sm hover:bg-indigo-700 dark:hover:bg-indigo-800 disabled:bg-gray-400 dark:disabled:bg-gray-600"
             >
               <span className="inline-flex items-center gap-2 justify-center w-full">
                 <Search className="w-4 h-4" />
-                {isSearching ? 'Đang tìm...' : 'Tìm phòng'}
+                {isSearching ? t('search.searching') : t('search.searchButton')}
               </span>
             </button>
           </div>

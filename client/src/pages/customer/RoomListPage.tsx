@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useRoomStore from '../../store/useRoomStore';
 import type { Room, RoomType } from '../../types/rooms';
 import RoomFilter from '../../components/rooms/RoomFilter';
@@ -10,6 +11,7 @@ import { ArrowLeft } from 'lucide-react';
 
 const RoomListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation();
   const { fetchRooms, fetchRoomTypes, searchAvailable, isLoading, error: storeError } = useRoomStore();
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [representativeRooms, setRepresentativeRooms] = useState<Record<number, Room | null>>({});
@@ -184,7 +186,7 @@ const RoomListPage: React.FC = () => {
         }
       } catch (err) {
         console.error('Error fetching rooms:', err);
-        setError('Không thể tải danh sách phòng. Vui lòng thử lại.');
+        setError(t('rooms.errorLoading'));
       }
     };
 
@@ -192,7 +194,7 @@ const RoomListPage: React.FC = () => {
   }, [searchParams, searchAvailable, fetchRoomTypes]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Back Button */}
         <Link
@@ -202,12 +204,12 @@ const RoomListPage: React.FC = () => {
             disabled:bg-gray-400 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
-          <span>Quay lại trang chủ</span>
+          <span>{t('common.backToHome')}</span>
         </Link>
 
         <div className="mb-10">
-          <h1 className="text-3xl text-center font-bold text-gray-900">
-            Danh sách phòng
+          <h1 className="text-3xl text-center font-bold text-gray-900 dark:text-gray-100">
+            {t('rooms.title')}
           </h1>
         </div>
 
@@ -230,11 +232,11 @@ const RoomListPage: React.FC = () => {
             )}
 
             {(error || storeError) && !isLoading && (
-              <div className="bg-red-50 border border-red-200 
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700
                 rounded-lg p-6 text-center"
               >
                 <svg
-                  className="w-12 h-12 text-red-400 mx-auto mb-4"
+                  className="w-12 h-12 text-red-400 dark:text-red-300 mx-auto mb-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -247,20 +249,20 @@ const RoomListPage: React.FC = () => {
                       9 9 0 0118 0z"
                   />
                 </svg>
-                <p className="text-red-800 font-medium">{error || storeError}</p>
+                <p className="text-red-800 dark:text-red-300 font-medium">{error || storeError}</p>
                 <button
                   onClick={() => window.location.reload()}
                   className="mt-4 px-4 py-2 bg-red-600 
                     text-white rounded-lg hover:bg-red-700 
                     transition-colors"
                 >
-                  Thử lại
+                  {t('common.tryAgain')}
                 </button>
               </div>
             )}
 
             {!isLoading && !error && !storeError && roomTypes.length === 0 && (
-              <div className="bg-white rounded-lg shadow-md 
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md 
                 p-12 text-center"
               >
                 <svg
@@ -279,19 +281,19 @@ const RoomListPage: React.FC = () => {
                   />
                 </svg>
                 <h3 className="text-xl font-semibold 
-                  text-gray-800 mb-2"
+                  text-gray-800 dark:text-gray-100 mb-2"
                 >
-                  Không tìm thấy phòng phù hợp
+                  {t('common.noResults')}
                 </h3>
-                <p className="text-gray-600 mb-6">
-                  Vui lòng thử điều chỉnh bộ lọc hoặc tìm kiếm khác
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  {t('common.noResultsDesc')}
                 </p>
                 <button
                   onClick={() => window.location.href = '/rooms'}
                   className="px-6 py-2 bg-blue-600 text-white 
                     rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Xóa bộ lọc
+                  {t('common.clearFilters')}
                 </button>
               </div>
             )}
