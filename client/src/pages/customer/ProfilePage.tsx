@@ -180,10 +180,11 @@ const ProfilePage: React.FC = () => {
   if (loading) return <Loading fullScreen text="Đang tải hồ sơ..." />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-pink-50 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-pink-50
+      dark:bg-none dark:bg-gray-900 py-12">
       <div className="max-w-5xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Hồ sơ của tôi</h1>
+          <h1 className="text-2xl font-bold dark:text-gray-100">Hồ sơ của tôi</h1>
           <button
             type="button"
             onClick={() => navigate('/bookings')}
@@ -195,7 +196,8 @@ const ProfilePage: React.FC = () => {
 
         <div className="grid grid-cols-1 gap-6">
           {/* Single card: Avatar + Profile Form (merged) */}
-          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-gray-100">
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-gray-100
+            dark:bg-gray-800/80 dark:border-gray-700">
             <div className="flex flex-col items-center mb-4">
               <div
                 role="button"
@@ -232,17 +234,18 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
               <div className="text-center">
-                <div className="font-semibold text-lg">{userInfo?.name}</div>
-                <div className="text-sm text-gray-500">{userInfo?.email}</div>
+                <div className="font-semibold text-lg dark:text-gray-100">{userInfo?.name}</div>
+                <div className="text-sm text-gray-500 dark:text-gray-300">{userInfo?.email}</div>
               </div>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Họ và tên</label>
+                <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">Họ và tên</label>
                 <input
                   {...register('fullName')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none
+                    focus:ring-2 focus:ring-indigo-300 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 />
                 {errors.fullName && (
                   <p className="text-sm text-red-600">{errors.fullName.message}</p>
@@ -250,11 +253,12 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Email</label>
+                <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">Email</label>
                 <input
                   {...register('email')}
                   disabled
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 shadow-sm"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 shadow-sm
+                    dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 />
                 {errors.email && (
                   <p className="text-sm text-red-600">{errors.email.message}</p>
@@ -262,10 +266,11 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Số điện thoại</label>
+                <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">Số điện thoại</label>
                 <input
                   {...register('phone')}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg shadow-sm focus:outline-none
+                    focus:ring-2 focus:ring-indigo-300 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 />
                 {errors.phone && (
                   <p className="text-sm text-red-600">{errors.phone.message}</p>
@@ -292,7 +297,7 @@ const ProfilePage: React.FC = () => {
                       });
                     }
                   }}
-                  className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
+                  className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-100"
                 >
                   Hủy
                 </button>
@@ -302,10 +307,11 @@ const ProfilePage: React.FC = () => {
         </div>
         {/* Bookings: move below grid */}
         <div className="mt-6">
-          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-gray-100">
-            <h4 className="font-semibold mb-3 text-gray-800">Đặt phòng gần đây</h4>
+          <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-gray-100
+            dark:bg-gray-800/80 dark:border-gray-700">
+            <h4 className="font-semibold mb-3 text-gray-800 dark:text-gray-100">Đặt phòng gần đây</h4>
             {bookings.length === 0 ? (
-              <p className="text-sm text-gray-500">Bạn chưa có đặt phòng nào.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-300">Bạn chưa có đặt phòng nào.</p>
             ) : (
               <div className="space-y-3">
                 {bookings.slice(0, 6).map((b) => (
@@ -315,16 +321,16 @@ const ProfilePage: React.FC = () => {
                     tabIndex={0}
                     onClick={() => navigate(`/bookings/${b.id}`)}
                     onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/bookings/${b.id}`); }}
-                    className="bg-white rounded-xl p-3 shadow hover:shadow-lg transition cursor-pointer hover:bg-gray-50"
+                    className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow hover:shadow-lg transition cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="font-medium text-gray-800">{b.booking_number}</div>
-                        <div className="text-xs text-gray-400">{new Date((b as any).created_at ?? (b as any).createdAt).toLocaleDateString()}</div>
+                        <div className="font-medium text-gray-800 dark:text-gray-100">{b.booking_number}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-400">{new Date((b as any).created_at ?? (b as any).createdAt).toLocaleDateString()}</div>
                       </div>
-                      <div className="text-sm font-semibold text-indigo-600 uppercase bg-indigo-50 px-3 py-1 rounded-full">{b.status}</div>
+                      <div className="text-sm font-semibold text-indigo-600 dark:text-indigo-300 uppercase bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full">{b.status}</div>
                     </div>
-                    <div className="text-sm text-gray-600 mt-2">Tổng: <span className="font-bold text-gray-900">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(b.total_price)}</span></div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300 mt-2">Tổng: <span className="font-bold text-gray-900 dark:text-gray-100">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(b.total_price)}</span></div>
                   </div>
                 ))}
               </div>

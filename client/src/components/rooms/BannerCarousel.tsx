@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Banner } from '../../types/banner';
+import { useTranslation } from 'react-i18next';
 
 interface BannerCarouselProps {
   banners: Banner[];
@@ -9,6 +10,7 @@ interface BannerCarouselProps {
 const BannerCarousel: React.FC<BannerCarouselProps> = ({ 
   banners 
 }) => {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   // Derived values and handlers computed before JSX
@@ -40,9 +42,9 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
   }
 
   const altText = currentBanner?.title ??
-    'Chào mừng đến với Hotel Booking';
+    t('banner.welcome');
   const titleText = currentBanner?.title ??
-    'Chào mừng đến với Hotel Booking';
+    t('banner.welcome');
   const showNav = hasBanners && displayBanners.length > 1;
   const showDots = hasBanners && displayBanners.length > 1;
 
@@ -125,7 +127,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
               -translate-y-1/2 bg-white/80 
               hover:bg-white text-gray-800 p-2 
               rounded-full shadow-lg transition-all"
-            aria-label="Previous banner"
+            aria-label={t('banner.previousBanner')}
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -136,7 +138,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
               -translate-y-1/2 bg-white/80 
               hover:bg-white text-gray-800 p-2 
               rounded-full shadow-lg transition-all"
-            aria-label="Next banner"
+            aria-label={t('banner.nextBanner')}
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -160,7 +162,7 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
                     ? 'bg-white w-8'
                     : 'bg-white/50 hover:bg-white/75'
                 }`}
-              aria-label={`Go to banner ${index + 1}`}
+              aria-label={`${t('banner.goToSlide')} ${index + 1}`}
             />
           ))}
         </div>

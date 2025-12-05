@@ -99,13 +99,13 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
 
   return (
     <div 
-      className="bg-white rounded-lg shadow-md 
-        overflow-hidden hover:shadow-xl 
+      className="bg-white dark:bg-gray-800 rounded-lg shadow-md 
+        overflow-hidden hover:shadow-xl dark:hover:shadow-lg
         transition-shadow duration-300 group"
     >
       {/* Image */}
       <div className="relative h-48 overflow-hidden 
-        bg-gray-200"
+        bg-gray-200 dark:bg-gray-700"
       >
         <img
           src={imageSrc}
@@ -145,18 +145,18 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
       {/* Content */}
       <div className="p-5">
         {/* Room Type Name */}
-        <h3 className="text-xl font-bold text-gray-900 mb-2">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
           {roomType.name}
         </h3>
 
         {/* Description (truncated) */}
-        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">
           {roomType.description}
         </p>
 
         {/* Capacity & Rating */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center text-gray-700">
+          <div className="flex items-center text-gray-700 dark:text-gray-300">
             <Users className="w-4 h-4 mr-1" />
             <span className="text-sm">
               {roomType.capacity} người
@@ -168,15 +168,15 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
             const total = room?.total_reviews ?? roomType.total_reviews ?? 0;
             if (avg == null) return null;
             return (
-              <div className="flex items-center">
+                <div className="flex items-center">
                 <Star
                   className="w-4 h-4 text-yellow-500 mr-1"
                   fill="currentColor"
                 />
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {Number(avg).toFixed(1)}
                 </span>
-                <span className="text-xs text-gray-500 ml-1">({Number(total)})</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">({Number(total)})</span>
               </div>
             );
           })()}
@@ -189,7 +189,7 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
               <div
                 key={index}
                 className="flex items-center gap-1 
-                  text-gray-600 text-xs bg-gray-100 
+                  text-gray-600 dark:text-gray-300 text-xs bg-gray-100 dark:bg-gray-700
                   px-2 py-1 rounded"
                 title={amenity}
               >
@@ -201,7 +201,7 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
         )}
 
         {/* Price & Action */}
-        <div className="flex items-center justify-between pt-3 border-t">
+        <div className="flex items-center justify-between pt-3 border-t dark:border-gray-700">
           <div>
             <p className="text-xs text-gray-500">Giá từ</p>
             <p className="text-xl font-bold text-indigo-600">

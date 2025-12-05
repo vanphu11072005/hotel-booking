@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   ArrowRight,
   AlertCircle,
@@ -25,6 +26,7 @@ import useBannerStore from '../store/useBannerStore';
 import useServiceStore from '../store/useServiceStore';
 
 const HomePage: React.FC = () => {
+  const { t } = useTranslation();
   const { banners, fetchBannersByPosition, isLoading: isLoadingBanners } = useBannerStore();
   const [featuredRoomTypes, setFeaturedRoomTypes] = useState<any[]>([]);
   const [newestRoomTypes, setNewestRoomTypes] = useState<any[]>([]);
@@ -77,7 +79,8 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br 
-      from-indigo-50 via-white to-purple-50">
+      from-indigo-50 via-white to-purple-50 
+      dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
       {/* Banner Section */}
       <section className="container mx-auto px-4 pb-8">
         {isLoadingBanners ? (
@@ -93,7 +96,8 @@ const HomePage: React.FC = () => {
       >
         <div 
           className="bg-gradient-to-r from-indigo-600 
-            to-purple-600 rounded-2xl shadow-2xl p-8 
+            to-purple-600 dark:from-indigo-700 
+            dark:to-purple-700 rounded-2xl shadow-2xl p-8 
             relative overflow-hidden"
         >
           {/* Decorative Elements */}
@@ -115,7 +119,11 @@ const HomePage: React.FC = () => {
       </section>
 
       {/* Featured Room Types Section */}
-      <section className="container mx-auto px-4 py-12">
+      <section 
+        className="container mx-auto px-4 py-12 
+          bg-gradient-to-br from-indigo-50 to-purple-50 
+          rounded-3xl dark:from-indigo-900 dark:to-purple-900"
+      >
         {/* Section Header with Gradient */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -128,11 +136,11 @@ const HomePage: React.FC = () => {
               <h2 
                 className="text-4xl font-bold 
                   bg-gradient-to-r from-indigo-600 
-                  to-purple-600 bg-clip-text 
-                  text-transparent 
-                  leading-tight pb-1"
+                  to-purple-600 dark:from-indigo-400 
+                  dark:to-purple-400 bg-clip-text 
+                  text-transparent leading-tight pb-1"
               >
-                Phòng nổi bật
+                {t('home.featuredRooms')}
               </h2>
             </div>
           </div>
@@ -143,7 +151,7 @@ const HomePage: React.FC = () => {
               text-indigo-600 hover:text-indigo-700 
               font-semibold transition-colors"
           >
-            Xem tất cả phòng
+            {t('home.viewAllRooms')}
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
@@ -163,23 +171,26 @@ const HomePage: React.FC = () => {
         {/* Error State */}
         {error && !isLoadingRooms && (
           <div 
-            className="bg-red-50 border border-red-200 
+            className="bg-red-50 dark:bg-red-900/30 
+              border border-red-200 dark:border-red-700 
               rounded-lg p-6 text-center"
           >
             <AlertCircle 
-              className="w-12 h-12 text-red-500 
+              className="w-12 h-12 text-red-500 dark:text-red-400 
                 mx-auto mb-3" 
             />
-            <p className="text-red-700 font-medium">
+            <p className="text-red-700 dark:text-red-300 
+              font-medium">
               {error}
             </p>
             <button
               onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 bg-red-600 
-                text-white rounded-lg 
-                hover:bg-red-700 transition-colors"
+                dark:bg-red-700 text-white rounded-lg 
+                hover:bg-red-700 dark:hover:bg-red-800 
+                transition-colors"
             >
-              Thử lại
+              {t('common.tryAgain')}
             </button>
           </div>
         )}
@@ -194,8 +205,11 @@ const HomePage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="bg-gray-100 rounded-lg p-12 text-center">
-                  <p className="text-gray-600 text-lg">Hiện chưa có phòng nổi bật</p>
+                <div className="bg-gray-100 dark:bg-gray-800/50 
+                  rounded-lg p-12 text-center">
+                  <p className="text-gray-600 dark:text-gray-400 text-lg">
+                    {t('home.noFeaturedRooms')}
+                  </p>
                 </div>
               )}
 
@@ -205,8 +219,9 @@ const HomePage: React.FC = () => {
                 <Link
                   to="/rooms"
                   className="inline-flex items-center gap-2 
-                    bg-indigo-600 text-white px-6 py-3 
-                    rounded-lg hover:bg-indigo-700 
+                    bg-indigo-600 dark:bg-indigo-700 
+                    text-white px-6 py-3 rounded-lg 
+                    hover:bg-indigo-700 dark:hover:bg-indigo-800 
                     transition-colors font-semibold"
                 >
                   Xem tất cả phòng
@@ -222,6 +237,7 @@ const HomePage: React.FC = () => {
       <section 
         className="container mx-auto px-4 py-12 
           bg-gradient-to-br from-blue-50 to-cyan-50 
+          dark:from-blue-950/50 dark:to-cyan-950/50 
           rounded-3xl"
       >
         {/* Section Header with Gradient */}
@@ -230,17 +246,19 @@ const HomePage: React.FC = () => {
             <div 
               className="w-2 h-12 bg-gradient-to-b 
                 from-blue-600 to-cyan-600 
+                dark:from-blue-500 dark:to-cyan-500 
                 rounded-full"
             />
             <div>
               <h2 
                 className="text-4xl font-bold 
                   bg-gradient-to-r from-blue-600 
-                  to-cyan-600 bg-clip-text 
+                  to-cyan-600 dark:from-blue-400 
+                  dark:to-cyan-400 bg-clip-text 
                   text-transparent 
                   leading-tight pb-1"
               >
-                Phòng mới nhất
+                {t('home.newestRooms')}
               </h2>
             </div>
           </div>
@@ -251,7 +269,7 @@ const HomePage: React.FC = () => {
               text-indigo-600 hover:text-indigo-700 
               font-semibold transition-colors"
           >
-            Xem tất cả phòng
+            {t('home.viewAllRooms')}
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
@@ -286,7 +304,7 @@ const HomePage: React.FC = () => {
                   p-12 text-center"
               >
                 <p className="text-gray-600 text-lg">
-                  Hiện chưa có phòng mới
+                  {t('home.noNewestRooms')}
                 </p>
               </div>
             )}
@@ -301,7 +319,7 @@ const HomePage: React.FC = () => {
                     rounded-lg hover:bg-indigo-700 
                     transition-colors font-semibold"
                 >
-                  Xem tất cả phòng
+                  {t('home.viewAllRooms')}
                   <ArrowRight className="w-5 h-5" />
                 </Link>
               </div>
@@ -314,7 +332,8 @@ const HomePage: React.FC = () => {
       <section 
         className="container mx-auto px-4 py-16 
           bg-gradient-to-br from-purple-50 
-          via-pink-50 to-orange-50 rounded-3xl"
+          via-pink-50 to-orange-50 rounded-3xl
+          dark:from-purple-900 dark:via-purple-800 dark:to-indigo-900"
       >
         {/* Section Header with Animation */}
         <div className="mb-12 text-center">
@@ -322,25 +341,26 @@ const HomePage: React.FC = () => {
             className="inline-block mb-4 px-4 py-2 
               bg-gradient-to-r from-purple-600 
               to-pink-600 rounded-full text-white 
-              text-sm font-semibold"
+              text-sm font-semibold dark:from-purple-500 
+              dark:to-pink-500"
           >
-            🎯 Dịch vụ cao cấp
+            🎯 {t('services.badge')}
           </div>
           <h2 
             className="text-5xl font-bold 
               bg-gradient-to-r from-purple-600 
               via-pink-600 to-orange-600 
               bg-clip-text text-transparent mb-4 
-              leading-tight pb-1"
+              leading-tight pb-1 dark:from-purple-300 
+              dark:via-pink-300 dark:to-orange-300"
           >
-            Dịch vụ của khách sạn
+            {t('services.title')}
           </h2>
           <p 
-            className="text-gray-600 max-w-2xl mx-auto 
+            className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto 
               text-lg"
           >
-            Trải nghiệm các dịch vụ đẳng cấp 
-            tại khách sạn của chúng tôi
+            {t('services.subtitle')}
           </p>
         </div>
 
@@ -353,23 +373,23 @@ const HomePage: React.FC = () => {
             {[...Array(8)].map((_, index) => (
               <div 
                 key={index}
-                className="bg-white rounded-lg shadow-sm 
-                  p-6 animate-pulse"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm 
+                  p-6 animate-pulse dark:border-gray-700"
               >
                 <div 
-                  className="w-12 h-12 bg-gray-200 
+                  className="w-12 h-12 bg-gray-200 dark:bg-gray-700
                     rounded-full mb-4"
                 />
                 <div 
-                  className="h-4 bg-gray-200 rounded 
+                  className="h-4 bg-gray-200 dark:bg-gray-700 rounded 
                     mb-2 w-3/4"
                 />
                 <div 
-                  className="h-3 bg-gray-200 rounded 
+                  className="h-3 bg-gray-200 dark:bg-gray-700 rounded 
                     mb-3 w-full"
                 />
                 <div 
-                  className="h-6 bg-gray-200 rounded 
+                  className="h-6 bg-gray-200 dark:bg-gray-700 rounded 
                     w-1/2"
                 />
               </div>
@@ -386,9 +406,10 @@ const HomePage: React.FC = () => {
             {services.map((service) => (
               <div
                 key={service.id}
-                className="bg-white rounded-lg shadow-sm 
-                  hover:shadow-md transition-shadow 
-                  p-6 border border-gray-100 text-center"
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm 
+                    hover:shadow-md transition-shadow 
+                    p-6 border border-gray-100 dark:border-gray-700 
+                    text-center"
               >
                 {/* Service Icon with Gradient */}
                 <div 
@@ -397,7 +418,8 @@ const HomePage: React.FC = () => {
                     rounded-2xl flex items-center 
                     justify-center mb-4 shadow-lg 
                     transform transition-transform 
-                    hover:scale-110 hover:rotate-6 mx-auto"
+                    hover:scale-110 hover:rotate-6 mx-auto
+                    dark:from-purple-600 dark:to-pink-600"
                 >
                   <span className="text-2xl">
                     {service.category === 'Ăn uống' ? (
@@ -417,7 +439,7 @@ const HomePage: React.FC = () => {
                 {/* Service Name */}
                 <h3 
                   className="text-lg font-semibold 
-                    text-gray-900 mb-2"
+                    text-gray-900 dark:text-gray-100 mb-2"
                 >
                   {service.name}
                 </h3>
@@ -425,7 +447,7 @@ const HomePage: React.FC = () => {
                 {/* Service Description */}
                 {service.description && (
                   <p 
-                    className="text-sm text-gray-600 
+                    className="text-sm text-gray-600 dark:text-gray-400 
                       mb-3 line-clamp-2"
                   >
                     {service.description}
@@ -446,7 +468,7 @@ const HomePage: React.FC = () => {
                     }).format(service.price)}
                   </span>
                   {service.unit && (
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
                       /{service.unit}
                     </span>
                   )}
@@ -459,7 +481,8 @@ const HomePage: React.FC = () => {
                       className="inline-block px-3 py-1 
                         text-xs font-semibold rounded-full 
                         bg-gradient-to-r from-purple-100 
-                        to-pink-100 text-purple-700"
+                        to-pink-100 text-purple-700 dark:from-purple-800 
+                        dark:to-pink-800 dark:text-purple-200"
                     >
                       {service.category}
                     </span>
@@ -473,11 +496,11 @@ const HomePage: React.FC = () => {
         {/* No Services */}
         {!isLoadingServices && services.length === 0 && (
           <div 
-            className="bg-gray-100 rounded-lg 
+            className="bg-gray-100 dark:bg-gray-800 rounded-lg 
               p-12 text-center"
           >
-            <p className="text-gray-600 text-lg">
-              Hiện chưa có dịch vụ nào
+            <p className="text-gray-600 dark:text-gray-400 text-lg">
+              {t('services.noServices')}
             </p>
           </div>
         )}
@@ -494,7 +517,7 @@ const HomePage: React.FC = () => {
                 hover:scale-105 transition-all 
                 font-bold text-lg"
             >
-              Xem tất cả dịch vụ
+              {t('services.viewAll')}
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>
@@ -505,7 +528,8 @@ const HomePage: React.FC = () => {
       <section 
         className="container mx-auto px-4 py-16 
           bg-gradient-to-br from-green-50 
-          via-teal-50 to-blue-50 rounded-3xl"
+          via-teal-50 to-blue-50 rounded-3xl
+          dark:from-green-900 dark:via-green-800 dark:to-blue-900"
       >
         {/* Section Header with Gradient */}
         <div className="mb-12 text-center">
@@ -513,25 +537,26 @@ const HomePage: React.FC = () => {
             className="inline-block mb-4 px-4 py-2 
               bg-gradient-to-r from-green-600 
               to-teal-600 rounded-full text-white 
-              text-sm font-semibold"
+              text-sm font-semibold dark:from-green-500 
+              dark:to-teal-500"
           >
-            📍 Vị trí thuận lợi
+            📍 {t('locations.badge')}
           </div>
           <h2 
             className="text-5xl font-bold 
               bg-gradient-to-r from-green-600 
               via-teal-600 to-blue-600 
               bg-clip-text text-transparent mb-4 
-              leading-tight pb-1"
+              leading-tight pb-1 dark:from-green-300 
+              dark:via-teal-300 dark:to-blue-300"
           >
-            Địa điểm gần khách sạn
+            {t('locations.title')}
           </h2>
           <p 
-            className="text-gray-600 max-w-2xl mx-auto 
+            className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto 
               text-lg"
           >
-            Khám phá những địa điểm nổi tiếng 
-            xung quanh khách sạn
+            {t('locations.subtitle')}
           </p>
         </div>
 
@@ -542,11 +567,11 @@ const HomePage: React.FC = () => {
         >
           {/* Beach */}
           <div 
-            className="bg-white rounded-2xl shadow-lg 
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg 
               hover:shadow-2xl hover:scale-105 
               transition-all duration-300 
-              p-6 border-2 border-transparent 
-              hover:border-blue-300 
+              p-6 border-2 border-transparent dark:border-gray-700 
+              hover:border-blue-300 dark:hover:border-blue-600 
               flex items-start gap-4 group"
           >
             <div 
@@ -565,23 +590,24 @@ const HomePage: React.FC = () => {
                   bg-gradient-to-r from-blue-700 
                   to-cyan-700 bg-clip-text 
                   text-transparent mb-1 
-                  leading-snug pb-0.5"
+                  leading-snug pb-0.5 dark:from-blue-300 
+                  dark:to-cyan-300"
               >
-                Biển Mỹ Khê
+                {t('locations.myKheBeach')}
               </h3>
-              <p className="text-sm font-medium text-gray-600">
-                300m từ khách sạn
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                300m {t('locations.fromHotel')}
               </p>
             </div>
           </div>
 
           {/* Night Market */}
           <div
-            className="bg-white rounded-2xl shadow-lg 
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg 
               hover:shadow-2xl hover:scale-105 
               transition-all duration-300 
-              p-6 border-2 border-transparent 
-              hover:border-purple-300 
+              p-6 border-2 border-transparent dark:border-gray-700 
+              hover:border-purple-300 dark:hover:border-purple-600 
               flex items-start gap-4 group"
           >
             <div 
@@ -602,21 +628,21 @@ const HomePage: React.FC = () => {
                   text-transparent mb-1 
                   leading-snug pb-0.5"
               >
-                Chợ đêm Sơn Trà
+                {t('locations.nightMarket')}
               </h3>
-              <p className="text-sm font-medium text-gray-600">
-                5 phút đi bộ
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                5 {t('locations.walkingTime')}
               </p>
             </div>
           </div>
 
           {/* Shopping Mall */}
           <div
-            className="bg-white rounded-2xl shadow-lg 
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg 
               hover:shadow-2xl hover:scale-105 
               transition-all duration-300 
-              p-6 border-2 border-transparent 
-              hover:border-green-300 
+              p-6 border-2 border-transparent dark:border-gray-700 
+              hover:border-green-300 dark:hover:border-green-600 
               flex items-start gap-4 group"
           >
             <div 
@@ -637,9 +663,9 @@ const HomePage: React.FC = () => {
                   text-transparent mb-1 
                   leading-snug pb-0.5"
               >
-                Vincom Plaza
+                {t('locations.vincomPlaza')}
               </h3>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 1.2km
               </p>
             </div>
@@ -647,11 +673,11 @@ const HomePage: React.FC = () => {
 
           {/* Dragon Bridge */}
           <div
-            className="bg-white rounded-2xl shadow-lg 
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg 
               hover:shadow-2xl hover:scale-105 
               transition-all duration-300 
-              p-6 border-2 border-transparent 
-              hover:border-orange-300 
+              p-6 border-2 border-transparent dark:border-gray-700 
+              hover:border-orange-300 dark:hover:border-orange-600 
               flex items-start gap-4 group"
           >
             <div 
@@ -670,11 +696,12 @@ const HomePage: React.FC = () => {
                   bg-gradient-to-r from-orange-700 
                   to-red-700 bg-clip-text 
                   text-transparent mb-1 
-                  leading-snug pb-0.5"
+                  leading-snug pb-0.5 dark:from-orange-300 
+                  dark:to-red-300"
               >
-                Cầu Rồng
+                {t('locations.dragonBridge')}
               </h3>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 2km
               </p>
             </div>
@@ -682,11 +709,11 @@ const HomePage: React.FC = () => {
 
           {/* Sun Wheel */}
           <div
-            className="bg-white rounded-2xl shadow-lg 
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg 
               hover:shadow-2xl hover:scale-105 
               transition-all duration-300 
-              p-6 border-2 border-transparent 
-              hover:border-pink-300 
+              p-6 border-2 border-transparent dark:border-gray-700 
+              hover:border-pink-300 dark:hover:border-pink-600 
               flex items-start gap-4 group"
           >
             <div 
@@ -705,11 +732,12 @@ const HomePage: React.FC = () => {
                   bg-gradient-to-r from-pink-700 
                   to-rose-700 bg-clip-text 
                   text-transparent mb-1 
-                  leading-snug pb-0.5"
+                  leading-snug pb-0.5 dark:from-pink-300 
+                  dark:to-rose-300"
               >
-                Sun Wheel
+                {t('locations.sunWheel')}
               </h3>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 3.5km
               </p>
             </div>
@@ -717,11 +745,11 @@ const HomePage: React.FC = () => {
 
           {/* Airport */}
           <div
-            className="bg-white rounded-2xl shadow-lg 
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg 
               hover:shadow-2xl hover:scale-105 
               transition-all duration-300 
-              p-6 border-2 border-transparent 
-              hover:border-indigo-300 
+              p-6 border-2 border-transparent dark:border-gray-700 
+              hover:border-indigo-300 dark:hover:border-indigo-600 
               flex items-start gap-4 group"
           >
             <div 
@@ -740,12 +768,13 @@ const HomePage: React.FC = () => {
                   bg-gradient-to-r from-indigo-700 
                   to-blue-700 bg-clip-text 
                   text-transparent mb-1 
-                  leading-snug pb-0.5"
+                  leading-snug pb-0.5 dark:from-indigo-300 
+                  dark:to-blue-300"
               >
-                Sân bay Đà Nẵng
+                {t('locations.airport')}
               </h3>
-              <p className="text-sm font-medium text-gray-600">
-                10 phút đi xe
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                10 {t('locations.driveTime')}
               </p>
             </div>
           </div>
@@ -756,7 +785,8 @@ const HomePage: React.FC = () => {
       <section 
         className="container mx-auto px-4 py-16 
           bg-gradient-to-br from-slate-50 
-          via-gray-50 to-zinc-50 rounded-3xl"
+          via-gray-50 to-zinc-50 rounded-3xl
+          dark:from-gray-900 dark:via-gray-800 dark:to-gray-700"
       >
         <div className="text-center mb-12">
           <div 
@@ -765,16 +795,15 @@ const HomePage: React.FC = () => {
               to-purple-600 rounded-full text-white 
               text-sm font-semibold"
           >
-            ✨ Tại sao chọn chúng tôi
+            ✨ {t('features.badge')}
           </div>
           <h2 
             className="text-4xl font-bold 
               bg-gradient-to-r from-slate-700 
-              to-gray-900 bg-clip-text 
-              text-transparent 
-              leading-tight pb-2"
+              to-gray-900 bg-clip-text text-transparent
+              leading-tight pb-2 dark:from-slate-300 dark:to-gray-300"
           >
-            Lợi ích khi đặt phòng
+            {t('features.title')}
           </h2>
         </div>
 
@@ -783,98 +812,95 @@ const HomePage: React.FC = () => {
             gap-8"
         >
           <div 
-            className="text-center bg-white 
-              rounded-2xl p-8 shadow-lg 
+            className="text-center bg-white dark:bg-gray-800/80 
+              rounded-2xl p-8 shadow-lg dark:shadow-sm
               hover:shadow-2xl hover:scale-105 
               transition-all duration-300 
-              border-2 border-transparent 
-              hover:border-indigo-200 group"
+              border-2 border-transparent dark:border-gray-700
+              hover:border-indigo-200 group backdrop-blur-sm"
           >
               <div 
                 className="w-20 h-20 bg-gradient-to-br 
-                from-indigo-400 to-purple-400 
-                rounded-2xl flex items-center 
-                justify-center mx-auto mb-6 
-                shadow-lg group-hover:rotate-12 
-                transition-transform"
+                from-indigo-400 to-purple-400 dark:from-indigo-600
+                dark:to-purple-600 rounded-2xl flex items-center
+                justify-center mx-auto mb-6 shadow-lg
+                group-hover:rotate-12 transition-transform"
               >
                 <Home className="w-10 h-10 text-white" />
               </div>
             <h3 
               className="text-2xl font-bold mb-3 
                 bg-gradient-to-r from-indigo-700 
-                to-purple-700 bg-clip-text 
-                text-transparent 
-                leading-snug pb-0.5"
+                to-purple-700 bg-clip-text text-transparent
+                leading-snug pb-0.5 dark:from-indigo-300
+                dark:to-purple-300"
             >
-              Đặt phòng dễ dàng
+              {t('features.easyBooking.title')}
             </h3>
-            <p className="text-gray-600 leading-relaxed">
-              Tìm kiếm và đặt phòng chỉ với vài cú click
+            <p className="text-gray-600 leading-relaxed dark:text-gray-300">
+              {t('features.easyBooking.description')}
             </p>
           </div>
 
           <div 
-            className="text-center bg-white 
-              rounded-2xl p-8 shadow-lg 
+            className="text-center bg-white dark:bg-gray-800/80 
+              rounded-2xl p-8 shadow-lg dark:shadow-sm
               hover:shadow-2xl hover:scale-105 
               transition-all duration-300 
-              border-2 border-transparent 
-              hover:border-green-200 group"
+              border-2 border-transparent dark:border-gray-700
+              hover:border-green-200 group backdrop-blur-sm"
           >
             <div 
               className="w-20 h-20 bg-gradient-to-br 
-                from-green-400 to-emerald-400 
-                rounded-2xl flex items-center 
-                justify-center mx-auto mb-6 
-                shadow-lg group-hover:rotate-12 
-                transition-transform"
+                from-green-400 to-emerald-400 dark:from-green-600
+                dark:to-emerald-600 rounded-2xl flex items-center
+                justify-center mx-auto mb-6 shadow-lg
+                group-hover:rotate-12 transition-transform"
             >
               <DollarSign className="w-10 h-10 text-white" />
             </div>
             <h3 
               className="text-2xl font-bold mb-3 
                 bg-gradient-to-r from-green-700 
-                to-emerald-700 bg-clip-text 
-                text-transparent 
-                leading-snug pb-0.5"
+                to-emerald-700 bg-clip-text text-transparent
+                leading-snug pb-0.5 dark:from-green-300
+                dark:to-emerald-300"
             >
-              Giá tốt nhất
+              {t('features.bestPrice.title')}
             </h3>
-            <p className="text-gray-600 leading-relaxed">
-              Cam kết giá tốt nhất thị trường
+            <p className="text-gray-600 leading-relaxed dark:text-gray-300">
+              {t('features.bestPrice.description')}
             </p>
           </div>
 
           <div 
-            className="text-center bg-white 
-              rounded-2xl p-8 shadow-lg 
+            className="text-center bg-white dark:bg-gray-800/80 
+              rounded-2xl p-8 shadow-lg dark:shadow-sm
               hover:shadow-2xl hover:scale-105 
               transition-all duration-300 
-              border-2 border-transparent 
-              hover:border-blue-200 group"
+              border-2 border-transparent dark:border-gray-700
+              hover:border-blue-200 group backdrop-blur-sm"
           >
             <div 
               className="w-20 h-20 bg-gradient-to-br 
-                from-blue-400 to-cyan-400 
-                rounded-2xl flex items-center 
-                justify-center mx-auto mb-6 
-                shadow-lg group-hover:rotate-12 
-                transition-transform"
+                from-blue-400 to-cyan-400 dark:from-blue-600
+                dark:to-cyan-600 rounded-2xl flex items-center
+                justify-center mx-auto mb-6 shadow-lg
+                group-hover:rotate-12 transition-transform"
             >
               <Headphones className="w-10 h-10 text-white" />
             </div>
             <h3 
               className="text-2xl font-bold mb-3 
                 bg-gradient-to-r from-blue-700 
-                to-cyan-700 bg-clip-text 
-                text-transparent 
-                leading-snug pb-0.5"
+                to-cyan-700 bg-clip-text text-transparent
+                leading-snug pb-0.5 dark:from-blue-300
+                dark:to-cyan-300"
             >
-              Hỗ trợ 24/7
+              {t('features.support247.title')}
             </h3>
-            <p className="text-gray-600 leading-relaxed">
-              Đội ngũ hỗ trợ luôn sẵn sàng phục vụ
+            <p className="text-gray-600 leading-relaxed dark:text-gray-300">
+              {t('features.support247.description')}
             </p>
           </div>
         </div>
