@@ -79,7 +79,7 @@ const SearchRoomForm: React.FC<SearchRoomFormProps> = ({
 
     // Navigate to search results
     setIsSearching(true);
-    navigate(`/rooms/search?${params.toString()}`);
+    navigate(`/room-types/search?${params.toString()}`);
   };
 
   return (
