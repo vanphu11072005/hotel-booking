@@ -53,12 +53,36 @@ module.exports = (sequelize, DataTypes) => {
       },
       amenities: {
         type: DataTypes.JSON,
-        allowNull: true
+        allowNull: true,
+        get() {
+          const rawValue = this.getDataValue('amenities');
+          if (!rawValue) return [];
+          if (typeof rawValue === 'string') {
+            try {
+              return JSON.parse(rawValue);
+            } catch (e) {
+              return [];
+            }
+          }
+          return Array.isArray(rawValue) ? rawValue : [];
+        }
       },
       images: {
         type: DataTypes.JSON,
         allowNull: true,
-        defaultValue: []
+        defaultValue: [],
+        get() {
+          const rawValue = this.getDataValue('images');
+          if (!rawValue) return [];
+          if (typeof rawValue === 'string') {
+            try {
+              return JSON.parse(rawValue);
+            } catch (e) {
+              return [];
+            }
+          }
+          return Array.isArray(rawValue) ? rawValue : [];
+        }
       },
       featured: {
         type: DataTypes.BOOLEAN,

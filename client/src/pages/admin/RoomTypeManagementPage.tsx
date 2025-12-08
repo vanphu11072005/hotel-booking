@@ -13,6 +13,7 @@ const initialForm: RoomType = {
   description: '',
   images: [],
   amenities: [],
+  featured: false,
 };
 
 const RoomTypeManagementPage: React.FC = () => {
@@ -55,8 +56,6 @@ const RoomTypeManagementPage: React.FC = () => {
   useEffect(() => {
     // Filter and paginate
     let types = [...allRoomTypes];
-    
-    console.log('All room types from store:', allRoomTypes);
     
     // Filter by search
     if (filters.search) {
@@ -125,18 +124,22 @@ const RoomTypeManagementPage: React.FC = () => {
       // Kết hợp ảnh cũ (nếu edit) và ảnh mới
       let finalImages = [...uploadedImages];
       if (editId && Array.isArray(form.images)) {
+        // Khi edit: giữ ảnh cũ + thêm ảnh mới (nếu có)
         finalImages = [...form.images, ...uploadedImages];
+      } else if (!editId && uploadedImages.length === 0) {
+        // Khi tạo mới mà không có ảnh: để mảng rỗng
+        finalImages = [];
       }
 
       const roomTypeData = {
-        ...form,
+        name: form.name,
         base_price: Number(form.base_price),
         capacity: Number(form.capacity),
+        description: form.description,
         images: finalImages,
+        amenities: form.amenities || [],
+        featured: form.featured || false,
       };
-
-      console.log('Submitting room type data:', roomTypeData);
-      console.log('Final images to save:', finalImages);
 
       let success = false;
       if (editId) {
@@ -166,6 +169,7 @@ const RoomTypeManagementPage: React.FC = () => {
       description: type.description || '',
       images: Array.isArray(type.images) ? type.images : [],
       amenities: Array.isArray(type.amenities) ? type.amenities : [],
+      featured: type.featured || false,
     });
     setEditId(type.id ?? null);
     setSelectedFiles([]);
@@ -193,10 +197,12 @@ const RoomTypeManagementPage: React.FC = () => {
     
     // Cập nhật loại phòng với mảng ảnh mới
     const success = await updateRoomType(editId, {
-      ...form,
+      name: form.name,
       base_price: Number(form.base_price),
       capacity: Number(form.capacity),
+      description: form.description,
       images: updatedImages,
+      amenities: form.amenities || [],
     });
 
     if (success) {
@@ -225,10 +231,12 @@ const RoomTypeManagementPage: React.FC = () => {
 
       // Cập nhật vào database
       const success = await updateRoomType(editId, {
-        ...form,
+        name: form.name,
         base_price: Number(form.base_price),
         capacity: Number(form.capacity),
+        description: form.description,
         images: updatedImages,
+        amenities: form.amenities || [],
       });
 
       if (success) {
@@ -332,6 +340,7 @@ const RoomTypeManagementPage: React.FC = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hình ảnh</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Giá cơ bản</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sức chứa</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nổi bật</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mô tả</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tiện nghi</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
@@ -378,6 +387,17 @@ const RoomTypeManagementPage: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-900">{type.base_price?.toLocaleString('vi-VN')} ₫</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-900">{type.capacity} người</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {type.featured ? (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        ⭐ Nổi bật
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        -
+                      </span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 max-w-xs">
                     <div className="text-sm text-gray-600 truncate" title={type.description || ''}>
                       {type.description || '-'}
@@ -471,17 +491,31 @@ const RoomTypeManagementPage: React.FC = () => {
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sức chứa</label>
-                <input
-                  type="number"
-                  name="capacity"
-                  value={form.capacity}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                  min={1}
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sức chứa</label>
+                  <input
+                    type="number"
+                    name="capacity"
+                    value={form.capacity}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    required
+                    min={1}
+                  />
+                </div>
+                <div className="flex items-center pt-6">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="featured"
+                      checked={form.featured || false}
+                      onChange={(e) => setForm({ ...form, featured: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm font-medium text-gray-700">Nổi bật (hiển thị trang chủ)</span>
+                  </label>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
