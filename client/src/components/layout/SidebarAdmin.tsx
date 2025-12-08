@@ -109,9 +109,9 @@ const SidebarAdmin: React.FC<SidebarAdminProps> = ({
         flex items-center justify-between"
       >
         {!isCollapsed && (
-          <h2 className="text-xl font-bold">
+          <Link to="/" className="text-xl font-bold">
             Admin Panel
-          </h2>
+          </Link>
         )}
         <button
           onClick={handleToggle}

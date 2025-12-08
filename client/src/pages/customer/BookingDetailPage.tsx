@@ -300,17 +300,17 @@ const BookingDetailPage: React.FC = () => {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
         <div className="max-w-4xl mx-auto px-4">
           <div
-            className="bg-red-50 border border-red-200 
+            className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700
               rounded-lg p-8 text-center"
           >
             <AlertCircle
               className="w-12 h-12 text-red-500 
                 mx-auto mb-3"
             />
-            <p className="text-red-700 font-medium mb-4">
+            <p className="text-red-700 dark:text-red-200 font-medium mb-4">
               {error || 'Không tìm thấy đặt phòng'}
             </p>
             <button
@@ -361,7 +361,8 @@ const BookingDetailPage: React.FC = () => {
   const PLACEHOLDER = '/images/room-placeholder.jpg';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 
+      dark:bg-gradient-to-br dark:from-indigo-900 dark:via-indigo-800 dark:to-purple-900 py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* Back Button */}
         <Link
@@ -391,7 +392,7 @@ const BookingDetailPage: React.FC = () => {
             </p>
 
             {/* Booking Number Card */}
-            <div className="inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm px-8 py-4 rounded-xl border-2 border-white/30">
+            <div className="inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm px-8 py-4 rounded-xl border-2 border-white/30 dark:bg-white/5">
               <div className="text-left">
                 <p className="text-indigo-100 text-sm font-medium">Mã đặt phòng</p>
                 <p className="text-2xl font-bold tracking-wider">
@@ -435,21 +436,21 @@ const BookingDetailPage: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             
         {/* Booking Details Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               📋 Chi tiết đặt phòng
             </h2>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-gray-500 dark:text-white">
               ID: #{booking.id}
             </span>
           </div>
 
           <div className="space-y-6">
             {/* Rooms Information */}
-            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-5 border border-indigo-100">
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900 dark:to-purple-900 rounded-xl p-5 border border-indigo-100 dark:border-indigo-800">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-xl text-gray-900 flex items-center gap-2">
+                <h3 className="font-bold text-xl text-gray-900 dark:text-white flex items-center gap-2">
                   <Building2 className="w-6 h-6 text-indigo-600" />
                   Phòng đã đặt
                 </h3>
@@ -492,7 +493,7 @@ const BookingDetailPage: React.FC = () => {
                   }
 
                   return (
-                    <div key={index} className="bg-white rounded-xl p-4 shadow-md border border-gray-200">
+                    <div key={index} className="bg-white dark:bg-gray-700 rounded-xl p-4 shadow-md border border-gray-200 dark:border-gray-600">
                       <div className="flex items-start gap-4">
                         <img
                           src={imageSrc}
@@ -505,7 +506,7 @@ const BookingDetailPage: React.FC = () => {
                         <div className="flex-1">
                           <div className="flex items-start justify-between">
                             <div>
-                              <h4 className="font-bold text-lg text-gray-900">
+                              <h4 className="font-bold text-lg text-gray-900 dark:text-white">
                                 {roomTypeData?.name || 'Phòng'}
                               </h4>
                             </div>
@@ -520,7 +521,7 @@ const BookingDetailPage: React.FC = () => {
                             <span className="text-xs text-gray-500">/đêm</span>
                           </div>
                           {roomTypeData?.capacity && (
-                            <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                            <p className="text-sm text-gray-600 dark:text-white mt-1 flex items-center gap-1">
                               <Users className="w-4 h-4" />
                               Tối đa {roomTypeData.capacity} người
                             </p>
@@ -534,7 +535,7 @@ const BookingDetailPage: React.FC = () => {
             </div>
 
             {/* Check-in/Check-out Timeline */}
-            <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                 <div className="text-center md:text-left">
                   <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
@@ -542,8 +543,8 @@ const BookingDetailPage: React.FC = () => {
                       <Calendar className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 uppercase font-medium">Nhận phòng</p>
-                      <p className="font-bold text-gray-900">
+                      <p className="text-xs text-gray-500 dark:text-white uppercase font-medium">Nhận phòng</p>
+                      <p className="font-bold text-gray-900 dark:text-white">
                         {new Date(booking.check_in_date).toLocaleDateString('vi-VN', { 
                           day: '2-digit', 
                           month: '2-digit',
@@ -552,7 +553,7 @@ const BookingDetailPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500">Từ 14:00</p>
+                  <p className="text-xs text-gray-500 dark:text-white">Từ 14:00</p>
                 </div>
 
                 <div className="flex flex-col items-center">
@@ -570,8 +571,8 @@ const BookingDetailPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="md:order-1">
-                      <p className="text-xs text-gray-500 uppercase font-medium">Trả phòng</p>
-                      <p className="font-bold text-gray-900">
+                      <p className="text-xs text-gray-500 dark:text-white uppercase font-medium">Trả phòng</p>
+                      <p className="font-bold text-gray-900 dark:text-white">
                         {new Date(booking.check_out_date).toLocaleDateString('vi-VN', { 
                           day: '2-digit', 
                           month: '2-digit',
@@ -580,18 +581,18 @@ const BookingDetailPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500">Trước 12:00</p>
+                  <p className="text-xs text-gray-500 dark:text-white">Trước 12:00</p>
                 </div>
               </div>
             </div>
 
             {/* Guest Info */}
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 text-center">
+            <div className="bg-blue-50 dark:bg-blue-900 rounded-lg p-4 border border-blue-100 dark:border-blue-800 text-center">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <Users className="w-5 h-5 text-blue-600" />
                 <p className="text-sm text-gray-600 font-medium">Số khách</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {booking.num_guests || booking.guest_count}
               </p>
             </div>
@@ -621,12 +622,12 @@ const BookingDetailPage: React.FC = () => {
                 </h3>
                 <div className="space-y-2">
                   {booking.service_usages.map((usage: any, index: number) => (
-                    <div key={index} className="flex justify-between items-center bg-gray-50 rounded-lg p-3">
+                    <div key={index} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium text-gray-900 dark:text-white">
                           {usage.service?.name || 'Dịch vụ'}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 dark:text-white">
                           {usage.quantity} x {formatPrice(parseFloat(usage.unit_price.toString()))}
                         </p>
                       </div>
@@ -641,14 +642,14 @@ const BookingDetailPage: React.FC = () => {
 
             {/* Price Breakdown */}
             <div className="border-t pt-4 space-y-3">
-              <h3 className="font-bold text-lg text-gray-900 mb-3">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-3">
                 💰 Chi tiết thanh toán
               </h3>
               
               <div className="space-y-2">
                 {/* Room breakdown by type */}
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-white mb-2">
                     Tiền phòng ({numberOfNights} đêm):
                   </p>
                   <div className="space-y-2 pl-2">
@@ -661,10 +662,10 @@ const BookingDetailPage: React.FC = () => {
                       
                       return (
                         <div key={index} className="flex justify-between text-sm">
-                          <span className="text-gray-600">
+                          <span className="text-gray-600 dark:text-white">
                             • {roomTypeData?.name || 'Phòng'} × {quantity} × {numberOfNights} đêm
                           </span>
-                          <span className="font-medium text-gray-900">
+                          <span className="font-medium text-gray-900 dark:text-white">
                             {formatPrice(subtotal)}
                           </span>
                         </div>
@@ -680,14 +681,14 @@ const BookingDetailPage: React.FC = () => {
                 </div>
                 
                 {booking.service_usages && booking.service_usages.length > 0 && (
-                  <div className="bg-gray-50 rounded-lg p-3 space-y-2 border border-gray-200">
-                    <p className="text-sm font-semibold text-gray-700 mb-2">Dịch vụ bổ sung:</p>
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2 border border-gray-200 dark:border-gray-600">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-white mb-2">Dịch vụ bổ sung:</p>
                     {booking.service_usages.map((usage: any, index: number) => (
                       <div key={index} className="flex justify-between text-sm pl-2">
-                        <span className="text-gray-600">
+                        <span className="text-gray-600 dark:text-white">
                           • {usage.service?.name || 'Dịch vụ'} ({usage.quantity} x {formatPrice(parseFloat(usage.unit_price.toString()))})
                         </span>
-                        <span className="font-medium text-gray-900">
+                        <span className="font-medium text-gray-900 dark:text-white">
                           {formatPrice(parseFloat(usage.total_price.toString()))}
                         </span>
                       </div>
@@ -701,22 +702,22 @@ const BookingDetailPage: React.FC = () => {
                   </div>
                 )}
                 
-                <div className="border-t-2 border-gray-300 pt-3 flex justify-between items-center bg-indigo-50 rounded-lg p-3">
-                  <span className="text-lg font-bold text-gray-900">
+                  <div className="border-t-2 border-gray-300 pt-3 flex justify-between items-center bg-indigo-50 dark:bg-indigo-900 rounded-lg p-3 dark:border-indigo-800">
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">
                     Tổng thanh toán
                   </span>
-                  <span className="text-3xl font-bold text-indigo-600">
+                  <span className="text-3xl font-bold text-indigo-600 dark:text-white">
                     {formatPrice(booking.total_price)}
                   </span>
                 </div>
 
                 {/* Payment Status and Details */}
-                <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                <div className="bg-purple-50 dark:bg-purple-900 rounded-lg p-4 border border-purple-100 dark:border-purple-800">
                   <div className="flex items-center gap-2 mb-2">
                     <CreditCard className="w-6 h-6 text-purple-600" />
-                    <p className="text-base text-gray-600 font-medium">Trạng thái thanh toán</p>
+                    <p className="text-base text-gray-600 dark:text-white font-medium">Trạng thái thanh toán</p>
                   </div>
-                  <p className="text-lg font-bold text-gray-900 mb-2">
+                  <p className="text-lg font-bold text-gray-900 dark:text-white mb-2">
                     {booking.payment_method === 'cash'
                       ? 'Thanh toán khi nhận phòng'
                       : booking.payment_method === 'vnpay'
@@ -732,7 +733,7 @@ const BookingDetailPage: React.FC = () => {
                   {/* Hiển thị thông tin thanh toán nếu có */}
                   {booking.deposit_paid && booking.payments && 
                     booking.payments.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-purple-200">
+                    <div className="mt-3 pt-3 border-t border-purple-200 dark:border-purple-700">
                       {booking.payments
                         .filter(p => p.payment_status === 'completed')
                         .map((payment) => (
@@ -743,7 +744,7 @@ const BookingDetailPage: React.FC = () => {
                                 flex-shrink-0" 
                             />
                             <div>
-                              <p className="text-sm text-gray-700 font-semibold">
+                              <p className="text-sm text-gray-700 dark:text-white font-semibold">
                                 {payment.payment_type === 'deposit' 
                                   ? `Đã đặt cọc ${
                                       payment.deposit_percentage || 20
@@ -754,7 +755,7 @@ const BookingDetailPage: React.FC = () => {
                                   : 'Đã thanh toán toàn bộ'
                                 }
                               </p>
-                              <p className="text-sm text-gray-600 font-medium">
+                              <p className="text-sm text-gray-600 dark:text-white font-medium">
                                 Qua {
                                   payment.payment_method === 'e_wallet'
                                     ? 'VNPay' 
@@ -799,8 +800,8 @@ const BookingDetailPage: React.FC = () => {
           <div className="lg:col-span-1 space-y-6">
             
             {/* Booking Timeline */}
-            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-              <h3 className="font-bold text-lg text-gray-900 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 <Clock className="w-5 h-5 text-indigo-600" />
                 Trạng thái đơn hàng
               </h3>
@@ -810,7 +811,7 @@ const BookingDetailPage: React.FC = () => {
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                       booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out'
                         ? 'bg-green-500'
-                        : 'bg-gray-300'
+                        : 'bg-gray-300 dark:bg-gray-600'
                     }`}>
                       {booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out' ? (
                         <Check className="w-5 h-5 text-white" />
@@ -820,13 +821,13 @@ const BookingDetailPage: React.FC = () => {
                     </div>
                     <div className={`w-0.5 h-full my-1 ${
                       booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out'
-                        ? 'bg-green-200'
-                        : 'bg-gray-200'
+                        ? 'bg-green-200 dark:bg-green-700'
+                        : 'bg-gray-200 dark:bg-gray-700'
                     }`}></div>
                   </div>
                   <div className="flex-1 pb-4">
-                    <p className="font-semibold text-gray-900">Xác nhận đặt phòng</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-semibold text-gray-900 dark:text-white">Xác nhận đặt phòng</p>
+                    <p className="text-sm text-gray-500 dark:text-white">
                       {booking.status === 'pending' ? 'Đang chờ xác nhận' : 'Đã xác nhận'}
                     </p>
                   </div>
@@ -837,7 +838,7 @@ const BookingDetailPage: React.FC = () => {
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                       booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out'
                         ? 'bg-green-500'
-                        : 'bg-gray-300'
+                        : 'bg-gray-300 dark:bg-gray-600'
                     }`}>
                       {booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out' ? (
                         <Check className="w-5 h-5 text-white" />
@@ -847,13 +848,13 @@ const BookingDetailPage: React.FC = () => {
                     </div>
                     <div className={`w-0.5 h-full my-1 ${
                       booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out'
-                        ? 'bg-green-200'
-                        : 'bg-gray-200'
+                        ? 'bg-green-200 dark:bg-green-700'
+                        : 'bg-gray-200 dark:bg-gray-700'
                     }`}></div>
                   </div>
                   <div className="flex-1 pb-4">
-                    <p className="font-semibold text-gray-900">Đặt phòng thành công</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-semibold text-gray-900 dark:text-white">Đặt phòng thành công</p>
+                    <p className="text-sm text-gray-500 dark:text-white">
                       {booking.status === 'confirmed' || booking.status === 'checked_in' || booking.status === 'checked_out'
                         ? new Date(booking.created_at).toLocaleString('vi-VN')
                         : 'Chờ thanh toán'}
@@ -866,7 +867,7 @@ const BookingDetailPage: React.FC = () => {
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                       booking.status === 'checked_in' || booking.status === 'checked_out'
                         ? 'bg-green-500'
-                        : 'bg-gray-300'
+                        : 'bg-gray-300 dark:bg-gray-600'
                     }`}>
                       {booking.status === 'checked_in' || booking.status === 'checked_out' ? (
                         <Check className="w-5 h-5 text-white" />
@@ -876,13 +877,13 @@ const BookingDetailPage: React.FC = () => {
                     </div>
                     <div className={`w-0.5 h-full my-1 ${
                       booking.status === 'checked_in' || booking.status === 'checked_out'
-                        ? 'bg-green-200'
-                        : 'bg-gray-200'
+                        ? 'bg-green-200 dark:bg-green-700'
+                        : 'bg-gray-200 dark:bg-gray-700'
                     }`}></div>
                   </div>
                   <div className="flex-1 pb-4">
-                    <p className="font-semibold text-gray-900">Nhận phòng</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-semibold text-gray-900 dark:text-white">Nhận phòng</p>
+                    <p className="text-sm text-gray-500 dark:text-white">
                       {formatDate(booking.check_in_date)}
                     </p>
                   </div>
@@ -893,7 +894,7 @@ const BookingDetailPage: React.FC = () => {
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                       booking.status === 'checked_out'
                         ? 'bg-green-500'
-                        : 'bg-gray-300'
+                        : 'bg-gray-300 dark:bg-gray-600'
                     }`}>
                       {booking.status === 'checked_out' ? (
                         <Check className="w-5 h-5 text-white" />
@@ -903,8 +904,8 @@ const BookingDetailPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-900">Trả phòng</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="font-semibold text-gray-900 dark:text-white">Trả phòng</p>
+                    <p className="text-sm text-gray-500 dark:text-white">
                       {formatDate(booking.check_out_date)}
                     </p>
                   </div>
@@ -919,16 +920,16 @@ const BookingDetailPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-red-900">Đã hủy đặt phòng</p>
-                      {booking.cancelled_at && (
-                        <p className="text-sm text-gray-500">
-                          {new Date(booking.cancelled_at).toLocaleString('vi-VN')}
-                        </p>
-                      )}
+                        <p className="font-semibold text-red-900 dark:text-white">Đã hủy đặt phòng</p>
+                        {booking.cancelled_at && (
+                          <p className="text-sm text-gray-500 dark:text-white">
+                            {new Date(booking.cancelled_at).toLocaleString('vi-VN')}
+                          </p>
+                        )}
                       {booking.cancellation_reason && (
-                        <div className="mt-2 bg-red-50 rounded-lg p-3 border border-red-200">
-                          <p className="text-xs text-red-600 font-medium mb-1">Lý do hủy:</p>
-                          <p className="text-sm text-red-900 font-medium">
+                        <div className="mt-2 bg-red-50 dark:bg-red-900 rounded-lg p-3 border border-red-200 dark:border-red-700">
+                          <p className="text-xs text-red-600 dark:text-white font-medium mb-1">Lý do hủy:</p>
+                          <p className="text-sm text-red-900 dark:text-white font-medium">
                             {booking.cancellation_reason === 'change_plans' && '📅 Thay đổi kế hoạch'}
                             {booking.cancellation_reason === 'found_better' && '🏨 Tìm được nơi tốt hơn'}
                             {booking.cancellation_reason === 'personal_emergency' && '🚨 Có việc gấp'}
@@ -939,8 +940,8 @@ const BookingDetailPage: React.FC = () => {
                           </p>
                           {booking.cancellation_details && (
                             <>
-                              <p className="text-xs text-red-600 font-medium mt-2 mb-1">Chi tiết:</p>
-                              <p className="text-sm text-red-800">
+                              <p className="text-xs text-red-600 dark:text-white font-medium mt-2 mb-1">Chi tiết:</p>
+                              <p className="text-sm text-red-800 dark:text-white">
                                 {booking.cancellation_details}
                               </p>
                             </>
@@ -955,43 +956,43 @@ const BookingDetailPage: React.FC = () => {
 
             {/* Guest Information */}
             {booking.guest_info && (
-              <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5 text-indigo-600" />
+              <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5 text-indigo-600 dark:text-indigo-200" />
                   Thông tin người đặt phòng
                 </h2>
                 <div className="space-y-3">
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-indigo-600" />
+                  <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-indigo-600 dark:text-indigo-200" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs text-gray-500 uppercase font-medium mb-1">Họ và tên</p>
-                      <p className="font-bold text-gray-900">
+                      <p className="text-xs text-gray-500 dark:text-white uppercase font-medium mb-1">Họ và tên</p>
+                      <p className="font-bold text-gray-900 dark:text-white">
                         {booking.guest_info.full_name}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Mail className="w-5 h-5 text-green-600" />
+                  <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Mail className="w-5 h-5 text-green-600 dark:text-green-200" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs text-gray-500 uppercase font-medium mb-1">Email</p>
-                      <p className="font-medium text-gray-900 break-all text-sm">
+                      <p className="text-xs text-gray-500 dark:text-white uppercase font-medium mb-1">Email</p>
+                      <p className="font-medium text-gray-900 dark:text-white break-all text-sm">
                         {booking.guest_info.email}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Phone className="w-5 h-5 text-blue-600" />
+                  <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Phone className="w-5 h-5 text-blue-600 dark:text-blue-200" />
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs text-gray-500 uppercase font-medium mb-1">Số điện thoại</p>
-                      <p className="font-bold text-gray-900">
+                      <p className="text-xs text-gray-500 dark:text-white uppercase font-medium mb-1">Số điện thoại</p>
+                      <p className="font-bold text-gray-900 dark:text-white">
                         {booking.guest_info.phone}
                       </p>
                     </div>
@@ -1001,20 +1002,20 @@ const BookingDetailPage: React.FC = () => {
             )}
 
             {/* Important Notice */}
-            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5">
+            <div className="bg-yellow-50 dark:bg-yellow-900 border-2 border-yellow-200 dark:border-yellow-700 rounded-xl p-5">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-300 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-yellow-900 mb-2">
+                  <p className="font-bold text-yellow-900 dark:text-yellow-200 mb-2">
                     ⚠️ Lưu ý quan trọng
                   </p>
-                  <ul className="text-sm text-yellow-800 space-y-2">
+                  <ul className="text-sm text-yellow-800 dark:text-yellow-200 space-y-2">
                     <li className="flex items-start gap-2">
-                      <span className="text-yellow-600 mt-1">•</span>
+                      <span className="text-yellow-600 dark:text-yellow-300 mt-1">•</span>
                       <span>Mang theo CMND/CCCD khi nhận phòng</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-yellow-600 mt-1">•</span>
+                      <span className="text-yellow-600 dark:text-yellow-300 mt-1">•</span>
                       <span>Check-in: 14:00 | Check-out: 12:00</span>
                     </li>
                     {canCancelBooking(booking) && (

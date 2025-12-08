@@ -354,7 +354,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
             <label
               htmlFor="maxPrice"
               className="block text-sm font-medium 
-                text-gray-700 mb-1"
+                text-gray-700 dark:text-gray-200 mb-1"
             >
               {t('rooms.maxPrice')}
             </label>

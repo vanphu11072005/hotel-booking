@@ -27,7 +27,7 @@ import {
 // Pages
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/customer/AboutPage';
-import ServicesPage from './pages/ServicesPage';
+import ServicesPage from './pages/customer/ServicesPage';
 import RoomListPage from
   './pages/customer/RoomListPage';
 import RoomDetailPage from

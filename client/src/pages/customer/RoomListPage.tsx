@@ -120,9 +120,6 @@ const RoomListPage: React.FC = () => {
               .map(s => s.trim())
               .filter(Boolean);
             
-            console.log('🔍 Selected amenities:', selectedAmenities);
-            console.log('🔍 Total types before filter:', types.length);
-            
             if (selectedAmenities.length > 0) {
               types = types.filter((t) => {
                 // Parse amenities - handle both string and array
@@ -150,12 +147,14 @@ const RoomListPage: React.FC = () => {
                 console.log(`Room ${t.name} has all amenities:`, hasAllAmenities);
                 return hasAllAmenities;
               });
-              
-              console.log('🔍 Total types after filter:', types.length);
             }
           }
 
-          const sliced = types.slice(0, params.limit || 12);
+          // Paginate client-side
+          const startIndex = (params.page - 1) * params.limit;
+          const endIndex = startIndex + params.limit;
+          const sliced = types.slice(startIndex, endIndex);
+          
           setRoomTypes(sliced);
           setPagination({ 
             total: types.length, 

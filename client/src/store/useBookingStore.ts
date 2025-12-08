@@ -25,8 +25,8 @@ interface BookingState {
   error: string | null;
   pagination?: any | null;
 
-  createBooking: (data: BookingData) => Promise<Booking | null>;
-  createMultiRoomBooking: (data: MultiRoomTypeBookingData) => Promise<Booking | null>;
+  createBooking: (data: BookingData, opts?: { silent?: boolean }) => Promise<Booking | null>;
+  createMultiRoomBooking: (data: MultiRoomTypeBookingData, opts?: { silent?: boolean }) => Promise<Booking | null>;
   fetchMyBookings: () => Promise<void>;
   getBooking: (id: number) => Promise<Booking | null>;
   cancel: (id: number, reason?: string, details?: string) => Promise<Booking | null>;
@@ -45,14 +45,14 @@ const useBookingStore = create<BookingState>((set) => ({
   error: null,
   pagination: null,
 
-  createBooking: async (data: BookingData) => {
+  createBooking: async (data: BookingData, opts: { silent?: boolean } = {}) => {
     set({ isLoading: true, error: null });
     try {
       const response: BookingResponse = await createBooking(data);
       if (response && response.data && response.data.booking) {
         const b = response.data.booking as Booking;
         set((state) => ({ bookings: [b, ...state.bookings], isLoading: false }));
-        toast.success('Đặt phòng thành công');
+        if (!opts.silent) toast.success('Đặt phòng thành công');
         return b;
       }
       set({ isLoading: false });
@@ -65,14 +65,14 @@ const useBookingStore = create<BookingState>((set) => ({
     }
   },
 
-  createMultiRoomBooking: async (data: MultiRoomTypeBookingData) => {
+  createMultiRoomBooking: async (data: MultiRoomTypeBookingData, opts: { silent?: boolean } = {}) => {
     set({ isLoading: true, error: null });
     try {
       const response: BookingResponse = await createMultiRoomTypeBooking(data);
       if (response && response.data && response.data.booking) {
         const b = response.data.booking as Booking;
         set((state) => ({ bookings: [b, ...state.bookings], isLoading: false }));
-        toast.success('Đặt phòng (nhiều loại) thành công');
+        if (!opts.silent) toast.success('Đặt phòng (nhiều loại) thành công');
         return b;
       }
       set({ isLoading: false });

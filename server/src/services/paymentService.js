@@ -318,64 +318,52 @@ class PaymentService {
     });
 
     console.log('VNPay Payment URL created:', paymentUrl);
+    try {
+      const pageHtml = await fetchUrlText(paymentUrl, 5000);
+      const errorSignatures = [
+        'Payment/Error.html',
+        'Không tìm thấy website',
+        'Không tìm thấy',
+        'timer is not defined',
+      ];
 
-        // Pre-check the VNPay URL: fetch the page HTML and look for known
-        // error signatures (Payment/Error.html, "Không tìm thấy website", etc.).
-        // This prevents redirecting users to a broken VNPay page and gives a
-        // clearer error message.
-        // Try to fetch the payment page and detect known error signatures.
-        try {
-          const pageHtml = await fetchUrlText(paymentUrl, 5000);
-          const errorSignatures = [
-            'Payment/Error.html',
-            'Không tìm thấy website',
-            'Không tìm thấy',
-            'timer is not defined',
-          ];
+      const foundError = errorSignatures.some((s) =>
+        pageHtml && pageHtml.includes(s)
+      );
 
-          const foundError = errorSignatures.some((s) =>
-            pageHtml && pageHtml.includes(s)
-          );
+      if (foundError) {
+        const configuredTmn = process.env.VNP_TMN_CODE ||
+          (vnpayService.vnpay && (vnpayService.vnpay.options?.tmnCode || vnpayService.vnpay.options?.TmnCode));
 
-          if (foundError) {
-            const configuredTmn = process.env.VNP_TMN_CODE ||
-              (vnpayService.vnpay && (vnpayService.vnpay.options?.tmnCode || vnpayService.vnpay.options?.TmnCode));
+        console.error('VNPay returned an error page. Aborting redirect.', {
+          tmn: configuredTmn,
+          paymentUrl,
+        });
 
-            console.error('VNPay returned an error page. Aborting redirect.', {
-              tmn: configuredTmn,
-              paymentUrl,
-            });
-
-            // Throw and let controller catch and return proper status to client
-            throw {
-              statusCode: 502,
-              message:
-                'VNPay sandbox returned an error page (Payment/Error). Check TMN code and return URL configuration in VNPay dashboard.',
-            };
-          }
-        } catch (err) {
-          // If the throw above created an error object with statusCode, rethrow it
-          if (err && err.statusCode) {
-            throw err;
-          }
-
-          // Otherwise it's a fetch/network/timeout error — warn but still allow
-          // returning the paymentUrl so the integration can be tried manually.
-          console.warn('Warning: could not pre-check VNPay payment URL:', err.message || err);
-        }
-
-        return {
-          payment_url: paymentUrl,
-          payment_id: payment.id,
+        throw {
+          statusCode: 502,
+          message:
+            'VNPay sandbox returned an error page (Payment/Error). Check TMN code and return URL configuration in VNPay dashboard.',
         };
+      }
+    } catch (err) {
+      if (err && err.statusCode) {
+        throw err;
+      }
+
+      console.warn('Warning: could not pre-check VNPay payment URL:', err.message || err);
+    }
+
+    return {
+      payment_url: paymentUrl,
+      payment_id: payment.id,
+    };
   }
 
   /**
    * Handle VNPay return callback
    */
   async handleVNPayReturn(vnpParams) {
-    console.log('📥 Nhận callback từ VNPay:', vnpParams);
-
     // Verify signature
     const verifyResult = vnpayService.verifyReturn(vnpParams);
 
@@ -388,7 +376,6 @@ class PaymentService {
 
     // Extract payment_id from orderId (remove timestamp)
     const paymentId = vnp_TxnRef.replace(/\d{13}$/, '');
-    console.log('💳 ID Payment trích xuất:', paymentId);
 
     const payment = await paymentRepository.findPaymentById(paymentId);
 
@@ -397,13 +384,9 @@ class PaymentService {
       throw { statusCode: 404, message: 'Không tìm thấy thanh toán' };
     }
 
-    console.log('✅ Tìm thấy payment:', payment.id, '| Mã phản hồi:', vnp_ResponseCode);
-
     // Check response code (00 = success)
     if (vnp_ResponseCode === '00') {
       // Payment successful
-      console.log('✅ Thanh toán thành công, đang cập nhật dữ liệu...');
-      
       const wasAlreadyCompleted = payment.payment_status === 'completed';
       const updatedPayment = await paymentRepository.updatePayment(payment, {
         payment_status: 'completed',
@@ -419,12 +402,6 @@ class PaymentService {
           status: 'confirmed', // Always confirm booking when VNPay payment succeeds
         };
         
-        if (payment.payment_type === 'full') {
-          console.log('✅ Thanh toán full 100% qua VNPay, xác nhận booking:', payment.booking.id);
-        } else {
-          console.log('✅ Thanh toán deposit qua VNPay thành công, xác nhận booking:', payment.booking.id);
-        }
-        
         const updatedBooking = await paymentRepository.updateBooking(
           payment.booking, 
           updateData
@@ -437,7 +414,6 @@ class PaymentService {
         });
         
         if (childBookings.length > 0) {
-          console.log(`✅ Updating ${childBookings.length} child bookings`);
           await Promise.all(
             childBookings.map(child => 
               paymentRepository.updateBooking(child, updateData)
@@ -453,8 +429,6 @@ class PaymentService {
         // Send confirmation email only if this payment was not already completed
         if (!wasAlreadyCompleted) {
           await this.sendBookingConfirmationEmail(bookingWithDetails);
-        } else {
-          console.log('ℹ️ Payment already completed previously; skipping duplicate confirmation email');
         }
       }
 
@@ -466,8 +440,6 @@ class PaymentService {
       };
     } else {
       // Payment failed or cancelled
-      console.log('❌ Thanh toán thất bại/bị hủy với mã:', vnp_ResponseCode);
-      
       const updatedPayment = await paymentRepository.updatePayment(payment, {
         payment_status: 'failed',
         notes: `Lỗi VNPay: ${vnp_ResponseCode}`,
@@ -482,7 +454,6 @@ class PaymentService {
           cancellation_details: `Thanh toán VNPay bị hủy hoặc thất bại với mã: ${vnp_ResponseCode}`,
           cancelled_at: new Date(),
         });
-        console.log('✅ Đã hủy booking:', updatedBooking.id);
       }
 
       throw {
