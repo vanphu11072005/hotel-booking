@@ -5,22 +5,20 @@ import {
   DollarSign,
   ArrowLeft,
 } from 'lucide-react';
-import RoomTypeCard from '../../components/rooms/RoomTypeCard';
-import { getRoomTypes } from '../../services/api/roomService';
-import { getRoomById } from '../../services/api/roomService';
 import type { Room } from '../../types/rooms';
+import RoomTypeCard from '../../components/rooms/RoomTypeCard';
 import RoomGallery from '../../components/rooms/RoomGallery';
 import RoomAmenities from '../../components/rooms/RoomAmenities';
 import ReviewSection from '../../components/rooms/ReviewSection';
 import RatingStars from '../../components/rooms/RatingStars';
+import useRoomStore from '../../store/useRoomStore';
 
 const RoomDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { getRoom, fetchRoomTypes, roomTypes, isLoading, error } = useRoomStore();
   const [room, setRoom] = useState<Room | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [suggestedTypes, setSuggestedTypes] = useState<any[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
@@ -31,40 +29,21 @@ const RoomDetailPage: React.FC = () => {
   }, [id]);
 
   const fetchRoomDetail = async (roomId: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await getRoomById(roomId);
-      
-      // backend uses `status: 'success'` (not `success`), accept both
-      if ((response as any).success || (response as any).status === 'success') {
-        if (response.data && response.data.room) {
-          setRoom(response.data.room);
-          // fetch suggested room types after we have room data
-          fetchSuggestedRoomTypes(response.data.room.room_type?.id);
-        } else {
-          throw new Error('Failed to fetch room details');
-        }
-      } else {
-        throw new Error('Failed to fetch room details');
-      }
-    } catch (err: any) {
-      console.error('Error fetching room:', err);
-      const message =
-        err.response?.data?.message ||
-        'Không thể tải thông tin phòng';
-      setError(message);
-    } finally {
-      setLoading(false);
+    const roomData = await getRoom(roomId);
+    
+    if (roomData) {
+      setRoom(roomData);
+      // fetch suggested room types after we have room data
+      fetchSuggestedRoomTypes(roomData.room_type?.id);
     }
   };
 
   const fetchSuggestedRoomTypes = async (currentRoomTypeId?: number) => {
     try {
       setLoadingSuggestions(true);
-      const resp = await getRoomTypes();
-      if (resp && (resp as any).data && Array.isArray((resp as any).data.room_types)) {
-        let types = (resp as any).data.room_types as any[];
+      await fetchRoomTypes();
+      if (roomTypes && Array.isArray(roomTypes)) {
+        let types = [...roomTypes];
         // Exclude current room type
         if (currentRoomTypeId) {
           types = types.filter((t) => t.id !== currentRoomTypeId);
@@ -77,21 +56,21 @@ const RoomDetailPage: React.FC = () => {
         setSuggestedTypes(ordered.slice(0, 3));
       }
     } catch (err) {
-      console.error('Error fetching suggested room types', err);
+      console.error('Lỗi khi lấy danh sách loại phòng gợi ý', err);
     } finally {
       setLoadingSuggestions(false);
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="animate-pulse space-y-6">
-            <div className="h-96 bg-gray-300 rounded-lg" />
-            <div className="h-8 bg-gray-300 rounded w-1/3" />
-            <div className="h-4 bg-gray-300 rounded w-2/3" />
-            <div className="h-32 bg-gray-300 rounded" />
+            <div className="h-96 bg-gray-300 dark:bg-gray-700 rounded-lg" />
+            <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded w-1/3" />
+            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-2/3" />
+            <div className="h-32 bg-gray-300 dark:bg-gray-700 rounded" />
           </div>
         </div>
       </div>
@@ -100,12 +79,12 @@ const RoomDetailPage: React.FC = () => {
 
   if (error || !room) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="bg-red-50 border border-red-200 
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 
             rounded-lg p-8 text-center"
           >
-            <p className="text-red-800 font-medium mb-4">
+            <p className="text-red-800 dark:text-red-300 font-medium mb-4">
               {error || 'Không tìm thấy phòng'}
             </p>
             <button
@@ -141,13 +120,14 @@ const RoomDetailPage: React.FC = () => {
     }
     return [];
   };
+  
   const formattedPrice = new Intl.NumberFormat('vi-VN', {
     style: 'currency',
     currency: 'VND',
   }).format(room.price || roomType?.base_price || 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <Link
@@ -175,13 +155,13 @@ const RoomDetailPage: React.FC = () => {
             {/* Title & Basic Info */}
             <div>
               <h1 className="text-4xl font-bold 
-                text-gray-900 mb-4"
+                text-gray-900 dark:text-white mb-4"
               >
                 {roomType?.name}
               </h1>
               
               <div className="flex flex-wrap items-center 
-                gap-6 text-gray-600 mb-4"
+                gap-6 text-gray-600 dark:text-white mb-4"
               >
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
@@ -211,11 +191,11 @@ const RoomDetailPage: React.FC = () => {
             {roomType?.description && (
               <div>
                 <h2 className="text-2xl font-bold 
-                  text-gray-900 mb-4"
+                  text-gray-900 dark:text-white mb-4"
                 >
                   Mô tả phòng
                 </h2>
-                <p className="text-gray-700 leading-relaxed">
+                <p className="text-gray-700 dark:text-white leading-relaxed">
                   {roomType.description}
                 </p>
               </div>
@@ -224,7 +204,7 @@ const RoomDetailPage: React.FC = () => {
             {/* Amenities */}
             <div>
               <h2 className="text-2xl font-bold 
-                text-gray-900 mb-4"
+                text-gray-900 dark:text-white mb-4"
               >
                 Tiện ích
               </h2>
@@ -234,14 +214,14 @@ const RoomDetailPage: React.FC = () => {
 
           {/* Booking Card */}
           <aside className="lg:col-span-4">
-            <div className="bg-white rounded-xl shadow-md p-6 sticky top-10">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 sticky top-10">
               <div className="flex items-baseline gap-3 mb-4">
-                <DollarSign className="w-5 h-5 text-gray-600" />
+                <DollarSign className="w-5 h-5 text-gray-600 dark:text-white" />
                 <div>
-                  <div className="text-3xl font-extrabold text-indigo-600">
+                  <div className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">
                     {formattedPrice}
                   </div>
-                  <div className="text-sm text-gray-500">/ đêm</div>
+                  <div className="text-sm text-gray-500 dark:text-white">/ đêm</div>
                 </div>
               </div>
 
@@ -250,16 +230,16 @@ const RoomDetailPage: React.FC = () => {
                   to={`/booking/${room.id}`}
                   className={
                     'block w-full py-3 text-center font-semibold rounded-md '
-                    + 'transition-colors bg-indigo-600 text-white hover:bg-indigo-700'
+                    + 'transition-colors bg-indigo-600 text-white hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800'
                   }
                 >
                   Đặt ngay
                 </Link>
               </div>
 
-              <hr className="my-4" />
+              <hr className="my-4 border-gray-200 dark:border-gray-700" />
 
-              <div className="text-sm text-gray-700 space-y-2">
+              <div className="text-sm text-gray-700 dark:text-white space-y-2">
                 <div className="flex items-center justify-between">
                   <span>Loại phòng</span>
                   <strong>{roomType?.name}</strong>
@@ -280,12 +260,12 @@ const RoomDetailPage: React.FC = () => {
 
         {/* Suggested Room Types */}
         <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Phòng đề xuất</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Phòng đề xuất</h2>
           {loadingSuggestions ? (
             <div className="flex gap-4">
-              <div className="w-80 h-56 bg-gray-100 rounded-lg animate-pulse" />
-              <div className="w-80 h-56 bg-gray-100 rounded-lg animate-pulse" />
-              <div className="w-80 h-56 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="w-80 h-56 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
+              <div className="w-80 h-56 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
+              <div className="w-80 h-56 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

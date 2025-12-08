@@ -30,7 +30,7 @@ const LayoutMain: React.FC<LayoutMainProps> = ({
       
       {/* Main Content Area - Outlet renders child routes */}
       <main className="flex-1 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 bg-transparent dark:bg-gray-900">
           <Outlet />
         </div>
       </main>

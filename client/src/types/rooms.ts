@@ -18,7 +18,6 @@ export interface Room {
   floor?: number;
   price?: number;
   status: 'available' | 'occupied' | 'maintenance' | 'dirty' | 'cleaning';
-  // images moved to RoomType
   created_at?: string;
   updated_at?: string;
   room_type?: RoomType;

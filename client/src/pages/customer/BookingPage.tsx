@@ -9,11 +9,10 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import DatePicker from 'react-datepicker';
 import { addDays } from 'date-fns';
-import QRCode from 'qrcode';
+import { generateBankTransferQR, DEFAULT_BANK_INFO } from '../../utils/bankTransfer';
 import { 
   Calendar,
   Users,
-  CreditCard,
   Building2,
   FileText,
   ArrowLeft,
@@ -22,23 +21,15 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { 
-  getRoomById,
-  getRooms,
-  getAvailableRoomCount,
-} from '../../services/api/roomService';
+import useRoomStore from '../../store/useRoomStore';
 import type { Room } from '../../types/rooms';
-import {
-  createBooking,
-  createMultiRoomTypeBooking,
-} from '../../services/api/bookingService';
+import useBookingStore from '../../store/useBookingStore';
 import type {
   BookingData,
   MultiRoomTypeBookingData,
 } from '../../types/booking';
-import { getServices } from '../../services/api/serviceService';
-import type { Service } from '../../types/service';
-import { createVNPayPayment } from '../../services/api/paymentService';
+import useServiceStore from '../../store/useServiceStore';
+import usePaymentStore from '../../store/usePaymentStore';
 import useAuthStore from '../../store/useAuthStore';
 import { 
   bookingValidationSchema, 
@@ -46,6 +37,10 @@ import {
 } from '../../validators/bookingValidator';
 import Loading from '../../components/common/Loading';
 import RoomTypeSelectorModal from '../../components/rooms/RoomTypeSelectorModal';
+import PaymentMethodSection from '../../components/booking/PaymentMethodSection';
+import AdditionalServicesSection from '../../components/booking/AdditionalServicesSection';
+import BankTransferModal from '../../components/booking/BankTransferModal';
+import BookingSummary from '../../components/booking/BookingSummary';
 
 const BookingPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -57,7 +52,7 @@ const BookingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [services, setServices] = useState<Service[]>([]);
+  
   const [selectedServices, setSelectedServices] = useState<
     Record<number, number>
   >({});
@@ -68,9 +63,9 @@ const BookingPage: React.FC = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [pendingBookingData, setPendingBookingData] = useState<BookingData | MultiRoomTypeBookingData | null>(null);
   
-  // Multi-room type booking state
+  // Trạng thái đặt nhiều loại phòng
   interface SelectedRoomType {
-    id: string; // unique ID for each selection
+    id: string; // ID duy nhất cho mỗi lựa chọn
     room: Room;
     quantity: number;
     availableCount: number | null;
@@ -80,7 +75,14 @@ const BookingPage: React.FC = () => {
   const [showRoomTypeSelector, setShowRoomTypeSelector] = useState(false);
   const [availableRoomTypes, setAvailableRoomTypes] = useState<Room[]>([]);
 
-  // Redirect if not authenticated
+  // Stores Zustand (hành động / trạng thái)
+  const { getRoom, fetchRooms, getAvailableCount } = useRoomStore();
+  const { fetchServices: fetchServicesFromStore, services: servicesFromStore } = useServiceStore();
+  const { createBooking: createBookingStore, createMultiRoomBooking } = useBookingStore();
+  const { createVNPay: createVNPayStore } = usePaymentStore();
+  const services = servicesFromStore;
+
+  // Chuyển hướng nếu chưa đăng nhập
   useEffect(() => {
     if (!isAuthenticated) {
       toast.error(
@@ -92,15 +94,15 @@ const BookingPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate, id]);
 
-  // Fetch room details and services
+  // Lấy thông tin phòng và danh sách dịch vụ
   useEffect(() => {
     if (id && isAuthenticated) {
       fetchRoomDetails(Number(id));
-      fetchServices();
+      fetchServicesFromStore({ status: 'active', limit: 100 });
     }
   }, [id, isAuthenticated]);
 
-  // Initialize first room type when room is loaded
+  // Khởi tạo loại phòng đầu tiên khi thông tin phòng đã tải xong
   useEffect(() => {
     if (room && selectedRoomTypes.length === 0) {
       setSelectedRoomTypes([{
@@ -112,26 +114,16 @@ const BookingPage: React.FC = () => {
       }]);
     }
   }, [room]);
+
   const fetchRoomDetails = async (roomId: number) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getRoomById(roomId);
-
-      if (
-        (response as any).success ||
-        (response as any).status === 'success'
-      ) {
-        if (response.data && response.data.room) {
-          setRoom(response.data.room);
-        } else {
-          throw new Error('Không thể tải thông tin phòng');
-        }
-      } else {
-        throw new Error('Không thể tải thông tin phòng');
-      }
+      const r = await getRoom(roomId);
+      if (r) setRoom(r);
+      else throw new Error('Không thể tải thông tin phòng');
     } catch (err: any) {
-      console.error('Error fetching room:', err);
+      console.error('Lỗi khi tải thông tin phòng:', err);
       const message =
         err.response?.data?.message || 'Không thể tải thông tin phòng';
       setError(message);
@@ -143,33 +135,11 @@ const BookingPage: React.FC = () => {
 
   const fetchAvailableRoomTypes = async () => {
     try {
-      const response = await getRooms({ limit: 100 });
-      if (response.data && response.data.rooms) {
-        setAvailableRoomTypes(response.data.rooms);
-      }
+      await fetchRooms({ limit: 100 });
+      const rooms = useRoomStore.getState().rooms || [];
+      setAvailableRoomTypes(rooms);
     } catch (err) {
-      console.error('Error fetching available rooms:', err);
-    }
-  };
-
-  const fetchServices = async () => {
-    try {
-      const response = await getServices({ status: 'active', limit: 100 });
-      const servicesFromResponse: Service[] =
-        (response as any)?.data?.services ?? (response as any)?.services ?? [];
-      if (Array.isArray(servicesFromResponse) && servicesFromResponse.length > 0) {
-        setServices(servicesFromResponse);
-        return;
-      }
-
-      const fallback = await getServices({ limit: 100 });
-      const fallbackServices: Service[] =
-        (fallback as any)?.data?.services ?? (fallback as any)?.services ?? [];
-      if (Array.isArray(fallbackServices) && fallbackServices.length > 0) {
-        setServices(fallbackServices);
-      }
-    } catch (err) {
-      console.error('Error fetching services:', err);
+      console.error('Lỗi khi tải danh sách phòng có sẵn:', err);
     }
   };
 
@@ -189,7 +159,7 @@ const BookingPage: React.FC = () => {
       },
     });
 
-  // Watch form values for calculations
+  // Theo dõi giá trị form để phục vụ việc tính toán
   const checkInDate = watch('checkInDate');
   const checkOutDate = watch('checkOutDate');
   const paymentMethod = watch('paymentMethod');
@@ -201,7 +171,7 @@ const BookingPage: React.FC = () => {
     return `${y}-${m}-${day}`;
   };
 
-  // Fetch available count for each room type when dates change
+  // Lấy số phòng khả dụng cho từng loại khi thay đổi ngày
   useEffect(() => {
     const updateAvailability = async () => {
       if (!checkInDate || !checkOutDate || 
@@ -213,28 +183,20 @@ const BookingPage: React.FC = () => {
       const checkInStr = formatLocalDate(checkInDate);
       const checkOutStr = formatLocalDate(checkOutDate);
 
-      // Update each room type's availability
+      // Cập nhật trạng thái khả dụng cho từng loại phòng
       const updatedRoomTypes = await Promise.all(
         selectedRoomTypes.map(async (roomType) => {
-          // Skip if currently loading to avoid duplicate fetches
+          // Bỏ qua nếu đang tải để tránh gọi lặp
           if (roomType.loading) {
             return roomType;
           }
 
           try {
-            const response = await getAvailableRoomCount(
-              roomType.room.id,
-              checkInStr,
-              checkOutStr
-            );
-            return {
-              ...roomType,
-              availableCount: response.data.available_count,
-              loading: false
-            };
+            const count = await getAvailableCount(roomType.room.id, checkInStr, checkOutStr);
+            return { ...roomType, availableCount: count, loading: false };
           } catch (error) {
             console.error(
-              `Error fetching availability for room ${roomType.room.id}:`,
+              `Lỗi khi lấy số phòng khả dụng cho phòng ${roomType.room.id}:`,
               error
             );
             return {
@@ -246,7 +208,7 @@ const BookingPage: React.FC = () => {
         })
       );
 
-      // Only update if something changed
+      // Chỉ cập nhật nếu có thay đổi
       const hasChanges = updatedRoomTypes.some(
         (updated, idx) => 
           updated.availableCount !== 
@@ -261,7 +223,7 @@ const BookingPage: React.FC = () => {
     updateAvailability();
   }, [checkInDate, checkOutDate, selectedRoomTypes.length]);
 
-  // Calculate number of nights and total price
+  // Tính số đêm và tổng tiền
   const numberOfNights =
     checkInDate && checkOutDate
       ? Math.ceil(
@@ -271,13 +233,13 @@ const BookingPage: React.FC = () => {
         )
       : 0;
 
-  // Calculate total price for all selected room types
+  // Tính tổng tiền cho tất cả loại phòng đã chọn
   const roomTotalPrice = selectedRoomTypes.reduce((sum, roomType) => {
     const price = roomType.room.price || roomType.room.room_type?.base_price || 0;
     return sum + (numberOfNights * price * roomType.quantity);
   }, 0);
   
-  // Calculate services total
+  // Tính tổng tiền dịch vụ
   const servicesTotalPrice = Object.entries(selectedServices).reduce(
     (sum, [serviceId, quantity]) => {
       const service = services.find(
@@ -290,7 +252,7 @@ const BookingPage: React.FC = () => {
   
   const totalPrice = roomTotalPrice + servicesTotalPrice;
 
-  // Format price
+  // Định dạng tiền
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
@@ -298,7 +260,7 @@ const BookingPage: React.FC = () => {
     }).format(price);
   };
 
-  // Handle room type quantity change
+  // Xử lý thay đổi số lượng cho loại phòng
   const handleRoomQuantityChange = (roomTypeId: string, newQuantity: number) => {
     setSelectedRoomTypes(prev => 
       prev.map(rt => 
@@ -309,12 +271,12 @@ const BookingPage: React.FC = () => {
     );
   };
 
-  // Handle remove room type
+  // Xử lý xóa loại phòng
   const handleRemoveRoomType = (roomTypeId: string) => {
     setSelectedRoomTypes(prev => prev.filter(rt => rt.id !== roomTypeId));
   };
 
-  // Handle add new room type
+  // Xử lý thêm loại phòng mới
   const handleAddRoomType = async (selectedRoom: Room) => {
     const newRoomType: SelectedRoomType = {
       id: `room-${Date.now()}-${selectedRoom.id}`,
@@ -326,31 +288,23 @@ const BookingPage: React.FC = () => {
     setSelectedRoomTypes(prev => [...prev, newRoomType]);
     setShowRoomTypeSelector(false);
 
-    // Fetch availability for new room type
+    // Lấy số phòng khả dụng cho loại phòng mới
     if (checkInDate && checkOutDate) {
       try {
         const checkInStr = formatLocalDate(checkInDate);
         const checkOutStr = formatLocalDate(checkOutDate);
         
-        const response = await getAvailableRoomCount(
-          selectedRoom.id,
-          checkInStr,
-          checkOutStr
-        );
-        
+        const count = await getAvailableCount(selectedRoom.id, checkInStr, checkOutStr);
+
         setSelectedRoomTypes(prev => 
           prev.map(rt => 
             rt.id === newRoomType.id
-              ? { 
-                  ...rt, 
-                  availableCount: response.data.available_count,
-                  loading: false 
-                }
+              ? { ...rt, availableCount: count, loading: false }
               : rt
           )
         );
       } catch (error) {
-        console.error('Error fetching availability:', error);
+        console.error('Lỗi khi kiểm tra khả dụng:', error);
         setSelectedRoomTypes(prev => 
           prev.map(rt => 
             rt.id === newRoomType.id
@@ -362,7 +316,7 @@ const BookingPage: React.FC = () => {
     }
   };
 
-  // Handle form submission
+  // Xử lý gửi form
   const onSubmit = async (data: BookingFormData) => {
     if (!room) return;
 
@@ -372,7 +326,7 @@ const BookingPage: React.FC = () => {
       const checkInDateStr = formatLocalDate(data.checkInDate);
       const checkOutDateStr = formatLocalDate(data.checkOutDate);
 
-      // Step 1: Prepare services list
+      // Bước 1: Chuẩn bị danh sách dịch vụ
       const servicesList = Object.entries(selectedServices)
         .filter(([_, quantity]) => quantity > 0)
         .map(([serviceId, quantity]) => ({
@@ -380,14 +334,14 @@ const BookingPage: React.FC = () => {
           quantity,
         }));
 
-      // Step 2: Check if multi-room booking (always use new API for multiple rooms)
+      // Bước 2: Kiểm tra xem có đặt nhiều loại/phòng hay không
       const hasMultipleRooms = selectedRoomTypes.length > 1 || 
         selectedRoomTypes.some(rt => rt.quantity > 1);
 
       let bookingData: BookingData | MultiRoomTypeBookingData;
 
       if (hasMultipleRooms) {
-        // Use multi-room-type API for any multi-room booking
+        // Sử dụng API đặt nhiều loại phòng khi cần đặt nhiều loại/phòng
         bookingData = {
           rooms: selectedRoomTypes.map(rt => ({
             room_id: rt.room.id,
@@ -407,7 +361,7 @@ const BookingPage: React.FC = () => {
           services: servicesList.length > 0 ? servicesList : undefined,
         } as MultiRoomTypeBookingData;
       } else {
-        // Single room type (multiple quantity)
+        // Một loại phòng (số lượng > 1)
         bookingData = {
           room_id: room.id,
           check_in_date: checkInDateStr,
@@ -429,84 +383,72 @@ const BookingPage: React.FC = () => {
         } as BookingData;
       }
 
-      // Step 3: Create booking or show modal based on payment method
+      // Bước 3: Tạo booking hoặc hiển thị modal tùy theo phương thức thanh toán
       if (bookingData.payment_method === 'bank_transfer') {
-        // For bank transfer, show modal first, create booking only after confirmation
+        // Đối với chuyển khoản: hiển thị modal trước, chỉ tạo booking sau khi xác nhận
         setPendingBookingData(bookingData);
         
-        // Generate temporary booking number for QR code
+        // Tạo mã đặt phòng tạm thời để hiển thị trong QR
         const tempBookingNumber = `TEMP-${Date.now()}`;
         
-        // Generate QR code from bank transfer info
-        const qrContent = `Bank: Vietcombank\nAccount: 0123456789\nAmount: ${totalPrice}\nContent: ${tempBookingNumber}`;
+        // Tạo mã QR từ thông tin chuyển khoản
         try {
-          const qrUrl = await QRCode.toDataURL(qrContent, {
-            width: 300,
-            margin: 2,
-            color: {
-              dark: '#000000',
-              light: '#FFFFFF',
-            },
+          const qrUrl = await generateBankTransferQR({
+            bank_name: DEFAULT_BANK_INFO.bank_name,
+            account_number: DEFAULT_BANK_INFO.account_number,
+            amount: totalPrice,
+            content: tempBookingNumber,
           });
           setQrCodeUrl(qrUrl);
         } catch (err) {
-          console.error('Error generating QR code:', err);
+          console.error('Lỗi khi tạo mã QR:', err);
           setQrCodeUrl(null);
         }
         
         setShowBankModal(true);
         toast.info('Vui lòng xác nhận thông tin chuyển khoản');
       } else if (bookingData.payment_method === 'vnpay') {
-        // For VNPay payment, create booking first then redirect to VNPay
+        // Đối với VNPay: tạo booking trước rồi chuyển hướng sang VNPay
         toast.info('Đang tạo booking và chuyển đến VNPay...');
         
-        const bookingResponse = hasMultipleRooms
-          ? await createMultiRoomTypeBooking(bookingData as MultiRoomTypeBookingData)
-          : await createBooking(bookingData as BookingData);
+        const createdBooking = hasMultipleRooms
+          ? await createMultiRoomBooking(bookingData as MultiRoomTypeBookingData, { silent: true })
+          : await createBookingStore(bookingData as BookingData, { silent: true });
 
-        if (bookingResponse.success && bookingResponse.data) {
-          const newBooking = bookingResponse.data.booking;
+        if (createdBooking) {
+          const newBooking = createdBooking;
 
-          // Find payment from payments array (VNPay uses 'full' type, cash uses 'deposit')
+          // Tìm thông tin thanh toán trong mảng payments (VNPay thường là 'full', tiền mặt là 'deposit')
           const payment = newBooking.payments?.find(
             (p: any) => p.payment_type === 'full' || p.payment_type === 'deposit'
           );
 
           if (payment) {
-            // Create VNPay payment URL
-            const vnpayResponse = await createVNPayPayment(
-              payment.id
-            );
-
-            if (vnpayResponse.success && vnpayResponse.data.payment_url) {
-              // Clear any pending data
+            const vnpayData = await createVNPayStore(payment.id);
+            if (vnpayData && vnpayData.payment_url) {
               sessionStorage.removeItem('pendingBookingData');
-              
-              // Redirect to VNPay
-              window.location.href = vnpayResponse.data.payment_url;
+              window.location.href = vnpayData.payment_url;
             } else {
-              toast.error(vnpayResponse.message || 
-                'Không thể tạo thanh toán VNPay');
+              toast.error('Không thể tạo thanh toán VNPay');
             }
           } else {
             toast.error('Không tìm thấy thông tin thanh toán');
           }
         } else {
-          toast.error(bookingResponse.message || 
-            'Không thể tạo booking');
+          toast.error('Không thể tạo booking');
         }
       } else {
-        // For cash payment, save booking data and redirect to deposit payment page
-        // Store booking data in sessionStorage
+        // Đối với thanh toán tiền mặt: lưu tạm booking và chuyển tới trang thanh toán đặt cọc
+        // Lưu booking tạm vào sessionStorage
         sessionStorage.setItem('pendingBookingData', JSON.stringify(bookingData));
         
         toast.info('Vui lòng hoàn tất thanh toán tiền đặt cọc');
         
-        // Redirect to deposit payment page (use room_id as placeholder)
+        // Chuyển sang trang thanh toán đặt cọc (sử dụng room_id làm placeholder)
         navigate(`/deposit-payment/${room.id}?pending=true`);
       }
     } catch (err: any) {
-      console.error('Error creating booking:', err);
+      console.error('Lỗi khi tạo đặt phòng:', err);
       
       // Handle specific error cases
       if (err.response?.status === 409) {
@@ -530,36 +472,32 @@ const BookingPage: React.FC = () => {
     }
   };
 
-  // Handle bank transfer confirmation
+  // Xử lý xác nhận chuyển khoản
   const handleConfirmBankTransfer = async () => {
     if (!pendingBookingData) return;
 
     try {
       setSubmitting(true);
 
-      // Check if multi-room-type booking
+      // Kiểm tra xem có phải đặt nhiều loại/phòng không
       const isMultiType = 'rooms' in pendingBookingData;
-      const response = isMultiType
-        ? await createMultiRoomTypeBooking(pendingBookingData as MultiRoomTypeBookingData)
-        : await createBooking(pendingBookingData as BookingData);
+      const created = isMultiType
+        ? await createMultiRoomBooking(pendingBookingData as MultiRoomTypeBookingData, { silent: true })
+        : await createBookingStore(pendingBookingData as BookingData, { silent: true });
 
-      if (response.success && response.data?.booking) {
-        const created = response.data.booking;
+      if (created) {
         
-        // Update QR code with actual booking number
-        const qrContent = `Bank: Vietcombank\nAccount: 0123456789\nAmount: ${pendingBookingData.total_price}\nContent: ${created.booking_number}`;
+        // Cập nhật QR code với mã đặt phòng thực tế
         try {
-          const qrUrl = await QRCode.toDataURL(qrContent, {
-            width: 300,
-            margin: 2,
-            color: {
-              dark: '#000000',
-              light: '#FFFFFF',
-            },
+          const qrUrl = await generateBankTransferQR({
+            bank_name: DEFAULT_BANK_INFO.bank_name,
+            account_number: DEFAULT_BANK_INFO.account_number,
+            amount: pendingBookingData.total_price,
+            content: created.booking_number,
           });
           setQrCodeUrl(qrUrl);
         } catch (err) {
-          console.error('Error generating QR code:', err);
+          console.error('Lỗi khi tạo mã QR:', err);
         }
 
         setRecentBooking({ 
@@ -577,12 +515,10 @@ const BookingPage: React.FC = () => {
         
         navigate(`/booking-success/${created.id}`);
       } else {
-        throw new Error(
-          response.message || 'Không thể tạo đặt phòng'
-        );
+        throw new Error('Không thể tạo đặt phòng');
       }
     } catch (err: any) {
-      console.error('Error creating booking:', err);
+      console.error('Lỗi khi tạo đặt phòng:', err);
       const message =
         err.response?.data?.message ||
         'Không thể tạo đặt phòng. Vui lòng thử lại.';
@@ -592,7 +528,7 @@ const BookingPage: React.FC = () => {
     }
   };
 
-  // Handle close modal without creating booking
+  // Xử lý đóng modal mà không tạo booking
   const handleCloseBankModal = () => {
     setShowBankModal(false);
     setPendingBookingData(null);
@@ -637,7 +573,7 @@ const BookingPage: React.FC = () => {
   if (!roomType) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* Back Button */}
         <Link
@@ -652,7 +588,7 @@ const BookingPage: React.FC = () => {
 
         {/* Page Title */}
         <h1 
-          className="text-3xl font-bold text-gray-900 mb-8"
+          className="text-3xl text-center font-bold text-gray-900 dark:text-white mb-8"
         >
           Đặt phòng
         </h1>
@@ -662,14 +598,14 @@ const BookingPage: React.FC = () => {
           <div className="lg:col-span-2">
             <form 
               onSubmit={handleSubmit(onSubmit)}
-              className="bg-white rounded-lg shadow-md 
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-md 
                 p-6 space-y-6"
             >
-              {/* Guest Information */}
+              {/* Thông tin khách hàng */}
               <div>
                 <h2 
                   className="text-xl font-bold 
-                    text-gray-900 mb-4"
+                    text-gray-900 dark:text-white mb-4"
                 >
                   Thông tin khách hàng
                 </h2>
@@ -679,7 +615,7 @@ const BookingPage: React.FC = () => {
                   <div>
                     <label 
                       className="block text-sm font-medium 
-                        text-gray-700 mb-1"
+                        text-gray-700 dark:text-white mb-1"
                     >
                       Họ và tên
                       <span className="text-red-500">*</span>
@@ -688,13 +624,13 @@ const BookingPage: React.FC = () => {
                       {...register('fullName')}
                       type="text"
                       className="w-full px-4 py-2 border 
-                        border-gray-300 rounded-lg 
+                        border-gray-300 dark:border-gray-600 rounded-lg 
                         focus:ring-2 focus:ring-indigo-500 
-                        focus:border-indigo-500"
+                        focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="Nguyễn Văn A"
                     />
                     {errors.fullName && (
-                      <p className="text-sm text-red-600 mt-1">
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-1">
                         {errors.fullName.message}
                       </p>
                     )}
@@ -706,8 +642,8 @@ const BookingPage: React.FC = () => {
                   >
                     <div>
                       <label 
-                        className="block text-sm 
-                          font-medium text-gray-700 mb-1"
+                          className="block text-sm 
+                            font-medium text-gray-700 dark:text-white mb-1"
                       >
                         Email
                         <span className="text-red-500">*</span>
@@ -716,14 +652,14 @@ const BookingPage: React.FC = () => {
                         {...register('email')}
                         type="email"
                         className="w-full px-4 py-2 border 
-                          border-gray-300 rounded-lg 
+                          border-gray-300 dark:border-gray-600 rounded-lg 
                           focus:ring-2 
                           focus:ring-indigo-500 
-                          focus:border-indigo-500"
+                          focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         placeholder="email@example.com"
                       />
                       {errors.email && (
-                        <p className="text-sm text-red-600 
+                        <p className="text-sm text-red-600 dark:text-red-400 
                           mt-1"
                         >
                           {errors.email.message}
@@ -733,8 +669,8 @@ const BookingPage: React.FC = () => {
 
                     <div>
                       <label 
-                        className="block text-sm 
-                          font-medium text-gray-700 mb-1"
+                          className="block text-sm 
+                            font-medium text-gray-700 dark:text-white mb-1"
                       >
                         Số điện thoại
                         <span className="text-red-500">*</span>
@@ -742,15 +678,15 @@ const BookingPage: React.FC = () => {
                       <input
                         {...register('phone')}
                         type="tel"
-                        className="w-full px-4 py-2 border 
-                          border-gray-300 rounded-lg 
-                          focus:ring-2 
-                          focus:ring-indigo-500 
-                          focus:border-indigo-500"
+                          className="w-full px-4 py-2 border 
+                            border-gray-300 dark:border-gray-600 rounded-lg 
+                            focus:ring-2 
+                            focus:ring-indigo-500 
+                            focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         placeholder="0123456789"
                       />
                       {errors.phone && (
-                        <p className="text-sm text-red-600 
+                        <p className="text-sm text-red-600 dark:text-red-400 
                           mt-1"
                         >
                           {errors.phone.message}
@@ -761,17 +697,17 @@ const BookingPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Booking Details */}
-              <div className="border-t pt-6">
+              {/* Chi tiết đặt phòng */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h2 
                   className="text-xl font-bold 
-                    text-gray-900 mb-4"
+                    text-gray-900 dark:text-white mb-4"
                 >
                   Chi tiết đặt phòng
                 </h2>
 
                 <div className="space-y-4">
-                  {/* Date Range */}
+                  {/* Khoảng ngày */}
                   <div className="grid grid-cols-1 
                     md:grid-cols-2 gap-4"
                   >
@@ -779,7 +715,7 @@ const BookingPage: React.FC = () => {
                     <div>
                       <label 
                         className="block text-sm 
-                          font-medium text-gray-700 mb-1"
+                          font-medium text-gray-700 dark:text-white mb-1"
                       >
                         <Calendar 
                           className="w-4 h-4 inline mr-1" 
@@ -803,16 +739,16 @@ const BookingPage: React.FC = () => {
                             dateFormat="dd/MM/yyyy"
                             placeholderText="Chọn ngày nhận"
                             className="w-full px-4 py-2 
-                              border border-gray-300 
+                              border border-gray-300 dark:border-gray-600 
                               rounded-lg focus:ring-2 
                               focus:ring-indigo-500 
-                              focus:border-indigo-500"
+                              focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             wrapperClassName="w-full"
                           />
                         )}
                       />
                       {errors.checkInDate && (
-                        <p className="text-sm text-red-600 
+                        <p className="text-sm text-red-600 dark:text-red-400 
                           mt-1"
                         >
                           {errors.checkInDate.message}
@@ -824,7 +760,7 @@ const BookingPage: React.FC = () => {
                     <div>
                       <label 
                         className="block text-sm 
-                          font-medium text-gray-700 mb-1"
+                          font-medium text-gray-700 dark:text-white mb-1"
                       >
                         <Calendar 
                           className="w-4 h-4 inline mr-1" 
@@ -848,16 +784,16 @@ const BookingPage: React.FC = () => {
                             dateFormat="dd/MM/yyyy"
                             placeholderText="Chọn ngày trả"
                             className="w-full px-4 py-2 
-                              border border-gray-300 
+                              border border-gray-300 dark:border-gray-600 
                               rounded-lg focus:ring-2 
                               focus:ring-indigo-500 
-                              focus:border-indigo-500"
+                              focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             wrapperClassName="w-full"
                           />
                         )}
                       />
                       {errors.checkOutDate && (
-                        <p className="text-sm text-red-600 
+                        <p className="text-sm text-red-600 dark:text-red-400 
                           mt-1"
                         >
                           {errors.checkOutDate.message}
@@ -866,11 +802,11 @@ const BookingPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Guest Count */}
+                  {/* Số người */}
                   <div>
                     <label 
                       className="block text-sm font-medium 
-                        text-gray-700 mb-1"
+                        text-gray-700 dark:text-white mb-1"
                     >
                       <Users 
                         className="w-4 h-4 inline mr-1" 
@@ -884,24 +820,24 @@ const BookingPage: React.FC = () => {
                       min="1"
                       max={roomType.capacity}
                       className="w-full px-4 py-2 border 
-                        border-gray-300 rounded-lg 
+                        border-gray-300 dark:border-gray-600 rounded-lg 
                         focus:ring-2 focus:ring-indigo-500 
-                        focus:border-indigo-500"
+                        focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="1"
                     />
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-gray-500 dark:text-white mt-1">
                       Sức chứa tối đa: {roomType.capacity} người
                     </p>
                     {errors.guestCount && (
-                      <p className="text-sm text-red-600 mt-1">
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-1">
                         {errors.guestCount.message}
                       </p>
                     )}
                   </div>
 
-                  {/* Selected Room Types */}
+                  {/* Các loại phòng đã chọn */}
                   <div className="space-y-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
                       <Building2 className="w-4 h-4 inline mr-1" />
                       Phòng bạn muốn đặt
                       <span className="text-red-500">*</span>
@@ -910,14 +846,14 @@ const BookingPage: React.FC = () => {
                     {selectedRoomTypes.map((roomType, index) => (
                       <div 
                         key={roomType.id}
-                        className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                        className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700"
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                            <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                               🛏 Loại phòng {index + 1}
                             </h4>
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className="text-sm text-gray-600 dark:text-white mt-1">
                               <span className="font-medium">Loại phòng:</span>{' '}
                               {roomType.room.room_type?.name || 'N/A'}
                             </p>
@@ -934,9 +870,9 @@ const BookingPage: React.FC = () => {
                         </div>
 
                         <div className="flex items-center justify-between">
-                          <div className="text-sm">
+                            <div className="text-sm">
                             {roomType.loading ? (
-                              <span className="text-gray-500">
+                              <span className="text-gray-500 dark:text-white">
                                 <Loader2 className="w-3 h-3 inline animate-spin mr-1" />
                                 Đang kiểm tra...
                               </span>
@@ -951,14 +887,14 @@ const BookingPage: React.FC = () => {
                                 </span>
                               )
                             ) : (
-                              <span className="text-gray-500">
+                              <span className="text-gray-500 dark:text-white">
                                 Chọn ngày để xem
                               </span>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-600">Số lượng:</span>
+                            <div className="flex items-center gap-3">
+                            <span className="text-sm text-gray-600 dark:text-white">Số lượng:</span>
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
@@ -1008,7 +944,7 @@ const BookingPage: React.FC = () => {
                         setShowRoomTypeSelector(true);
                       }}
                       className="w-full py-3 border-2 border-dashed border-gray-300 
-                        rounded-lg text-gray-600 hover:border-indigo-500 
+                        rounded-lg text-gray-600 dark:text-white hover:border-indigo-500 
                         hover:text-indigo-600 transition-colors flex items-center 
                         justify-center gap-2"
                     >
@@ -1016,11 +952,11 @@ const BookingPage: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* Notes */}
+                  {/* Ghi chú */}
                   <div>
                     <label 
                       className="block text-sm font-medium 
-                        text-gray-700 mb-1"
+                        text-gray-700 dark:text-white mb-1"
                     >
                       <FileText 
                         className="w-4 h-4 inline mr-1" 
@@ -1031,13 +967,13 @@ const BookingPage: React.FC = () => {
                       {...register('notes')}
                       rows={3}
                       className="w-full px-4 py-2 border 
-                        border-gray-300 rounded-lg 
+                        border-gray-300 dark:border-gray-600 rounded-lg 
                         focus:ring-2 focus:ring-indigo-500 
-                        focus:border-indigo-500"
+                        focus:border-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       placeholder="Yêu cầu đặc biệt..."
                     />
                     {errors.notes && (
-                      <p className="text-sm text-red-600 mt-1">
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-1">
                         {errors.notes.message}
                       </p>
                     )}
@@ -1045,280 +981,24 @@ const BookingPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Additional Services */}
-              {services.length > 0 && (
-                <div className="border-t pt-6">
-                  <h2 
-                    className="text-xl font-bold 
-                      text-gray-900 mb-4"
-                  >
-                    Dịch vụ bổ sung (tùy chọn)
-                  </h2>
+              {/* Dịch vụ bổ sung */}
+              <AdditionalServicesSection
+                services={services}
+                selectedServices={selectedServices}
+                setSelectedServices={setSelectedServices}
+                formatPrice={formatPrice}
+              />
 
-                  <div className="space-y-3">
-                        <div className="max-h-72 overflow-y-auto space-y-3 pr-2">
-                        {services.map((service) => (
-                          <div
-                            key={service.id}
-                            className="flex items-center 
-                              justify-between p-4 border 
-                              border-gray-200 rounded-lg 
-                              hover:border-indigo-500 
-                              transition-colors"
-                          >
-                        <div className="flex-1">
-                          <h3 
-                            className="font-medium 
-                              text-gray-900"
-                          >
-                            {service.name}
-                          </h3>
-                          {service.description && (
-                            <p 
-                              className="text-sm 
-                                text-gray-600 mt-1"
-                            >
-                              {service.description}
-                            </p>
-                          )}
-                          <p
-                            className="text-sm text-indigo-600 
-                              font-medium mt-1"
-                          >
-                            {formatPrice(service.price)} /{service.unit}
-                          </p>
-                        </div>
+              {/* Phương thức thanh toán */}
+              <PaymentMethodSection
+                register={register}
+                errors={errors}
+                totalPrice={totalPrice}
+                formatPrice={formatPrice}
+              />
 
-                        <div 
-                          className="flex items-center gap-2 
-                            ml-4"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const currentQty =
-                                selectedServices[
-                                  service.id
-                                ] || 0;
-                              if (currentQty > 0) {
-                                setSelectedServices({
-                                  ...selectedServices,
-                                  [service.id]: 
-                                    currentQty - 1,
-                                });
-                              }
-                            }}
-                            className="w-8 h-8 flex 
-                              items-center justify-center 
-                              rounded-lg border 
-                              border-gray-300 
-                              hover:bg-gray-100 
-                              disabled:opacity-50 
-                              disabled:cursor-not-allowed"
-                            disabled={
-                              !selectedServices[service.id] ||
-                              selectedServices[service.id] === 0
-                            }
-                          >
-                            -
-                          </button>
-
-                          <input
-                            type="number"
-                            min="0"
-                            value={
-                              selectedServices[service.id] || 0
-                            }
-                            onChange={(e) => {
-                              const value = Math.max(
-                                0,
-                                parseInt(e.target.value) || 0
-                              );
-                              setSelectedServices({
-                                ...selectedServices,
-                                [service.id]: value,
-                              });
-                            }}
-                            className="w-16 text-center px-2 
-                              py-1 border border-gray-300 
-                              rounded-lg focus:ring-2 
-                              focus:ring-indigo-500 
-                              focus:border-indigo-500"
-                          />
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const currentQty =
-                                selectedServices[
-                                  service.id
-                                ] || 0;
-                              setSelectedServices({
-                                ...selectedServices,
-                                [service.id]: currentQty + 1,
-                              });
-                            }}
-                            className="w-8 h-8 flex 
-                              items-center justify-center 
-                              rounded-lg border 
-                              border-gray-300 
-                              hover:bg-gray-100"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Payment Method */}
-              <div className="border-t pt-6">
-                <h2 
-                  className="text-xl font-bold 
-                    text-gray-900 mb-4"
-                >
-                  Phương thức thanh toán
-                </h2>
-
-                <div className="space-y-3">
-                  {/* Cash */}
-                  <label 
-                    className="flex items-start p-4 
-                      border-2 border-gray-200 
-                      rounded-lg cursor-pointer 
-                      hover:border-indigo-500 
-                      transition-colors"
-                  >
-                    <input
-                      {...register('paymentMethod')}
-                      type="radio"
-                      value="cash"
-                      className="mt-1 mr-3"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center 
-                        gap-2 mb-1"
-                      >
-                        <CreditCard 
-                          className="w-5 h-5 
-                            text-gray-600" 
-                        />
-                        <span className="font-medium 
-                          text-gray-900"
-                        >
-                          Thanh toán khi nhận phòng
-                        </span>
-                        <span className="text-xs bg-orange-100 
-                          text-orange-700 px-2 py-0.5 rounded"
-                        >
-                          Cần đặt cọc 20%
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Thanh toán phần còn lại khi nhận phòng
-                      </p>
-                      <div className="bg-orange-50 border 
-                        border-orange-200 rounded p-2"
-                      >
-                        <p className="text-xs text-orange-800">
-                          <strong>Lưu ý:</strong> Bạn cần thanh toán 
-                          <strong> 20% tiền cọc</strong> qua 
-                          chuyển khoản ngay sau khi đặt phòng để 
-                          giữ phòng. Phần còn lại thanh toán 
-                          khi nhận phòng.
-                        </p>
-                      </div>
-                    </div>
-                  </label>
-
-                  {/* Bank Transfer */}
-                  <label 
-                    className="flex items-start p-4 
-                      border-2 border-gray-200 
-                      rounded-lg cursor-pointer 
-                      hover:border-indigo-500 
-                      transition-colors"
-                  >
-                    <input
-                      {...register('paymentMethod')}
-                      type="radio"
-                      value="bank_transfer"
-                      className="mt-1 mr-3"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center 
-                        gap-2 mb-1"
-                      >
-                        <Building2 
-                          className="w-5 h-5 
-                            text-gray-600" 
-                        />
-                        <span className="font-medium 
-                          text-gray-900"
-                        >
-                          Chuyển khoản ngân hàng
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Chuyển khoản qua QR code hoặc 
-                        số tài khoản
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* VNPay */}
-                  <label 
-                    className="flex items-start p-4 
-                      border-2 border-gray-200 
-                      rounded-lg cursor-pointer 
-                      hover:border-indigo-500 
-                      transition-colors"
-                  >
-                    <input
-                      {...register('paymentMethod')}
-                      type="radio"
-                      value="vnpay"
-                      className="mt-1 mr-3"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center 
-                        gap-2 mb-1"
-                      >
-                        <CreditCard 
-                          className="w-5 h-5 
-                            text-blue-600" 
-                        />
-                        <span className="font-medium 
-                          text-gray-900"
-                        >
-                          Thanh toán qua VNPay
-                        </span>
-                        <span className="text-xs bg-blue-100 
-                          text-blue-700 px-2 py-0.5 rounded"
-                        >
-                          Nhanh chóng & An toàn
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Thanh toán bằng thẻ ATM, Visa, 
-                        Mastercard qua cổng VNPay
-                      </p>
-                    </div>
-                  </label>
-
-                  {errors.paymentMethod && (
-                    <p className="text-sm text-red-600">
-                      {errors.paymentMethod.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="border-t pt-6">
+              {/* Nút xác nhận */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <button
                   type="submit"
                   disabled={
@@ -1327,11 +1007,11 @@ const BookingPage: React.FC = () => {
                     selectedRoomTypes.some(rt => rt.availableCount === 0) ||
                     selectedRoomTypes.some(rt => rt.availableCount !== null && rt.quantity > rt.availableCount)
                   }
-                  className="w-full bg-indigo-600 
+                  className="w-full bg-indigo-600 dark:bg-indigo-700 
                     text-white py-4 rounded-lg 
-                    hover:bg-indigo-700 
+                    hover:bg-indigo-700 dark:hover:bg-indigo-800 
                     transition-colors font-semibold 
-                    text-lg disabled:bg-gray-400 
+                    text-lg disabled:bg-gray-400 dark:disabled:bg-gray-600 
                     disabled:cursor-not-allowed
                     flex items-center justify-center 
                     gap-2"
@@ -1352,371 +1032,30 @@ const BookingPage: React.FC = () => {
           </div>
 
           {/* Booking Summary */}
-          <div className="lg:col-span-1">
-            <div 
-              className="bg-white rounded-lg shadow-md 
-                p-6 sticky top-8"
-            >
-              <h2 
-                className="text-xl font-bold 
-                  text-gray-900 mb-4"
-              >
-                Tóm tắt đặt phòng
-              </h2>
-
-              {/* Room Info */}
-              <div className="mb-4">
-                {(() => {
-                  const firstImage = room?.room_type?.images && room.room_type.images.length > 0
-                    ? room.room_type.images[0]
-                    : undefined;
-                  if (!firstImage) return null;
-                  const SERVER_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000')
-                    .replace(/\/api\/?$/i, '')
-                    .replace(/\/$/, '');
-                  let src = '';
-                  if (firstImage.startsWith('http')) src = firstImage;
-                  else if (firstImage.startsWith('/uploads')) src = `${SERVER_URL}${firstImage}`;
-                  else if (firstImage.startsWith('/')) src = firstImage;
-                  else src = `${SERVER_URL}/uploads/room_types/${firstImage}`;
-                  return (
-                    <img
-                      src={src}
-                      alt={roomType.name}
-                      className="w-full h-48 object-cover rounded-lg mb-3"
-                    />
-                  );
-                })()}
-                <h3 className="font-bold text-gray-900">
-                  {roomType.name}
-                </h3>
-              </div>
-
-              {/* Pricing Breakdown */}
-              <div className="border-t pt-4 space-y-2">
-                {numberOfNights > 0 && (
-                  <div className="flex justify-between 
-                    text-sm"
-                  >
-                    <span className="text-gray-600">
-                      Số đêm
-                    </span>
-                    <span className="font-medium">
-                      {numberOfNights} đêm
-                    </span>
-                  </div>
-                )}
-
-                {/* Room types breakdown */}
-                <div className="space-y-1">
-                  <p className="text-sm font-medium 
-                    text-gray-700"
-                  >
-                    Phòng đã chọn
-                  </p>
-                  {selectedRoomTypes.map((roomType) => {
-                    const price = 
-                      roomType.room.price || roomType.room.room_type?.base_price || 0;
-                    const subtotal = 
-                      numberOfNights * price * roomType.quantity;
-                    return (
-                      <div
-                        key={roomType.id}
-                        className="flex justify-between 
-                          text-sm text-gray-600 pl-2"
-                      >
-                        <span>
-                          {roomType.room.room_type?.name} × 
-                          {roomType.quantity}
-                        </span>
-                        <span>
-                          {formatPrice(subtotal)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {numberOfNights > 0 && (
-                  <div className="flex justify-between 
-                    text-sm"
-                  >
-                    <span className="text-gray-600">
-                      Tổng tiền phòng
-                    </span>
-                    <span className="font-medium">
-                      {formatPrice(roomTotalPrice)}
-                    </span>
-                  </div>
-                )}
-
-                {/* Services breakdown */}
-                {servicesTotalPrice > 0 && (
-                  <>
-                    <div className="border-t pt-2">
-                      <p className="text-sm font-medium 
-                        text-gray-700 mb-2"
-                      >
-                        Dịch vụ bổ sung
-                      </p>
-                      {Object.entries(selectedServices)
-                        .filter(([_, qty]) => qty > 0)
-                        .map(([serviceId, qty]) => {
-                          const service = services.find(
-                            (s) => s.id === Number(serviceId)
-                          );
-                          if (!service) return null;
-                          return (
-                            <div
-                              key={serviceId}
-                              className="flex justify-between 
-                                text-sm text-gray-600 mb-1"
-                            >
-                              <span>
-                                {service.name} × {qty}
-                              </span>
-                              <span>
-                                {formatPrice(
-                                  service.price * qty
-                                )}
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-
-                    <div className="flex justify-between 
-                      text-sm font-medium"
-                    >
-                      <span className="text-gray-600">
-                        Tổng tiền dịch vụ
-                      </span>
-                      <span>
-                        {formatPrice(servicesTotalPrice)}
-                      </span>
-                    </div>
-                  </>
-                )}
-
-                <div 
-                  className="border-t pt-2 flex 
-                    justify-between text-lg 
-                    font-bold"
-                >
-                  <span>Tổng cộng</span>
-                  <span className="text-indigo-600">
-                    {numberOfNights > 0
-                      ? formatPrice(totalPrice)
-                      : '---'}
-                  </span>
-                </div>
-
-                {/* Deposit amount for cash payment */}
-                {paymentMethod === 'cash' && numberOfNights > 0 && (
-                  <div className="bg-orange-50 border 
-                    border-orange-200 rounded-lg p-3 mt-2"
-                  >
-                    <div className="flex justify-between 
-                      items-center mb-1"
-                    >
-                      <span className="text-sm font-medium 
-                        text-orange-900"
-                      >
-                        Tiền cọc cần thanh toán (20%)
-                      </span>
-                      <span className="text-lg font-bold 
-                        text-orange-700"
-                      >
-                        {formatPrice(totalPrice * 0.2)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-orange-700">
-                      Thanh toán qua chuyển khoản để xác nhận đặt phòng
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Note */}
-              <div 
-                className={`border rounded-lg p-3 mt-4 ${
-                  paymentMethod === 'cash'
-                    ? 'bg-orange-50 border-orange-200'
-                    : paymentMethod === 'vnpay'
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-yellow-50 border-yellow-200'
-                }`}
-              >
-                {paymentMethod === 'cash' ? (
-                  <p className="text-xs text-orange-800">
-                    🔒 <strong>Bắt buộc:</strong> Thanh toán 20% tiền cọc 
-                    qua chuyển khoản sau khi đặt phòng. 
-                    Phần còn lại ({formatPrice(totalPrice * 0.8)}) 
-                    thanh toán khi nhận phòng.
-                  </p>
-                ) : paymentMethod === 'vnpay' ? (
-                  <p className="text-xs text-blue-800">
-                    💳 <strong>VNPay:</strong> Bạn sẽ được chuyển đến 
-                    cổng thanh toán VNPay để hoàn tất giao dịch 
-                    một cách nhanh chóng và an toàn.
-                  </p>
-                ) : (
-                  <p className="text-xs text-yellow-800">
-                    💡 Quét mã QR hoặc chuyển khoản theo thông tin 
-                    sau khi xác nhận đặt phòng.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
+          <BookingSummary
+            room={room}
+            numberOfNights={numberOfNights}
+            selectedRoomTypes={selectedRoomTypes}
+            roomTotalPrice={roomTotalPrice}
+            services={services}
+            selectedServices={selectedServices}
+            servicesTotalPrice={servicesTotalPrice}
+            totalPrice={totalPrice}
+            paymentMethod={paymentMethod}
+            formatPrice={formatPrice}
+          />
         </div>
         {/* Bank transfer modal shown before creating booking */}
-        {showBankModal && pendingBookingData && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-            <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5">
-                <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <Building2 className="w-7 h-7" />
-                  Thông tin chuyển khoản
-                </h3>
-                <p className="text-indigo-100 text-sm mt-1">
-                  Xác nhận thông tin và bấm "Tôi đã chuyển khoản" để hoàn tất đặt phòng
-                </p>
-              </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Bank Details */}
-                  <div className="space-y-4">
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-indigo-100">
-                      <div className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Building2 className="w-5 h-5 text-indigo-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-gray-500 font-medium uppercase">Ngân hàng</p>
-                            <p className="text-base font-bold text-gray-900 mt-0.5">Vietcombank (VCB)</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <CreditCard className="w-5 h-5 text-green-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-gray-500 font-medium uppercase">Số tài khoản</p>
-                            <p className="text-base font-bold text-gray-900 mt-0.5 font-mono">0123456789</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Users className="w-5 h-5 text-purple-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-xs text-gray-500 font-medium uppercase">Chủ tài khoản</p>
-                            <p className="text-base font-bold text-gray-900 mt-0.5">KHACH SAN ABC</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Amount & Content */}
-                    <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border border-orange-100">
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-xs text-gray-500 font-medium uppercase mb-1">Số tiền</p>
-                          <p className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600">
-                            {formatPrice(totalPrice)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500 font-medium uppercase mb-1">Nội dung chuyển khoản</p>
-                          <div className="bg-white rounded-lg px-3 py-2 border border-orange-200">
-                            <p className="text-base font-bold text-gray-900 font-mono">
-                              {recentBooking?.booking_number || `BOOKING-${Date.now()}`}
-                            </p>
-                          </div>
-                          <p className="text-xs text-orange-600 mt-1 font-medium">
-                            ⚠️ Mã đặt phòng sẽ được tạo sau khi xác nhận
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* QR Code */}
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="bg-white rounded-2xl p-4 shadow-lg border-2 border-gray-100">
-                      {qrCodeUrl ? (
-                        <img
-                          src={qrCodeUrl}
-                          alt="QR code chuyển khoản"
-                          className="w-64 h-64 object-contain"
-                        />
-                      ) : (
-                        <div className="w-64 h-64 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg">
-                          <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600 mt-3 text-center font-medium">
-                      Quét mã QR để chuyển khoản nhanh
-                    </p>
-                  </div>
-                </div>
-
-                {/* Important Note */}
-                <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                  <div className="flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-yellow-900 mb-1">Lưu ý quan trọng</p>
-                      <ul className="text-xs text-yellow-800 space-y-1 list-disc list-inside">
-                        <li>Vui lòng chuyển khoản đúng số tiền và nội dung như trên</li>
-                        <li>Đơn hàng sẽ được xác nhận sau khi nhận được thanh toán (5-15 phút)</li>
-                        <li>Nếu có thắc mắc, vui lòng liên hệ hotline: 1900 1234</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t border-gray-200">
-                <button
-                  type="button"
-                  className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
-                  onClick={handleCloseBankModal}
-                  disabled={submitting}
-                >
-                  Đóng
-                </button>
-                <button
-                  type="button"
-                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg shadow-indigo-500/30 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={handleConfirmBankTransfer}
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Đang xử lý...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      Tôi đã chuyển khoản
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <BankTransferModal
+          isOpen={showBankModal}
+          pendingBookingData={pendingBookingData}
+          recentBooking={recentBooking}
+          qrCodeUrl={qrCodeUrl}
+          submitting={submitting}
+          onConfirm={handleConfirmBankTransfer}
+          onClose={handleCloseBankModal}
+          formatPrice={formatPrice}
+        />
 
         {/* Room Type Selector Modal */}
         <RoomTypeSelectorModal

@@ -142,7 +142,7 @@ const RoomAmenities: React.FC<RoomAmenitiesProps> = ({ amenities }) => {
 
   if (safeAmenities.length === 0) {
     return (
-      <div className="text-gray-500 text-center py-4">
+      <div className="text-gray-500 dark:text-gray-400 text-center py-4">
         Thông tin tiện ích đang được cập nhật
       </div>
     );
@@ -156,17 +156,17 @@ const RoomAmenities: React.FC<RoomAmenitiesProps> = ({ amenities }) => {
         <div
           key={index}
           className="flex items-center gap-3 p-3 
-            bg-gray-50 rounded-lg hover:bg-gray-100 
+            bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 
             transition-colors"
           title={getDescription(amenity)}
         >
-          <div className="text-blue-600">{getIcon(amenity)}</div>
+          <div className="text-blue-600 dark:text-blue-400">{getIcon(amenity)}</div>
           <div>
-            <div className="text-gray-800 font-medium">
+            <div className="text-gray-800 dark:text-gray-200 font-medium">
               {getLabel(amenity)}
             </div>
             {getDescription(amenity) && (
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 {getDescription(amenity)}
               </div>
             )}
