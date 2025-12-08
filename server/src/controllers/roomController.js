@@ -21,6 +21,13 @@ const getRoomTypes = async (req, res, next) => {
       } catch (e) {
         obj.images = [];
       }
+      
+      // Debug amenities
+      if (obj.id === 1) {
+        console.log('🔍 Room type amenities for', obj.name, ':', obj.amenities);
+        console.log('🔍 Type:', typeof obj.amenities);
+      }
+      
       return obj;
     });
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { FilterValues } from '../../types/rooms';
 
 interface RoomFilterProps {
@@ -10,6 +11,7 @@ interface RoomFilterProps {
 
 const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { t } = useTranslation();
 
   const [filters, setFilters] = useState<FilterValues>({
     type: searchParams.get('type') || '',
@@ -73,7 +75,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
         const list = res.data?.amenities || [];
         if (mounted) setAvailableAmenities(list);
       } catch (error) {
-        console.error('Tải tiện nghi không thành công:', error);
+        console.error('Failed to load amenities:', error);
       }
     };
     
@@ -233,9 +235,9 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-      <h2 className="text-xl font-semibold mb-4 text-gray-800">
-        Bộ lọc phòng
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+      <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">
+        {t('rooms.filter')}
       </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Room Type */}
@@ -243,20 +245,21 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
           <label 
             htmlFor="type" 
             className="block text-sm font-medium 
-              text-gray-700 mb-1"
+              text-gray-700 dark:text-gray-200 mb-1"
           >
-            Loại phòng
+            {t('rooms.roomType')}
           </label>
           <select
             id="type"
             name="type"
             value={filters.type || ''}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 
-              rounded-lg focus:ring-2 focus:ring-blue-500 
-              focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg
+              bg-white text-gray-900 focus:outline-none focus:ring-2
+              focus:ring-blue-500 focus:border-transparent
+              dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
           >
-            <option value="">Tất cả phòng</option>
+            <option value="">{t('rooms.allRooms')}</option>
             <option value="Standard Room">Standard Room</option>
             <option value="Superior Room">Superior Room</option>
             <option value="Deluxe Room">Deluxe Room</option>
@@ -276,9 +279,9 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
           <div>
             <label
               htmlFor="from"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1"
             >
-              Ngày nhận
+              {t('rooms.checkIn')}
             </label>
             <DatePicker
               selected={checkInDate}
@@ -289,16 +292,18 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               minDate={new Date()}
               dateFormat="dd/MM"
               placeholderText=""
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg
+                bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-100
+                dark:border-gray-600"
             />
           </div>
 
           <div>
             <label
               htmlFor="to"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1"
             >
-              Ngày trả
+              {t('rooms.checkOut')}
             </label>
             <DatePicker
               selected={checkOutDate}
@@ -309,7 +314,9 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               minDate={checkInDate || new Date()}
               dateFormat="dd/MM"
               placeholderText=""
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg
+                bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-100
+                dark:border-gray-600"
             />
           </div>
         </div>
@@ -320,9 +327,9 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
             <label
               htmlFor="minPrice"
               className="block text-sm font-medium 
-                text-gray-700 mb-1"
+                text-gray-700 dark:text-gray-200 mb-1"
             >
-              Giá tối thiểu
+              {t('rooms.minPrice')}
             </label>
             <input
               type="text"
@@ -338,18 +345,18 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               inputMode="numeric"
               pattern="[0-9.]*"
               className="w-full px-4 py-2 border 
-                border-gray-300 rounded-lg 
-                focus:ring-2 focus:ring-blue-500 
-                focus:border-transparent"
+                border-gray-300 rounded-lg bg-white text-gray-900
+                focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
           <div>
             <label
               htmlFor="maxPrice"
               className="block text-sm font-medium 
-                text-gray-700 mb-1"
+                text-gray-700 dark:text-gray-200 mb-1"
             >
-              Giá tối đa
+              {t('rooms.maxPrice')}
             </label>
             <input
               type="text"
@@ -365,9 +372,9 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               inputMode="numeric"
               pattern="[0-9.]*"
               className="w-full px-4 py-2 border 
-                border-gray-300 rounded-lg 
-                focus:ring-2 focus:ring-blue-500 
-                focus:border-transparent"
+                border-gray-300 rounded-lg bg-white text-gray-900
+                focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
             />
           </div>
         </div>
@@ -377,31 +384,33 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
           <label
             htmlFor="capacity"
             className="block text-sm font-medium 
-              text-gray-700 mb-1"
+              text-gray-700 dark:text-gray-200 mb-1"
           >
-            Số người
+            {t('rooms.capacity')}
           </label>
           <select
             id="capacity"
             name="capacity"
             value={filters.capacity ?? ''}
             onChange={handleInputChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900
+              focus:ring-2 focus:ring-blue-500 focus:border-transparent
+              dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
           >
-            <option value="">Tất cả</option>
+            <option value="">{t('rooms.all')}</option>
             {Array.from({ length: 6 }, (_, i) => i + 1).map((v) => (
-              <option key={v} value={v}>{v} người</option>
+              <option key={v} value={v}>{v} {t('rooms.people')}</option>
             ))}
           </select>
         </div>
 
         {/* Amenities */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tiện ích
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+            {t('rooms.amenities')}
           </label>
           {availableAmenities.length === 0 ? (
-            <div className="text-sm text-gray-500">Đang tải tiện ích...</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">{t('rooms.loadingAmenities')}</div>
           ) : (
             <div className="flex flex-col gap-2 max-h-40 overflow-auto pr-2">
               {availableAmenities.map((amenity) => (
@@ -413,9 +422,10 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
                     type="checkbox"
                     checked={selectedAmenities.includes(amenity)}
                     onChange={() => toggleAmenity(amenity)}
-                    className="h-4 w-4"
+                    className="h-4 w-4 text-blue-600 bg-white border-gray-300 rounded
+                      dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-gray-700">{amenity}</span>
+                  <span className="text-gray-700 dark:text-gray-200">{amenity}</span>
                 </label>
               ))}
             </div>
@@ -430,16 +440,17 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
               py-2 px-4 rounded-lg hover:bg-blue-700 
               transition-colors font-medium"
           >
-            Áp dụng
+            {t('common.apply')}
           </button>
           <button
             type="button"
             onClick={handleReset}
             className="flex-1 bg-gray-200 text-gray-700 
               py-2 px-4 rounded-lg hover:bg-gray-300 
-              transition-colors font-medium"
+              transition-colors font-medium dark:bg-gray-700 dark:text-gray-200
+              dark:hover:bg-gray-600"
           >
-            Đặt lại
+            {t('common.reset')}
           </button>
         </div>
       </form>

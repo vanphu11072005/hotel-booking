@@ -198,36 +198,42 @@ const MyBookingsPage: React.FC = () => {
         return {
           icon: Clock,
           color: 'bg-yellow-100 text-yellow-800',
+          darkColor: 'dark:bg-yellow-900/30 dark:text-yellow-300',
           text: 'Chờ xác nhận',
         };
       case 'confirmed':
         return {
           icon: CheckCircle,
           color: 'bg-green-100 text-green-800',
+          darkColor: 'dark:bg-green-900/30 dark:text-green-300',
           text: 'Đã xác nhận',
         };
       case 'cancelled':
         return {
           icon: XCircle,
           color: 'bg-red-100 text-red-800',
+          darkColor: 'dark:bg-red-900/30 dark:text-red-300',
           text: 'Đã hủy',
         };
       case 'checked_in':
         return {
           icon: DoorOpen,
           color: 'bg-blue-100 text-blue-800',
+          darkColor: 'dark:bg-blue-900/30 dark:text-blue-300',
           text: 'Đã nhận phòng',
         };
       case 'checked_out':
         return {
           icon: DoorClosed,
           color: 'bg-gray-100 text-gray-800',
+          darkColor: 'dark:bg-gray-700 dark:text-gray-100',
           text: 'Đã trả phòng',
         };
       default:
         return {
           icon: AlertCircle,
           color: 'bg-gray-100 text-gray-800',
+          darkColor: 'dark:bg-gray-700 dark:text-gray-100',
           text: status,
         };
     }
@@ -292,14 +298,14 @@ const MyBookingsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* Back to Home Button */}
         <Link
           to="/"
           className="inline-flex items-center gap-2 bg-indigo-600 
           text-white px-3 py-2 rounded-md hover:bg-indigo-700 
-          disabled:bg-gray-400 mb-6 transition-colors"
+          disabled:bg-gray-400 dark:disabled:bg-gray-600 mb-6 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Quay lại trang chủ</span>
@@ -307,18 +313,18 @@ const MyBookingsPage: React.FC = () => {
 
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100
             mb-2"
           >
             Đơn đặt phòng của tôi
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             Quản lý và theo dõi các đơn đặt phòng của bạn
           </p>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow-md 
+        <div className="bg-white dark:bg-gray-800 dark:border-gray-700 rounded-lg shadow-md 
           p-4 mb-6"
         >
           <div className="flex flex-col md:flex-row gap-4">
@@ -340,7 +346,7 @@ const MyBookingsPage: React.FC = () => {
                   className="w-full pl-10 pr-4 py-2 border 
                     border-gray-300 rounded-lg 
                     focus:ring-2 focus:ring-indigo-500 
-                    focus:border-indigo-500"
+                    focus:border-indigo-500 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 />
               </div>
             </div>
@@ -362,7 +368,7 @@ const MyBookingsPage: React.FC = () => {
                     border-gray-300 rounded-lg 
                     focus:ring-2 focus:ring-indigo-500 
                     focus:border-indigo-500 
-                    appearance-none bg-white"
+                    appearance-none bg-white dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600"
                 >
                   <option value="all">Tất cả trạng thái</option>
                   <option value="pending">Chờ xác nhận</option>
@@ -380,7 +386,7 @@ const MyBookingsPage: React.FC = () => {
           </div>
 
           {/* Results count */}
-          <div className="mt-3 text-sm text-gray-600">
+          <div className="mt-3 text-sm text-gray-600 dark:text-gray-300">
             Hiển thị {filteredBookings.length} / 
             {bookings.length} đơn đặt phòng
           </div>
@@ -390,14 +396,14 @@ const MyBookingsPage: React.FC = () => {
         {error && (
           <div
             className="bg-red-50 border border-red-200 
-              rounded-lg p-6 mb-6 flex items-start gap-3"
+              rounded-lg p-6 mb-6 flex items-start gap-3 dark:bg-red-900/30 dark:border-red-700"
           >
             <AlertCircle 
               className="w-6 h-6 text-red-500 
-                flex-shrink-0 mt-0.5" 
+                flex-shrink-0 mt-0.5 dark:text-red-300" 
             />
             <div>
-              <p className="text-red-700 font-medium">
+              <p className="text-red-700 font-medium dark:text-red-300">
                 {error}
               </p>
               <button
@@ -465,7 +471,7 @@ const MyBookingsPage: React.FC = () => {
               return (
                 <div
                   key={booking.id}
-                  className="bg-white rounded-lg shadow-md 
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-md 
                     hover:shadow-lg transition-shadow 
                     overflow-hidden"
                 >
@@ -494,7 +500,7 @@ const MyBookingsPage: React.FC = () => {
                         >
                           <div>
                             <h3 className="text-xl font-bold 
-                              text-gray-900 mb-1"
+                              text-gray-900 dark:text-gray-100 mb-1"
                             >
                               {roomType?.name || 'N/A'}
                             </h3>
@@ -505,7 +511,7 @@ const MyBookingsPage: React.FC = () => {
                             className={`flex items-center 
                               gap-2 px-3 py-1.5 rounded-full 
                               text-sm font-medium 
-                              ${statusConfig.color}`}
+                              ${statusConfig.color} ${statusConfig.darkColor}`}
                           >
                             <StatusIcon 
                               className="w-4 h-4" 
@@ -520,13 +526,13 @@ const MyBookingsPage: React.FC = () => {
                         >
                           {/* Booking Number */}
                           <div>
-                            <p className="text-xs text-gray-500 
+                            <p className="text-xs text-gray-500 dark:text-gray-400 
                               mb-1"
                             >
                               Mã đặt phòng
                             </p>
-                            <p className="font-medium 
-                              text-gray-900 font-mono"
+                            <p className="font-medium text-gray-900 dark:text-gray-100 
+                              font-mono break-words"
                             >
                               {booking.booking_number}
                             </p>
@@ -534,7 +540,7 @@ const MyBookingsPage: React.FC = () => {
 
                           {/* Check-in */}
                           <div>
-                            <p className="text-xs text-gray-500 
+                            <p className="text-xs text-gray-500 dark:text-gray-400 
                               mb-1"
                             >
                               <Calendar 
@@ -544,7 +550,7 @@ const MyBookingsPage: React.FC = () => {
                               Ngày nhận phòng
                             </p>
                             <p className="font-medium 
-                              text-gray-900"
+                              text-gray-900 dark:text-gray-100"
                             >
                               {formatDate(
                                 booking.check_in_date
@@ -554,7 +560,7 @@ const MyBookingsPage: React.FC = () => {
 
                           {/* Check-out */}
                           <div>
-                            <p className="text-xs text-gray-500 
+                            <p className="text-xs text-gray-500 dark:text-gray-400 
                               mb-1"
                             >
                               <Calendar 
@@ -564,7 +570,7 @@ const MyBookingsPage: React.FC = () => {
                               Ngày trả phòng
                             </p>
                             <p className="font-medium 
-                              text-gray-900"
+                              text-gray-900 dark:text-gray-100"
                             >
                               {formatDate(
                                 booking.check_out_date
@@ -574,7 +580,7 @@ const MyBookingsPage: React.FC = () => {
 
                           {/* Guest Count */}
                           <div>
-                            <p className="text-xs text-gray-500 
+                            <p className="text-xs text-gray-500 dark:text-gray-400 
                               mb-1"
                             >
                               <Users 
@@ -584,7 +590,7 @@ const MyBookingsPage: React.FC = () => {
                               Số người
                             </p>
                             <p className="font-medium 
-                              text-gray-900"
+                              text-gray-900 dark:text-gray-100"
                             >
                               {booking.guest_count} người
                             </p>
@@ -592,7 +598,7 @@ const MyBookingsPage: React.FC = () => {
 
                           {/* Payment Method */}
                           <div>
-                            <p className="text-xs text-gray-500 
+                            <p className="text-xs text-gray-500 dark:text-gray-400 
                               mb-1"
                             >
                               <CreditCard 
@@ -602,7 +608,7 @@ const MyBookingsPage: React.FC = () => {
                               Thanh toán
                             </p>
                             <p className="font-medium 
-                              text-gray-900"
+                              text-gray-900 dark:text-gray-100"
                             >
                               {booking.payment_method === 'cash'
                                 ? 'Thanh toán khi nhận phòng'
@@ -614,7 +620,7 @@ const MyBookingsPage: React.FC = () => {
 
                           {/* Total Price */}
                           <div>
-                            <p className="text-xs text-gray-500 
+                            <p className="text-xs text-gray-500 dark:text-gray-400 
                               mb-1"
                             >
                               Tổng tiền
@@ -629,7 +635,7 @@ const MyBookingsPage: React.FC = () => {
 
                         {/* Actions */}
                         <div className="flex flex-wrap gap-3 
-                          pt-4 border-t"
+                          pt-4 border-t border-gray-200 dark:border-gray-700"
                         >
                           {/* View Details */}
                           <Link

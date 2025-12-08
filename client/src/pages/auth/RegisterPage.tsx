@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import PasswordRequirement from '../../components/auth/PasswordRequirement';
 import useAuthStore from '../../store/useAuthStore';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   registerSchema,
   RegisterFormData,
@@ -23,6 +24,7 @@ import {
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const { register: registerUser, isLoading, error, clearError } = useAuthStore();
+  const { theme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -91,28 +93,41 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br 
-        from-purple-50 to-pink-100 flex items-center 
-        justify-center py-12 px-4 sm:px-6 lg:px-8"
+      className={`min-h-screen bg-gradient-to-br 
+        ${theme === 'dark' 
+          ? 'from-gray-900 via-gray-800 to-gray-900' 
+          : 'from-purple-50 to-pink-100'
+        } 
+        flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8`}
     >
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-purple-600 rounded-full">
-              <Hotel className="w-12 h-12 text-white" />
+            <div className={`p-3 rounded-full
+              ${theme === 'dark' ? 'bg-purple-800' : 'bg-purple-600'}`}
+            >
+              <Hotel className={`w-12 h-12 
+                ${theme === 'dark' ? 'text-purple-200' : 'text-white'}`} 
+              />
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className={`text-3xl font-bold 
+            ${theme === 'dark' ? 'text-gray-100' : 'text-gray-900'}`}
+          >
             Đăng ký tài khoản
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className={`mt-2 text-sm 
+            ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}
+          >
             Tạo tài khoản mới để đặt phòng khách sạn
           </p>
         </div>
 
         {/* Register Form */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
+        <div className={`rounded-lg shadow-xl p-8
+          ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}
+        >
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-5"
@@ -121,7 +136,9 @@ const RegisterPage: React.FC = () => {
             <div>
               <label
                 htmlFor="name"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className={`block text-sm font-medium 
+                  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} 
+                  mb-2`}
               >
                 Họ và tên
               </label>
@@ -131,7 +148,9 @@ const RegisterPage: React.FC = () => {
                     pl-3 flex items-center 
                     pointer-events-none"
                 >
-                  <User className="h-5 w-5 text-gray-400" />
+                  <User className={`h-5 w-5 
+                    ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} 
+                  />
                 </div>
                 <input
                   {...register('name')}
@@ -141,11 +160,16 @@ const RegisterPage: React.FC = () => {
                   className={`block w-full pl-10 pr-3 py-3 
                     border rounded-lg focus:outline-none 
                     focus:ring-2 transition-colors
+                    ${theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400' 
+                      : 'bg-white'
+                    }
                     ${
                       errors.name
                         ? 'border-red-300 focus:ring-red-500'
-                        : 'border-gray-300 ' +
-                          'focus:ring-purple-500'
+                        : theme === 'dark'
+                          ? 'border-gray-600 focus:ring-purple-500'
+                          : 'border-gray-300 focus:ring-purple-500'
                     }`}
                   placeholder="Nguyễn Văn A"
                 />
@@ -161,8 +185,9 @@ const RegisterPage: React.FC = () => {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium 
-                  text-gray-700 mb-2"
+                className={`block text-sm font-medium 
+                  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} 
+                  mb-2`}
               >
                 Email
               </label>
@@ -172,7 +197,9 @@ const RegisterPage: React.FC = () => {
                     pl-3 flex items-center 
                     pointer-events-none"
                 >
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Mail className={`h-5 w-5 
+                    ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} 
+                  />
                 </div>
                 <input
                   {...register('email')}
@@ -182,11 +209,16 @@ const RegisterPage: React.FC = () => {
                   className={`block w-full pl-10 pr-3 py-3 
                     border rounded-lg focus:outline-none 
                     focus:ring-2 transition-colors
+                    ${theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400' 
+                      : 'bg-white'
+                    }
                     ${
                       errors.email || error
                         ? 'border-red-300 focus:ring-red-500'
-                        : 'border-gray-300 ' +
-                          'focus:ring-purple-500'
+                        : theme === 'dark'
+                          ? 'border-gray-600 focus:ring-purple-500'
+                          : 'border-gray-300 focus:ring-purple-500'
                     }`}
                   placeholder="email@example.com"
                 />
@@ -207,8 +239,9 @@ const RegisterPage: React.FC = () => {
             <div>
               <label
                 htmlFor="phone"
-                className="block text-sm font-medium 
-                  text-gray-700 mb-2"
+                className={`block text-sm font-medium 
+                  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} 
+                  mb-2`}
               >
                 Số điện thoại (Tùy chọn)
               </label>
@@ -218,7 +251,9 @@ const RegisterPage: React.FC = () => {
                     pl-3 flex items-center 
                     pointer-events-none"
                 >
-                  <Phone className="h-5 w-5 text-gray-400" />
+                  <Phone className={`h-5 w-5 
+                    ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} 
+                  />
                 </div>
                 <input
                   {...register('phone')}
@@ -228,11 +263,16 @@ const RegisterPage: React.FC = () => {
                   className={`block w-full pl-10 pr-3 py-3 
                     border rounded-lg focus:outline-none 
                     focus:ring-2 transition-colors
+                    ${theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400' 
+                      : 'bg-white'
+                    }
                     ${
                       errors.phone
                         ? 'border-red-300 focus:ring-red-500'
-                        : 'border-gray-300 ' +
-                          'focus:ring-purple-500'
+                        : theme === 'dark'
+                          ? 'border-gray-600 focus:ring-purple-500'
+                          : 'border-gray-300 focus:ring-purple-500'
                     }`}
                   placeholder="0123456789"
                 />
@@ -248,8 +288,9 @@ const RegisterPage: React.FC = () => {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium 
-                  text-gray-700 mb-2"
+                className={`block text-sm font-medium 
+                  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} 
+                  mb-2`}
               >
                 Mật khẩu
               </label>
@@ -259,7 +300,9 @@ const RegisterPage: React.FC = () => {
                     pl-3 flex items-center 
                     pointer-events-none"
                 >
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className={`h-5 w-5 
+                    ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} 
+                  />
                 </div>
                 <input
                   {...register('password')}
@@ -269,29 +312,31 @@ const RegisterPage: React.FC = () => {
                   className={`block w-full pl-10 pr-10 py-3 
                     border rounded-lg focus:outline-none 
                     focus:ring-2 transition-colors
+                    ${theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400' 
+                      : 'bg-white'
+                    }
                     ${
                       errors.password
                         ? 'border-red-300 focus:ring-red-500'
-                        : 'border-gray-300 ' +
-                          'focus:ring-purple-500'
+                        : theme === 'dark'
+                          ? 'border-gray-600 focus:ring-purple-500'
+                          : 'border-gray-300 focus:ring-purple-500'
                     }`}
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 
-                    pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showPassword ? (
                     <EyeOff
-                      className="h-5 w-5 text-gray-400 
-                        hover:text-gray-600"
+                      className={`h-5 w-5 ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
                     />
                   ) : (
                     <Eye
-                      className="h-5 w-5 text-gray-400 
-                        hover:text-gray-600"
+                      className={`h-5 w-5 ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
                     />
                   )}
                 </button>
@@ -306,8 +351,9 @@ const RegisterPage: React.FC = () => {
               {password && password.length > 0 && (
                 <div className="mt-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-gray-200 
-                      rounded-full overflow-hidden"
+                    <div className={`flex-1 h-2 bg-gray-200 
+                      rounded-full overflow-hidden
+                      ${theme === 'dark' ? 'bg-gray-600' : ''}`}
                     >
                       <div
                         className={`h-full transition-all 
@@ -319,8 +365,8 @@ const RegisterPage: React.FC = () => {
                         }}
                       />
                     </div>
-                    <span className="text-xs font-medium 
-                      text-gray-600"
+                    <span className={`text-xs font-medium 
+                      ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}
                     >
                       {passwordStrength.label}
                     </span>
@@ -357,8 +403,9 @@ const RegisterPage: React.FC = () => {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="block text-sm font-medium 
-                  text-gray-700 mb-2"
+                className={`block text-sm font-medium 
+                  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} 
+                  mb-2`}
               >
                 Xác nhận mật khẩu
               </label>
@@ -368,7 +415,9 @@ const RegisterPage: React.FC = () => {
                     pl-3 flex items-center 
                     pointer-events-none"
                 >
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className={`h-5 w-5 
+                    ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} 
+                  />
                 </div>
                 <input
                   {...register('confirmPassword')}
@@ -380,11 +429,16 @@ const RegisterPage: React.FC = () => {
                   className={`block w-full pl-10 pr-10 py-3 
                     border rounded-lg focus:outline-none 
                     focus:ring-2 transition-colors
+                    ${theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400' 
+                      : 'bg-white'
+                    }
                     ${
                       errors.confirmPassword
                         ? 'border-red-300 focus:ring-red-500'
-                        : 'border-gray-300 ' +
-                          'focus:ring-purple-500'
+                        : theme === 'dark'
+                          ? 'border-gray-600 focus:ring-purple-500'
+                          : 'border-gray-300 focus:ring-purple-500'
                     }`}
                   placeholder="••••••••"
                 />
@@ -393,18 +447,15 @@ const RegisterPage: React.FC = () => {
                   onClick={() =>
                     setShowConfirmPassword(!showConfirmPassword)
                   }
-                  className="absolute inset-y-0 right-0 
-                    pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showConfirmPassword ? (
                     <EyeOff
-                      className="h-5 w-5 text-gray-400 
-                        hover:text-gray-600"
+                      className={`h-5 w-5 ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
                     />
                   ) : (
                     <Eye
-                      className="h-5 w-5 text-gray-400 
-                        hover:text-gray-600"
+                      className={`h-5 w-5 ${theme === 'dark' ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
                     />
                   )}
                 </button>
@@ -420,16 +471,7 @@ const RegisterPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center 
-                justify-center py-3 px-4 border 
-                border-transparent rounded-lg shadow-sm 
-                text-sm font-medium text-white 
-                bg-purple-600 hover:bg-purple-700 
-                focus:outline-none focus:ring-2 
-                focus:ring-offset-2 focus:ring-purple-500 
-                disabled:opacity-50 
-                disabled:cursor-not-allowed 
-                transition-colors"
+              className={`w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${theme === 'dark' ? 'bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 focus:ring-purple-400 shadow-purple-700/30' : 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500'} disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
             >
               {isLoading ? (
                 <>
@@ -449,12 +491,18 @@ const RegisterPage: React.FC = () => {
 
           {/* Login Link */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className={`text-sm 
+              ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}
+            >
               Đã có tài khoản?{' '}
               <Link
                 to="/login"
-                className="font-medium text-purple-600 
-                  hover:text-purple-500 transition-colors"
+                className={`font-medium 
+                  ${theme === 'dark' 
+                    ? 'text-purple-400 hover:text-purple-300' 
+                    : 'text-purple-600 hover:text-purple-500'
+                  } 
+                  transition-colors`}
               >
                 Đăng nhập ngay
               </Link>
@@ -463,19 +511,23 @@ const RegisterPage: React.FC = () => {
         </div>
 
         {/* Footer Info */}
-        <div className="text-center text-sm text-gray-500">
+        <div className={`text-center text-sm 
+          ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
+        >
           <p>
             Bằng việc đăng ký, bạn đồng ý với{' '}
             <Link
               to="/terms"
-              className="text-purple-600 hover:underline"
+              className={`hover:underline
+                ${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`}
             >
               Điều khoản dịch vụ
             </Link>{' '}
             và{' '}
             <Link
               to="/privacy"
-              className="text-purple-600 hover:underline"
+              className={`hover:underline
+                ${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`}
             >
               Chính sách bảo mật
             </Link>

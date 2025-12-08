@@ -14,8 +14,9 @@ const VNPayReturnPage: React.FC = () => {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentType, setPaymentType] = useState<'full' | 'deposit' | 'remaining' | null>(null);
 
-  // Guard to ensure verification runs only once (prevents double toasts
-  // in React Strict Mode which mounts/unmounts components twice in dev).
+  // Bảo vệ: đảm bảo việc xác thực chỉ chạy một lần
+  // (ngăn thông báo trùng lặp khi React Strict Mode mount/unmount
+  // component hai lần trong môi trường phát triển).
   const didVerifyRef = useRef(false);
   useEffect(() => {
     if (didVerifyRef.current) return;
@@ -29,8 +30,6 @@ const VNPayReturnPage: React.FC = () => {
 
       // Get all query params
       const queryParams = location.search;
-      console.log('=== Trang VNPay Return ===');
-      console.log('Tham số query:', queryParams);
 
       // Verify payment with backend
       console.log('Đang gọi API backend để xác thực thanh toán...');
@@ -106,7 +105,7 @@ const VNPayReturnPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Result Icon */}
+          {/* Biểu tượng kết quả */}
           <div className="flex justify-center mb-6">
             {success ? (
               <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
@@ -119,21 +118,21 @@ const VNPayReturnPage: React.FC = () => {
             )}
           </div>
 
-          {/* Title */}
+          {/* Tiêu đề */}
           <h1 className={`text-3xl font-bold text-center mb-4 ${
             success ? 'text-green-900' : 'text-red-900'
           }`}>
             {success ? 'Thanh toán thành công!' : 'Thanh toán thất bại'}
           </h1>
 
-          {/* Message */}
+          {/* Thông điệp */}
           <p className={`text-center mb-8 ${
             success ? 'text-green-700' : 'text-red-700'
           }`}>
             {message}
           </p>
 
-          {/* Success Details */}
+          {/* Chi tiết khi thành công */}
           {success && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
               {paymentType === 'full' ? (
@@ -170,7 +169,7 @@ const VNPayReturnPage: React.FC = () => {
             </div>
           )}
 
-          {/* Failed Details */}
+          {/* Chi tiết khi thất bại */}
           {!success && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-red-800 mb-2">
@@ -185,7 +184,7 @@ const VNPayReturnPage: React.FC = () => {
             </div>
           )}
 
-          {/* Actions */}
+          {/* Hành động */}
           <div className="flex flex-col sm:flex-row gap-4">
             <button
               onClick={handleBackToBooking}

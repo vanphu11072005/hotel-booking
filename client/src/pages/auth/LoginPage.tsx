@@ -13,6 +13,7 @@ import {
   Clock
 } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
+import { useTheme } from '../../contexts/ThemeContext';
 import { 
   loginSchema, 
   LoginFormData 
@@ -22,6 +23,7 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isLoading, error, clearError } = useAuthStore();
+  const { theme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [countdown, setCountdown] = useState<string>('');
   const [lockedUntil, setLockedUntil] = useState<Date | null>(null);
@@ -117,24 +119,30 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br 
-      from-blue-50 via-indigo-50 to-purple-50 
+    <div className={`min-h-screen bg-gradient-to-br 
+      ${theme === 'dark' 
+        ? 'from-gray-900 via-gray-800 to-gray-900' 
+        : 'from-blue-50 via-indigo-50 to-purple-50'
+      } 
       flex items-center justify-center py-12 px-4 
-      sm:px-6 lg:px-8 relative overflow-hidden"
+      sm:px-6 lg:px-8 relative overflow-hidden`}
     >
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 
-          bg-blue-400 rounded-full mix-blend-multiply 
-          filter blur-xl opacity-30 animate-blob"
+        <div className={`absolute -top-40 -right-40 w-80 h-80 
+          ${theme === 'dark' ? 'bg-blue-800' : 'bg-blue-400'} 
+          rounded-full mix-blend-multiply 
+          filter blur-xl opacity-30 animate-blob`}
         />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 
-          bg-purple-400 rounded-full mix-blend-multiply 
-          filter blur-xl opacity-30 animate-blob animation-delay-2000"
+        <div className={`absolute -bottom-40 -left-40 w-80 h-80 
+          ${theme === 'dark' ? 'bg-purple-800' : 'bg-purple-400'} 
+          rounded-full mix-blend-multiply 
+          filter blur-xl opacity-30 animate-blob animation-delay-2000`}
         />
-        <div className="absolute top-40 left-40 w-80 h-80 
-          bg-pink-400 rounded-full mix-blend-multiply 
-          filter blur-xl opacity-30 animate-blob animation-delay-4000"
+        <div className={`absolute top-40 left-40 w-80 h-80 
+          ${theme === 'dark' ? 'bg-indigo-800' : 'bg-pink-400'} 
+          rounded-full mix-blend-multiply 
+          filter blur-xl opacity-30 animate-blob animation-delay-4000`}
         />
       </div>
 
@@ -155,23 +163,32 @@ const LoginPage: React.FC = () => {
               <Hotel className="w-12 h-12 text-white" />
             </div>
           </div>
-          <h2 className="text-4xl font-bold text-transparent 
-            bg-clip-text bg-gradient-to-r from-blue-600 
-            to-indigo-600 animate-gradient"
+          <h2 className={`text-4xl font-bold text-transparent 
+            bg-clip-text bg-gradient-to-r 
+            ${theme === 'dark' 
+              ? 'from-blue-400 to-indigo-400' 
+              : 'from-blue-600 to-indigo-600'
+            } 
+            animate-gradient`}
           >
             Đăng nhập
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className={`mt-2 text-sm 
+            ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}
+          >
             Chào mừng bạn trở lại với Hotel Booking
           </p>
         </div>
 
         {/* Login Form */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-2xl 
+        <div className={`bg-white/80 backdrop-blur-xl rounded-2xl 
           shadow-2xl p-8 border border-white/20
-          transform hover:scale-[1.02] transition-all duration-300"
+          ${theme === 'dark' ? 'bg-gray-800/80 border-gray-700/50' : ''}
+          transform hover:scale-[1.02] transition-all duration-300`}
           style={{
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            boxShadow: theme === 'dark' 
+              ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' 
+              : '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
           }}
         >
           <form onSubmit={handleSubmit(onSubmit)} 
@@ -208,8 +225,9 @@ const LoginPage: React.FC = () => {
             <div>
               <label 
                 htmlFor="email" 
-                className="block text-sm font-medium 
-                  text-gray-700 mb-2"
+                className={`block text-sm font-medium 
+                  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} 
+                  mb-2`}
               >
                 Email
               </label>
@@ -217,7 +235,9 @@ const LoginPage: React.FC = () => {
                 <div className="absolute inset-y-0 left-0 
                   pl-3 flex items-center pointer-events-none"
                 >
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <Mail className={`h-5 w-5 
+                    ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} 
+                  />
                 </div>
                 <input
                   {...register('email')}
@@ -227,11 +247,15 @@ const LoginPage: React.FC = () => {
                   className={`block w-full pl-10 pr-3 py-3 
                     border rounded-xl focus:outline-none 
                     focus:ring-2 transition-all duration-300
-                    bg-gray-50/50 backdrop-blur-sm
-                    hover:bg-white hover:shadow-md
+                    ${theme === 'dark' 
+                      ? 'bg-gray-700/50 border-gray-600 text-gray-100 placeholder-gray-400 hover:bg-gray-700' 
+                      : 'bg-gray-50/50 backdrop-blur-sm hover:bg-white'
+                    }
                     ${errors.email
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'
+                      : theme === 'dark'
+                        ? 'border-gray-600 focus:ring-blue-500 focus:border-blue-500'
+                        : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'
                     }`}
                   placeholder="email@example.com"
                 />
@@ -247,8 +271,9 @@ const LoginPage: React.FC = () => {
             <div>
               <label 
                 htmlFor="password" 
-                className="block text-sm font-medium 
-                  text-gray-700 mb-2"
+                className={`block text-sm font-medium 
+                  ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} 
+                  mb-2`}
               >
                 Mật khẩu
               </label>
@@ -256,7 +281,9 @@ const LoginPage: React.FC = () => {
                 <div className="absolute inset-y-0 left-0 
                   pl-3 flex items-center pointer-events-none"
                 >
-                  <Lock className="h-5 w-5 text-gray-400" />
+                  <Lock className={`h-5 w-5 
+                    ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`} 
+                  />
                 </div>
                 <input
                   {...register('password')}
@@ -266,11 +293,15 @@ const LoginPage: React.FC = () => {
                   className={`block w-full pl-10 pr-10 py-3 
                     border rounded-xl focus:outline-none 
                     focus:ring-2 transition-all duration-300
-                    bg-gray-50/50 backdrop-blur-sm
-                    hover:bg-white hover:shadow-md
+                    ${theme === 'dark' 
+                      ? 'bg-gray-700/50 border-gray-600 text-gray-100 placeholder-gray-400 hover:bg-gray-700' 
+                      : 'bg-gray-50/50 backdrop-blur-sm hover:bg-white hover:shadow-md'
+                    }
                     ${errors.password 
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'
+                      : theme === 'dark'
+                        ? 'border-gray-600 focus:ring-blue-500 focus:border-blue-500'
+                        : 'border-gray-200 focus:ring-blue-500 focus:border-blue-500'
                     }`}
                   placeholder="••••••••"
                 />
@@ -281,12 +312,12 @@ const LoginPage: React.FC = () => {
                     pr-3 flex items-center"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 
-                      text-gray-400 hover:text-gray-600" 
+                    <EyeOff className={`h-5 w-5 
+                      ${theme === 'dark' ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`} 
                     />
                   ) : (
-                    <Eye className="h-5 w-5 text-gray-400 
-                      hover:text-gray-600" 
+                    <Eye className={`h-5 w-5 
+                      ${theme === 'dark' ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`} 
                     />
                   )}
                 </button>
@@ -317,8 +348,9 @@ const LoginPage: React.FC = () => {
                 />
                 <label 
                   htmlFor="rememberMe" 
-                  className="ml-2 block text-sm 
-                    text-gray-700 cursor-pointer"
+                  className={`ml-2 block text-sm 
+                    ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'} 
+                    cursor-pointer`}
                 >
                   Nhớ đăng nhập
                 </label>
@@ -326,10 +358,13 @@ const LoginPage: React.FC = () => {
 
               <Link
                 to="/forgot-password"
-                className="text-sm font-medium 
-                  text-blue-600 hover:text-blue-700 
+                className={`text-sm font-medium 
+                  ${theme === 'dark' 
+                    ? 'text-blue-400 hover:text-blue-300' 
+                    : 'text-blue-600 hover:text-blue-700'
+                  } 
                   transition-all duration-200
-                  hover:underline hover:scale-105 inline-block"
+                  hover:underline hover:scale-105 inline-block`}
               >
                 Quên mật khẩu?
               </Link>
@@ -377,16 +412,20 @@ const LoginPage: React.FC = () => {
 
           {/* Register Link */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className={`text-sm 
+              ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}
+            >
               Chưa có tài khoản?{' '}
               <Link
                 to="/register"
-                className="font-medium text-transparent 
+                className={`font-medium text-transparent 
                   bg-clip-text bg-gradient-to-r 
-                  from-blue-600 to-indigo-600
-                  hover:from-blue-700 hover:to-indigo-700
+                  ${theme === 'dark' 
+                    ? 'from-blue-400 to-indigo-400 hover:from-blue-300 hover:to-indigo-300' 
+                    : 'from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+                  }
                   transition-all duration-200
-                  hover:scale-105 inline-block"
+                  hover:scale-105 inline-block`}
               >
                 Đăng ký ngay
               </Link>
@@ -395,19 +434,23 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* Footer Info */}
-        <div className="text-center text-sm text-gray-500">
+        <div className={`text-center text-sm 
+          ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}
+        >
           <p>
             Bằng việc đăng nhập, bạn đồng ý với{' '}
             <Link 
               to="/terms" 
-              className="text-blue-600 hover:underline"
+              className={`hover:underline
+                ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}
             >
               Điều khoản dịch vụ
             </Link>{' '}
             và{' '}
             <Link 
               to="/privacy" 
-              className="text-blue-600 hover:underline"
+              className={`hover:underline
+                ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}
             >
               Chính sách bảo mật
             </Link>

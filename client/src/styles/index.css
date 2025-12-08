@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Body dark mode background */
+body {
+  @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 
+    transition-colors;
+}
+
 /* Custom scrollbar styles */
 ::-webkit-scrollbar {
   width: 8px;
@@ -12,13 +18,25 @@
   background: #f1f1f1;
 }
 
+.dark ::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
 ::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 4px;
 }
 
+.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
 }
 
 /* Base styles */
@@ -111,4 +129,15 @@ img[loading="lazy"] {
 img[loading="lazy"].loaded,
 img[loading="lazy"]:not([src]) {
   opacity: 1;
+}
+
+/* Hide native number input spinners (Chrome, Edge, Safari, Firefox) */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield; /* Firefox */
 }

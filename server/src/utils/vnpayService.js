@@ -67,16 +67,7 @@ const createPaymentUrl = ({ amount, orderInfo, orderId, ipAddr, returnUrl }) => 
  */
 const verifyReturn = (query) => {
   try {
-    console.log('=== Xác thực VNPay Return ===');
-    console.log('Tham số query:', query);
-    
     const verify = vnpay.verifyReturnUrl(query);
-    
-    console.log('Kết quả xác thực:', {
-      isSuccess: verify.isSuccess,
-      isVerified: verify.isVerified,
-      message: verify.message
-    });
     
     return {
       isValid: verify.isVerified, // Dùng isVerified thay vì isSuccess
