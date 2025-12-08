@@ -23,7 +23,6 @@ const BannerManagementPage: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    link_url: '',
     is_active: true,
   });
 
@@ -70,7 +69,22 @@ const BannerManagementPage: React.FC = () => {
         await bannerService.updateBanner(editingBanner.id, formData);
         toast.success('Cập nhật banner thành công');
       } else {
-        await bannerService.createBanner(formData);
+        // Tạo banner mới
+        const response = await bannerService.createBanner(formData);
+        const newBannerId = response.data.banner?.id;
+        
+        // Nếu có ảnh được chọn, upload ảnh
+        if (selectedFile && newBannerId) {
+          const imageFormData = new FormData();
+          imageFormData.append('image', selectedFile);
+          
+          await apiClient.post(`/banners/${newBannerId}/image`, imageFormData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+        }
+        
         toast.success('Thêm banner thành công');
       }
       setShowModal(false);
@@ -86,7 +100,6 @@ const BannerManagementPage: React.FC = () => {
     setFormData({
       title: banner.title,
       description: banner.description || '',
-      link_url: banner.link_url || '',
       is_active: banner.is_active,
     });
     setPreviewUrl(banner.image_url ? `http://localhost:3000${banner.image_url}` : '');
@@ -122,7 +135,6 @@ const BannerManagementPage: React.FC = () => {
     setFormData({
       title: '',
       description: '',
-      link_url: '',
       is_active: true,
     });
     setSelectedFile(null);
@@ -236,9 +248,6 @@ const BannerManagementPage: React.FC = () => {
                 Mô tả
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Link
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Trạng thái
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -291,11 +300,6 @@ const BannerManagementPage: React.FC = () => {
                 <td className="px-6 py-4">
                   <div className="text-sm text-gray-500 max-w-xs truncate">
                     {banner.description || '-'}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-blue-600 max-w-xs truncate">
-                    {banner.link_url || '-'}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -383,19 +387,6 @@ const BannerManagementPage: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Link URL
-                </label>
-                <input
-                  type="url"
-                  value={formData.link_url}
-                  onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://example.com"
-                />
-              </div>
-
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -427,15 +418,14 @@ const BannerManagementPage: React.FC = () => {
             </form>
 
             {/* Image Upload Section */}
-            {editingBanner && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
-                  Hình ảnh banner
-                </h3>
-                
-                {/* Current Image */}
-                {editingBanner.image_url && (() => {
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Upload className="w-5 h-5" />
+                Hình ảnh banner
+              </h3>
+              
+              {/* Current Image */}
+              {editingBanner && editingBanner.image_url && (() => {
                   const imgUrl = editingBanner.image_url;
                   const fullUrl = imgUrl.startsWith('http')
                     ? imgUrl
@@ -487,25 +477,34 @@ const BannerManagementPage: React.FC = () => {
                 {/* Upload New Image */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {editingBanner.image_url ? 'Thay đổi ảnh banner:' : 'Thêm ảnh banner:'}
+                    {editingBanner && editingBanner.image_url ? 'Thay đổi ảnh banner:' : 'Thêm ảnh banner:'}
                   </label>
-                  <div className="flex gap-3">
+                  {editingBanner ? (
+                    <div className="flex gap-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleUploadImage}
+                        disabled={!selectedFile || uploadingImage}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        <Upload className="w-4 h-4" />
+                        {uploadingImage ? 'Đang tải...' : 'Upload'}
+                      </button>
+                    </div>
+                  ) : (
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handleFileSelect}
-                      className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
-                    <button
-                      type="button"
-                      onClick={handleUploadImage}
-                      disabled={!selectedFile || uploadingImage}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      {uploadingImage ? 'Đang tải...' : 'Upload'}
-                    </button>
-                  </div>
+                  )}
                   {selectedFile && (
                     <p className="text-sm text-gray-600 mt-2">
                       File đã chọn: {selectedFile.name}
@@ -513,7 +512,6 @@ const BannerManagementPage: React.FC = () => {
                   )}
                 </div>
               </div>
-            )}
           </div>
         </div>
       )}

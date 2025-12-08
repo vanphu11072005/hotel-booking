@@ -31,59 +31,35 @@ class RoomTypeService {
   }
 
   async createRoomType(data) {
-    // Convert arrays to JSON strings for database
-    const createData = { ...data };
-    if (Array.isArray(createData.images)) {
-      createData.images = JSON.stringify(createData.images);
-    }
-    if (Array.isArray(createData.amenities)) {
-      createData.amenities = JSON.stringify(createData.amenities);
-    }
-    
-    const roomType = await RoomType.create(createData);
-    const result = roomType.toJSON();
-    
-    // Parse back to arrays for response
-    if (typeof result.images === 'string') {
-      try { result.images = JSON.parse(result.images); } catch (e) { result.images = []; }
-    }
-    if (typeof result.amenities === 'string') {
-      try { result.amenities = JSON.parse(result.amenities); } catch (e) { result.amenities = []; }
-    }
-    
-    return result;
+    // No need to stringify - Sequelize with JSON type will handle it
+    const roomType = await RoomType.create(data);
+    return roomType.toJSON();
   }
 
   async updateRoomType(id, data) {
     const roomType = await RoomType.findByPk(id);
     if (!roomType) throw new Error('Room type not found');
     
-    // Convert arrays to JSON strings for database
-    const updateData = { ...data };
-    if (Array.isArray(updateData.images)) {
-      updateData.images = JSON.stringify(updateData.images);
-    }
-    if (Array.isArray(updateData.amenities)) {
-      updateData.amenities = JSON.stringify(updateData.amenities);
-    }
-    
-    await roomType.update(updateData);
-    const result = roomType.toJSON();
-    
-    // Parse back to arrays for response
-    if (typeof result.images === 'string') {
-      try { result.images = JSON.parse(result.images); } catch (e) { result.images = []; }
-    }
-    if (typeof result.amenities === 'string') {
-      try { result.amenities = JSON.parse(result.amenities); } catch (e) { result.amenities = []; }
-    }
-    
-    return result;
+    // No need to stringify - Sequelize with JSON type will handle it
+    await roomType.update(data);
+    return roomType.toJSON();
   }
 
   async deleteRoomType(id) {
-    const roomType = await RoomType.findByPk(id);
+    const roomType = await RoomType.findByPk(id, {
+      include: [{
+        association: 'rooms',
+        attributes: ['id']
+      }]
+    });
+    
     if (!roomType) throw new Error('Room type not found');
+    
+    // Check if there are rooms using this room type
+    if (roomType.rooms && roomType.rooms.length > 0) {
+      throw new Error(`Cannot delete room type. There are ${roomType.rooms.length} room(s) using this type. Please delete or reassign those rooms first.`);
+    }
+    
     await roomType.destroy();
     return true;
   }

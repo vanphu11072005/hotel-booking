@@ -7,6 +7,7 @@ export interface RoomTypeData {
   description?: string;
   images?: string[];
   amenities?: string[];
+  featured?: boolean;
 }
 
 export const getAllRoomTypes = async () => {
