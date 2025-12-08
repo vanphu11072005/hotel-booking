@@ -338,7 +338,7 @@ const SearchResultsPage: React.FC = () => {
                   </button>
                   
                   <Link
-                    to="/rooms"
+                    to="/room-types"
                     className="px-6 py-3 border 
                       border-gray-300 text-gray-700 
                       rounded-lg hover:bg-gray-50 

@@ -20,6 +20,7 @@ interface RoomState {
   fetchRooms: (params?: RoomSearchParams) => Promise<void>;
   getRoom: (id: number) => Promise<Room | null>;
   fetchRoomTypes: () => Promise<void>;
+  getSampleRoomByType: (typeId: number) => Promise<Room | null>;
   searchAvailable: (params: AvailableSearchParams) => Promise<void>;
   getAvailableCount: (roomId: number, from?: string, to?: string) => Promise<number>;
   setRooms: (rooms: Room[]) => void;
@@ -81,6 +82,22 @@ const useRoomStore = create<RoomState>((set) => ({
       console.error('Error fetching room types:', error);
       set({ error: error?.message || 'Failed to load room types', isLoading: false });
       toast.error(error?.response?.data?.message || 'Không thể tải loại phòng');
+    }
+  },
+
+  // Fetch a single sample room for a given room type (does not
+  // mutate global `rooms` state) — useful for components that need
+  // a physical room id to perform actions like favoriting.
+  getSampleRoomByType: async (typeId: number) => {
+    try {
+      const response = await getRooms({ type: String(typeId), limit: 1 });
+      if (response && response.data && Array.isArray(response.data.rooms)) {
+        return response.data.rooms[0] as Room;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching sample room by type:', error);
+      return null;
     }
   },
 

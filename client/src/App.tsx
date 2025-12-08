@@ -29,9 +29,9 @@ import HomePage from './pages/HomePage';
 import AboutPage from './pages/customer/AboutPage';
 import ServicesPage from './pages/customer/ServicesPage';
 import RoomListPage from
-  './pages/customer/RoomListPage';
-import RoomDetailPage from
-  './pages/customer/RoomDetailPage';
+  './pages/customer/RoomTypeListPage';
+import RoomTypeDetailPage from
+  './pages/customer/RoomTypeDetailPage';
 import SearchResultsPage from
   './pages/customer/SearchResultsPage';
 import FavoritesPage from
@@ -166,9 +166,9 @@ function App() {
         }
         >
           <Route index element={<HomePage />} />
-          <Route path="rooms" element={<RoomListPage />} />
-          <Route path="rooms/search" element={<SearchResultsPage />} />
-          <Route path="rooms/:id" element={<RoomDetailPage />} />
+          <Route path="room-types" element={<RoomListPage />} />
+          <Route path="room-types/search" element={<SearchResultsPage />} />
+          <Route path="room-types/:id" element={<RoomTypeDetailPage />} />
           <Route path="favorites" element={<FavoritesPage />} />
           <Route path="payment-result" element={<PaymentResultPage />} />
           <Route path="payment/vnpay-return" element={<VNPayReturnPage />} />

@@ -32,6 +32,7 @@ class BookingRepository {
   getRoomTypeAttributes() {
     return [
       'id',
+      'images',
       'name',
       'description',
       'base_price',

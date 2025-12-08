@@ -1,12 +1,9 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Users,
-  Star,
-  ArrowRight,
-} from 'lucide-react';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Users, Star, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import useRoomStore from '../../store/useRoomStore';
 import type { Room, RoomType } from '../../types/rooms';
-import { getRooms } from '../../services/api/roomService';
 import FavoriteButton from './FavoriteButton';
 
 interface RoomTypeCardProps {
@@ -18,8 +15,6 @@ interface RoomTypeCardProps {
 
 const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onSelect, actionLabel }) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const [loadingSample, setLoadingSample] = useState(false);
   const roomType = rtProp ?? room?.room_type;
 
   if (!roomType) return null;
@@ -49,6 +44,30 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
 
   const images = getImages(roomType?.images);
   const firstImage = images.length > 0 ? images[0] : undefined;
+
+  // If a physical `room` object is not provided (we only have roomType),
+  // use the room store helper to fetch one sample room for this type
+  // so favorite actions (which require a room id) work the same as
+  // on the room list page.
+  const [sampleRoomId, setSampleRoomId] = useState<number | null>(null);
+  const { getSampleRoomByType } = useRoomStore();
+  useEffect(() => {
+    let mounted = true;
+    const fetchSample = async () => {
+      if (!room && roomType?.id) {
+        try {
+          const sample = await getSampleRoomByType(roomType.id);
+          if (mounted && sample) setSampleRoomId(sample.id);
+        } catch (e) {
+          // ignore errors
+        }
+      }
+    };
+    fetchSample();
+    return () => {
+      mounted = false;
+    };
+  }, [room, roomType?.id, getSampleRoomByType]);
 
   // Final image source resolution
   let imageSrc = PLACEHOLDER;
@@ -123,10 +142,13 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
           }}
         />
         
-        {/* Favorite Button */}
-        <div className="absolute top-3 right-3 z-5">
-          <FavoriteButton roomId={room?.id ?? roomType.id} size="md" />
-        </div>
+        {/* Favorite Button: prefer physical room id (room.id), else a sampled
+            room for this type. If none available yet, hide button. */}
+        {(room?.id || sampleRoomId) && (
+          <div className="absolute top-3 right-3 z-5">
+            <FavoriteButton roomId={room?.id ?? sampleRoomId!} size="md" />
+          </div>
+        )}
         
         {/* Featured Badge (moved to room_type) */}
         {roomType?.featured && (
@@ -226,35 +248,7 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
             </button>
           ) : (
             <Link
-              to={
-                room
-                  ? `/rooms/${room.id}${location.search || ''}`
-                  : `/rooms?type=${roomType.id}${location.search || ''}`
-              }
-              onClick={async (e) => {
-                // If we already have a room, allow normal navigation.
-                if (room) return;
-
-                // Prevent default link and try to fetch a sample room
-                e.preventDefault();
-                if (loadingSample) return;
-                setLoadingSample(true);
-                try {
-                  const res = await getRooms({ type: String(roomType.id), limit: 1 });
-                  const sample = res?.data?.rooms?.[0] ?? null;
-                  if (sample) {
-                    navigate(`/rooms/${sample.id}${location.search || ''}`);
-                  } else {
-                    // Fallback to filtered list if no sample found
-                    navigate(`/rooms?type=${roomType.id}${location.search || ''}`);
-                  }
-                } catch (err) {
-                  // On error fallback to filtered list
-                  navigate(`/rooms?type=${roomType.id}${location.search || ''}`);
-                } finally {
-                  setLoadingSample(false);
-                }
-              }}
+              to={`/room-types/${roomType.id}${location.search || ''}`}
               className="flex items-center gap-1 
                 bg-indigo-600 text-white px-4 py-2 
                 rounded-lg hover:bg-indigo-700 

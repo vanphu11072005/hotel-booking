@@ -146,7 +146,7 @@ const HomePage: React.FC = () => {
           </div>
 
           <Link
-            to="/rooms"
+            to="/room-types"
             className="hidden md:flex items-center gap-2 
               text-indigo-600 hover:text-indigo-700 
               font-semibold transition-colors"
@@ -217,7 +217,7 @@ const HomePage: React.FC = () => {
             {featuredRoomTypes.length > 0 && (
               <div className="mt-8 text-center md:hidden">
                 <Link
-                  to="/rooms"
+                  to="/room-types"
                   className="inline-flex items-center gap-2 
                     bg-indigo-600 dark:bg-indigo-700 
                     text-white px-6 py-3 rounded-lg 
@@ -313,7 +313,7 @@ const HomePage: React.FC = () => {
             {newestRoomTypes.length > 0 && (
               <div className="mt-8 text-center md:hidden">
                 <Link
-                  to="/rooms"
+                  to="/room-types"
                   className="inline-flex items-center gap-2 
                     bg-indigo-600 text-white px-6 py-3 
                     rounded-lg hover:bg-indigo-700 

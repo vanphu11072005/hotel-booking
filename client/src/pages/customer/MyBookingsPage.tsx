@@ -16,7 +16,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { getMyBookings, cancelBooking } from '../../services/api/bookingService';
+import useBookingStore from '../../store/useBookingStore';
 import type { Booking } from '../../types/booking';
 import useAuthStore from '../../store/useAuthStore';
 import Loading from '../../components/common/Loading';
@@ -28,11 +28,8 @@ const MyBookingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
 
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [filteredBookings, setFilteredBookings] = 
-    useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { bookings, isLoading: loading, error, fetchMyBookings, cancel } = useBookingStore();
+  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [cancellingId, setCancellingId] = 
     useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,12 +50,12 @@ const MyBookingsPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Fetch bookings
+  // Fetch bookings via store
   useEffect(() => {
     if (isAuthenticated) {
-      fetchBookings();
+      fetchMyBookings();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchMyBookings]);
 
   // Filter bookings
   useEffect(() => {
@@ -89,34 +86,7 @@ const MyBookingsPage: React.FC = () => {
     setFilteredBookings(filtered);
   }, [bookings, statusFilter, searchQuery]);
 
-  const fetchBookings = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await getMyBookings();
-
-      if (
-        response.success && 
-        response.data?.bookings
-      ) {
-        setBookings(response.data.bookings);
-      } else {
-        throw new Error(
-          'Không thể tải danh sách đặt phòng'
-        );
-      }
-    } catch (err: any) {
-      console.error('Error fetching bookings:', err);
-      const message =
-        err.response?.data?.message ||
-        'Không thể tải danh sách đặt phòng';
-      setError(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // No local fetchBookings: store handles fetching
 
   const handleOpenCancelPanel = (booking: Booking) => {
     setSelectedBooking(booking);
@@ -136,34 +106,12 @@ const MyBookingsPage: React.FC = () => {
 
     try {
       setCancellingId(selectedBooking.id);
-
-      const response = await cancelBooking(
-        selectedBooking.id,
-        reason,
-        details
-      );
-
-      if (response.success) {
-        toast.success(
-          `✅ Đã hủy đặt phòng ${selectedBooking.booking_number} thành công!`
-        );
-        
-        // Update local state
-        setBookings((prev) =>
-          prev.map((b) =>
-            b.id === selectedBooking.id
-              ? { ...b, status: 'cancelled' }
-              : b
-          )
-        );
-
-        // Close panel
+      const updated = await cancel(selectedBooking.id, reason, details);
+      if (updated) {
+        toast.success(`✅ Đã hủy đặt phòng ${selectedBooking.booking_number} thành công!`);
         handleCloseCancelPanel();
       } else {
-        throw new Error(
-          response.message || 
-          'Không thể hủy đặt phòng'
-        );
+        throw new Error('Không thể hủy đặt phòng');
       }
     } catch (err: any) {
       console.error('Error cancelling booking:', err);
@@ -259,7 +207,8 @@ const MyBookingsPage: React.FC = () => {
   const PLACEHOLDER = '/images/room-placeholder.jpg';
   
   const resolveRoomImage = (room: any): string => {
-    const imagesField = room?.images as any;
+    // Images are in room_type, not room
+    const imagesField = room?.room_type?.images as any;
     let firstImage: string | undefined;
 
     if (Array.isArray(imagesField)) {
@@ -290,7 +239,7 @@ const MyBookingsPage: React.FC = () => {
       } else if (firstImage.startsWith('/')) {
         return firstImage;
       } else {
-        return `${SERVER_URL}/uploads/rooms/${firstImage}`;
+        return `${SERVER_URL}/uploads/room_types/${firstImage}`;
       }
     }
     
@@ -407,7 +356,7 @@ const MyBookingsPage: React.FC = () => {
                 {error}
               </p>
               <button
-                onClick={fetchBookings}
+                onClick={fetchMyBookings}
                 className="mt-2 text-sm text-red-600 
                   hover:text-red-800 underline"
               >
@@ -434,7 +383,7 @@ const MyBookingsPage: React.FC = () => {
           >
             {!searchQuery && statusFilter === 'all' ? (
               <Link
-                to="/rooms"
+                to="/room-types"
                 className="inline-flex items-center 
                   gap-2 px-6 py-3 bg-indigo-600 
                   text-white rounded-lg 

@@ -32,9 +32,7 @@ const VNPayReturnPage: React.FC = () => {
       const queryParams = location.search;
 
       // Verify payment with backend
-      console.log('Đang gọi API backend để xác thực thanh toán...');
       const response = await verifyVNPayReturn(queryParams);
-      console.log('Phản hồi từ backend:', response);
 
       if (response.success) {
         setSuccess(true);

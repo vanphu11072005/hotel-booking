@@ -118,7 +118,7 @@ const Header: React.FC<HeaderProps> = ({
               {t('header.home')}
             </NavLink>
             <NavLink
-              to="/rooms"
+              to="/room-types"
               className={({ isActive }) =>
                 `text-white dark:text-gray-200 hover:text-blue-400 
                 dark:hover:text-blue-300 transition-colors 
@@ -344,7 +344,7 @@ const Header: React.FC<HeaderProps> = ({
                 {t('header.home')}
               </NavLink>
               <NavLink
-                to="/rooms"
+                to="/room-types"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={({ isActive }) =>
                   `px-4 py-2 text-white dark:text-gray-200 

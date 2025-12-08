@@ -181,14 +181,18 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* Login Form */}
-        <div className={`bg-white/80 backdrop-blur-xl rounded-2xl 
-          shadow-2xl p-8 border border-white/20
-          ${theme === 'dark' ? 'bg-gray-800/80 border-gray-700/50' : ''}
+        <div
+          className={`${
+            theme === 'dark'
+              ? 'bg-gray-800/80 border-gray-700/50'
+              : 'bg-white/80 border-white/20'
+          } backdrop-blur-xl rounded-2xl shadow-2xl p-8
           transform hover:scale-[1.02] transition-all duration-300`}
           style={{
-            boxShadow: theme === 'dark' 
-              ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' 
-              : '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+            boxShadow:
+              theme === 'dark'
+                ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                : '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
           }}
         >
           <form onSubmit={handleSubmit(onSubmit)} 
