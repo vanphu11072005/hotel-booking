@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Users, Star, ArrowRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import useRoomStore from '../../store/useRoomStore';
 import type { Room, RoomType } from '../../types/rooms';
 import FavoriteButton from './FavoriteButton';
@@ -15,6 +16,7 @@ interface RoomTypeCardProps {
 
 const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onSelect, actionLabel }) => {
   const location = useLocation();
+  const { t, i18n } = useTranslation();
   const roomType = rtProp ?? room?.room_type;
 
   if (!roomType) return null;
@@ -87,7 +89,9 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
   }
   
   // Format price (fallback to 0 if base_price missing)
-  const formattedPrice = new Intl.NumberFormat('vi-VN', {
+  // Format price according to selected language (English uses en-US, Vietnamese uses vi-VN)
+  const currencyLocale = i18n.language && i18n.language.startsWith('en') ? 'en-US' : 'vi-VN';
+  const formattedPrice = new Intl.NumberFormat(currencyLocale, {
     style: 'currency',
     currency: 'VND',
   }).format(Number(roomType.base_price || 0));
@@ -225,11 +229,11 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
         {/* Price & Action */}
         <div className="flex items-center justify-between pt-3 border-t dark:border-gray-700">
           <div>
-            <p className="text-xs text-gray-500">Giá từ</p>
+            <p className="text-xs text-gray-500">{t('rooms.priceFrom')}</p>
             <p className="text-xl font-bold text-indigo-600">
               {formattedPrice}
             </p>
-            <p className="text-xs text-gray-500">/ đêm</p>
+            <p className="text-xs text-gray-500">{t('rooms.perNight')}</p>
           </div>
 
           {onSelect ? (
@@ -244,7 +248,7 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
                 rounded-lg hover:bg-indigo-700 
                 transition-colors text-sm font-medium"
             >
-              {actionLabel || 'Chọn'}
+              {actionLabel || t('common.select')}
             </button>
           ) : (
             <Link
@@ -254,7 +258,7 @@ const RoomTypeCard: React.FC<RoomTypeCardProps> = ({ room, roomType: rtProp, onS
                 rounded-lg hover:bg-indigo-700 
                 transition-colors text-sm font-medium"
             >
-              Xem chi tiết
+              {t('common.viewDetails')}
               <ArrowRight className="w-4 h-4" />
             </Link>
           )}

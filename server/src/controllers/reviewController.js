@@ -1,13 +1,12 @@
 const reviewService = require('../services/reviewService');
 
 /**
- * Get reviews for a specific room
+ * Get reviews for a specific room type
  */
-const getRoomReviews = async (req, res, next) => {
+const getRoomTypeReviews = async (req, res, next) => {
   try {
-    // Support both routes: /api/reviews/room/:roomId and /api/rooms/:id/reviews
-    const roomId = req.params.roomId || req.params.id;
-    const reviews = await reviewService.getRoomReviews(roomId);
+    const roomTypeId = req.params.roomTypeId || req.params.id;
+    const reviews = await reviewService.getRoomTypeReviews(roomTypeId);
 
     res.status(200).json({
       status: 'success',
@@ -147,7 +146,7 @@ const getAllReviews = async (req, res, next) => {
 };
 
 module.exports = {
-  getRoomReviews,
+  getRoomTypeReviews,
   createReview,
   approveReview,
   rejectReview,

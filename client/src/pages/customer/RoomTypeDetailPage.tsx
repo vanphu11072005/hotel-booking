@@ -211,7 +211,7 @@ const RoomTypeDetailPage: React.FC = () => {
           </aside>
         </div>
 
-        <div className="mb-12"><ReviewSection roomId={availableRooms[0]?.id ?? 0} /></div>
+        <div className="mb-12"><ReviewSection roomTypeId={Number(id)} /></div>
 
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Phòng đề xuất</h2>

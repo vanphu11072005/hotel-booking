@@ -116,14 +116,15 @@ function App() {
     initializeAuth();
   }, [initializeAuth]);
 
-  // Auto-refresh token mỗi 50 phút nếu rememberMe enabled
+  // Auto-refresh token proactively every 10 minutes when
+  // rememberMe is enabled to avoid access token expiry logout.
   useEffect(() => {
     if (isAuthenticated && localStorage.getItem('rememberMe') === 'true') {
       const interval = setInterval(() => {
         refreshAuthToken().catch((err) => {
           console.error('Auto refresh token failed:', err);
         });
-      }, 50 * 60 * 1000); // 50 minutes
+      }, 10 * 60 * 1000); // 10 minutes
 
       return () => clearInterval(interval);
     }

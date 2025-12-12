@@ -1,5 +1,10 @@
 const bookingRepository = require('../repositories/bookingRepository');
 const roomService = require('./roomService');
+const { sendEmail } = require('../utils/mailer');
+const { 
+  bookingCancellationEmail, 
+  bookingCancellationText 
+} = require('../utils/emailTemplates');
 
 /**
  * Booking Service - Business logic layer
@@ -390,7 +395,82 @@ class BookingService {
       cancelled_at: new Date(),
     });
 
+    // Send cancellation email
+    try {
+      await this.sendCancellationEmail(updatedBooking);
+    } catch (emailError) {
+      console.error('Failed to send cancellation email:', emailError);
+      // Don't throw - email failure shouldn't block cancellation
+    }
+
     return updatedBooking;
+  }
+
+  /**
+   * Send cancellation email notification
+   */
+  async sendCancellationEmail(booking) {
+    try {
+      // Parse guest_info if it's a string
+      let guestInfo = booking.guest_info;
+      if (typeof guestInfo === 'string') {
+        try {
+          guestInfo = JSON.parse(guestInfo);
+        } catch (e) {
+          console.error('Error parsing guest_info:', e);
+          guestInfo = null;
+        }
+      }
+
+      // Resolve recipient email
+      const userEmail = booking.user?.email;
+      const userFullName = booking.user?.full_name;
+      let recipientEmail = guestInfo?.email || userEmail;
+
+      if (!recipientEmail) {
+        console.warn('No email found for booking:', booking.booking_number);
+        return;
+      }
+
+      // Get payment info for refund calculation
+      const payment = booking.payments?.[0];
+      const paidAmount = payment?.amount || 0;
+      
+      // Calculate cancellation fee (20%) and refund amount (80%)
+      const cancellationFee = paidAmount * 0.2;
+      const refundAmount = paidAmount * 0.8;
+
+      // Prepare email data
+      const guestNameFromInfo = guestInfo ? 
+        (guestInfo.full_name || guestInfo.name || guestInfo.fullName) : null;
+      const emailData = {
+        booking_number: booking.booking_number,
+        guest_name: guestNameFromInfo || userFullName || 'Khách hàng',
+        room_name: booking.room?.room_type?.name || 'Chưa xác định',
+        room_number: booking.room?.room_number || 'Chưa xác định',
+        check_in_date: booking.check_in_date,
+        check_out_date: booking.check_out_date,
+        total_price: booking.total_price,
+        cancellation_reason: booking.cancellation_reason,
+        cancelled_at: booking.cancelled_at || new Date(),
+        paid_amount: paidAmount,
+        cancellation_fee: cancellationFee,
+        refund_amount: refundAmount
+      };
+
+      // Send email (non-blocking)
+      await sendEmail({
+        to: recipientEmail,
+        subject: `Xác nhận hủy đặt phòng ${booking.booking_number}`,
+        html: bookingCancellationEmail(emailData),
+        text: bookingCancellationText(emailData)
+      });
+
+      console.log('✅ Đã gửi email hủy đặt phòng đến:', recipientEmail);
+    } catch (error) {
+      console.error('❌ Lỗi gửi email hủy đặt phòng:', error.message);
+      throw error;
+    }
   }
 
   /**

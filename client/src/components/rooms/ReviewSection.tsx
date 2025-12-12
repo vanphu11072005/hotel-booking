@@ -9,7 +9,7 @@ import useBookingStore from '../../store/useBookingStore';
 import useAuthStore from '../../store/useAuthStore';
 
 interface ReviewSectionProps {
-  roomId: number;
+  roomTypeId: number;
 }
 
 const reviewSchema = yup.object({
@@ -31,14 +31,14 @@ type ReviewFormData = {
 };
 
 const ReviewSection: React.FC<ReviewSectionProps> = ({ 
-  roomId 
+  roomTypeId 
 }) => {
   const { isAuthenticated, userInfo } = useAuthStore();
   const [editingReviewId, setEditingReviewId] = useState<number | null>(null);
   const [editRating, setEditRating] = useState<number>(0);
   const [editComment, setEditComment] = useState<string>('');
   const [editingSubmitting, setEditingSubmitting] = useState<boolean>(false);
-  const reviews = useReviewStore((s) => s.reviewsByRoom[roomId] || []);
+  const reviews = useReviewStore((s) => s.reviewsByRoom[roomTypeId] || []);
   const loading = useReviewStore((s) => s.isLoading);
   const [submitting, setSubmitting] = useState(false);
   const [averageRating, setAverageRating] = useState<number>(0);
@@ -62,11 +62,11 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
 
   const rating = watch('rating');
 
-  const fetchRoomReviews = useReviewStore((s) => s.fetchRoomReviews);
+  const fetchRoomTypeReviews = useReviewStore((s) => s.fetchRoomTypeReviews);
 
   useEffect(() => {
-    fetchRoomReviews(roomId);
-  }, [roomId, fetchRoomReviews]);
+    fetchRoomTypeReviews(roomTypeId);
+  }, [roomTypeId, fetchRoomTypeReviews]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -74,7 +74,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
     } else {
       setEligibleBookingId(null);
     }
-  }, [isAuthenticated, roomId]);
+  }, [isAuthenticated, roomTypeId]);
 
   // compute derived stats when reviews change
   useEffect(() => {
@@ -96,7 +96,7 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
         // Accept either 'checked_out' or 'completed' as completed state
         const completedStatuses = ['checked_out', 'completed'];
         const booking = bookings.find((b) =>
-          b.room_id === roomId &&
+          b.room?.room_type_id === roomTypeId &&
           completedStatuses.includes(b.status) &&
           !(b as any).has_review
         );
@@ -128,7 +128,6 @@ const ReviewSection: React.FC<ReviewSectionProps> = ({
 
       setSubmitting(true);
       const added = await useReviewStore.getState().addReview({
-        room_id: roomId,
         rating: data.rating,
         comment: data.comment,
         booking_id: eligibleBookingId,

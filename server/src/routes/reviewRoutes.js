@@ -30,9 +30,9 @@ router.patch('/:id',
   reviewController.updateReview
 );
 
-// Public: Get reviews for a specific room
-router.get('/room/:roomId', 
-  reviewController.getRoomReviews
+// Public: Get reviews for a specific room type
+router.get('/room-type/:roomTypeId', 
+  reviewController.getRoomTypeReviews
 );
 
 // Admin: Approve review

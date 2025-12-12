@@ -34,7 +34,7 @@ apiClient.interceptors.request.use(
         config.url = config.url.replace(/^\/api/, '');
       }
       // Also avoid accidental double slashes after concatenation
-      config.url = config.url.replace(/\/\/+/, '/');
+      config.url = config.url.replace(/\/\/+/g, '/');
     }
 
     const token = localStorage.getItem('token');
@@ -66,40 +66,37 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Không redirect nếu đang ở trang login/register
+      // Don't redirect if we're on auth endpoints
       const isAuthEndpoint = error.config?.url?.includes('/auth/login') ||
                  error.config?.url?.includes('/auth/register') ||
                  error.config?.url?.includes('/auth/refresh-token');
-      
-      if (!isAuthEndpoint && localStorage.getItem('rememberMe') === 'true') {
-        // Try to refresh token
+
+      if (!isAuthEndpoint) {
+        // Try to refresh token regardless of rememberMe flag. The
+        // refresh endpoint relies on HttpOnly refresh cookie which
+        // may exist even when rememberMe=false (shorter expiry).
         originalRequest._retry = true;
 
         try {
           const response = await apiClient.post('/auth/refresh-token');
-          
+
           if (response.data?.data?.token) {
             const newToken = response.data.data.token;
             localStorage.setItem('token', newToken);
-            
+
             // Retry original request with new token
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return apiClient(originalRequest);
           }
         } catch (refreshError) {
-          // Refresh failed, logout user
+          // Refresh failed (no cookie or refresh expired) — clear
+          // local auth state and redirect to login.
           localStorage.removeItem('token');
           localStorage.removeItem('userInfo');
           localStorage.removeItem('rememberMe');
           window.location.href = '/login';
           return Promise.reject(refreshError);
         }
-      } else if (!isAuthEndpoint) {
-        // Token hết hạn và không có rememberMe
-        localStorage.removeItem('token');
-        localStorage.removeItem('userInfo');
-        localStorage.removeItem('rememberMe');
-        window.location.href = '/login';
       }
     }
 

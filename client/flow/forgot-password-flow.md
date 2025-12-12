@@ -25,4 +25,4 @@ nhấn link và đặt mật khẩu mới.
 - Xóa token (dùng một lần).
 - Trả về thành công và hướng dẫn đăng nhập lại.
 
-  ```
+---

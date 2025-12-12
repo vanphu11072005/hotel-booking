@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { toast } from 'react-toastify';
 import {
-  getRoomReviews,
+  getRoomTypeReviews,
   createReview,
   updateReview,
   getReviews as getAllReviews,
@@ -21,7 +21,7 @@ interface ReviewState {
   adminPagination?: { page: number; limit: number; total: number; totalPages?: number } | null;
 
   // Actions
-  fetchRoomReviews: (roomId: number) => Promise<void>;
+  fetchRoomTypeReviews: (roomTypeId: number) => Promise<void>;
   addReview: (data: any, appendLocal?: boolean) => Promise<Review | null>;
   editReview: (id: number, data: { rating?: number; comment?: string }) => Promise<Review | null>;
   fetchAdminReviews: (params?: Record<string, any>) => Promise<void>;
@@ -37,18 +37,18 @@ const useReviewStore = create<ReviewState>((set) => ({
   adminReviews: [],
   adminPagination: null,
 
-  fetchRoomReviews: async (roomId: number) => {
+  fetchRoomTypeReviews: async (roomTypeId: number) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await getRoomReviews(roomId);
+      const response = await getRoomTypeReviews(roomTypeId);
       if (response && response.data) {
         const list: Review[] = response.data.reviews || [];
-        set((state) => ({ reviewsByRoom: { ...state.reviewsByRoom, [roomId]: list }, isLoading: false }));
+        set((state) => ({ reviewsByRoom: { ...state.reviewsByRoom, [roomTypeId]: list }, isLoading: false }));
       } else {
         set({ isLoading: false });
       }
     } catch (error: any) {
-      console.error('Error fetching room reviews:', error);
+      console.error('Error fetching room type reviews:', error);
       set({ error: error?.message || 'Failed to load reviews', isLoading: false });
     }
   },
@@ -57,7 +57,7 @@ const useReviewStore = create<ReviewState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await createReview(data);
-      if (response && response.data && response.data.review) {
+        if (response && response.data && response.data.review) {
         const review: Review = response.data.review;
         if (appendLocal && data.room_id) {
           set((state) => {
@@ -67,7 +67,8 @@ const useReviewStore = create<ReviewState>((set) => ({
         } else {
           set({ isLoading: false });
         }
-        toast.success(response.message || 'Đã gửi đánh giá');
+        // Intentionally do not show server-provided toast here to avoid
+        // duplicate notifications. Components should show localized toasts.
         return review;
       }
       set({ isLoading: false });

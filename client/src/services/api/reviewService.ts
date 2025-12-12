@@ -9,12 +9,12 @@ export type ApiResponse<T = any> = {
 };
 
 /**
- * Get reviews for a specific room
+ * Get reviews for a specific room type
  */
-export const getRoomReviews = async (
-  roomId: number
+export const getRoomTypeReviews = async (
+  roomTypeId: number
 ): Promise<ReviewListResponse> => {
-  const response = await apiClient.get(`/api/rooms/${roomId}/reviews`);
+  const response = await apiClient.get(`/api/reviews/room-type/${roomTypeId}`);
   return response.data;
 };
 
@@ -75,7 +75,7 @@ export const updateReview = async (
 };
 
 export default {
-  getRoomReviews,
+  getRoomTypeReviews,
   createReview,
   getReviews,
   approveReview,

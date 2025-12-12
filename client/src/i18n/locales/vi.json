@@ -4,6 +4,8 @@
     "reset": "Đặt lại",
     "search": "Tìm kiếm",
     "loading": "Đang tải...",
+    "viewDetails": "Xem chi tiết",
+    "select": "Chọn",
     "backToHome": "Quay lại trang chủ",
     "noResults": "Không tìm thấy phòng phù hợp",
     "noResultsDesc": "Vui lòng thử điều chỉnh bộ lọc hoặc tìm kiếm khác",
@@ -16,6 +18,8 @@
   "rooms": {
     "title": "Danh sách phòng",
     "filter": "Bộ lọc phòng",
+    "priceFrom": "Giá từ",
+    "perNight": "/ đêm",
     "roomType": "Loại phòng",
     "allRooms": "Tất cả phòng",
     "checkIn": "Ngày nhận",
@@ -90,6 +94,13 @@
     "previousBanner": "Banner trước",
     "nextBanner": "Banner tiếp theo",
     "goToSlide": "Đi tới banner"
+  },
+  "banners_custom": {
+    "Chào mừng đến với khách sạn Paradise": "Chào mừng đến với khách sạn Paradise",
+    "Nằm gần trung tâm thành phố": "Nằm gần trung tâm thành phố",
+    "Khuyến mãi mùa hè - Giảm giá tới 30%": "Khuyến mãi mùa hè - Giảm giá tới 30%",
+    "Phòng tổng thống": "Phòng tổng thống",
+    "Ưu đãi trọn gói dành cho gia đình": "Ưu đãi trọn gói dành cho gia đình"
   },
   "services": {
     "badge": "Dịch vụ cao cấp",

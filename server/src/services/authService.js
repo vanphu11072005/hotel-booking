@@ -16,7 +16,7 @@ class AuthService {
     const accessToken = jwt.sign(
       { userId },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
     );
 
     const refreshToken = jwt.sign(
@@ -356,7 +356,7 @@ class AuthService {
     const accessToken = jwt.sign(
       { userId: decoded.userId },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
+      { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
     );
 
     return { token: accessToken };
