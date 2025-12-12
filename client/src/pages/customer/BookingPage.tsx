@@ -577,7 +577,7 @@ const BookingPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4">
         {/* Back Button */}
         <Link
-          to={`/rooms/${room.id}${location.search || ''}`}
+          to={`/room-types/${roomType.id}${location.search || ''}`}
           className="inline-flex items-center gap-2 bg-indigo-600 
             text-white px-3 py-2 rounded-md hover:bg-indigo-700 
             disabled:bg-gray-400 mb-6 transition-colors"

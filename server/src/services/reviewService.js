@@ -6,18 +6,18 @@ const reviewRepository = require('../repositories/reviewRepository');
  */
 class ReviewService {
   /**
-   * Get reviews for a specific room
+   * Get reviews for a specific room type
    */
-  async getRoomReviews(roomId) {
-    if (!roomId) {
+  async getRoomTypeReviews(roomTypeId) {
+    if (!roomTypeId) {
       throw {
         statusCode: 400,
-        message: 'roomId is required',
+        message: 'roomTypeId is required',
       };
     }
 
-    const reviews = await reviewRepository.findApprovedReviewsByRoomId(
-      roomId
+    const reviews = await reviewRepository.findApprovedReviewsByRoomTypeId(
+      roomTypeId
     );
 
     return reviews;

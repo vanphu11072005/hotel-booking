@@ -7,17 +7,12 @@ const { Op } = require('sequelize');
  */
 class ReviewRepository {
   /**
-   * Find reviews by room ID with approved status
+   * Find reviews by room_type ID with approved status
    */
-  async findApprovedReviewsByRoomId(roomId) {
-    // Look up the room to obtain its room_type_id, then return
-    // approved reviews attached to that room type.
-    const room = await Room.findByPk(roomId, { attributes: ['room_type_id'] });
-    if (!room) return [];
-
+  async findApprovedReviewsByRoomTypeId(roomTypeId) {
     return await Review.findAll({
       where: {
-        room_type_id: parseInt(room.room_type_id, 10),
+        room_type_id: parseInt(roomTypeId, 10),
         status: 'approved',
       },
       include: [
@@ -32,47 +27,12 @@ class ReviewRepository {
   }
 
   /**
-   * Find room by ID
-   */
-  async findRoomById(roomId) {
-    return await Room.findByPk(roomId);
-  }
-
-  /**
-   * Find existing review by user and room
-   */
-  async findReviewByUserAndRoom(userId, roomId) {
-    // Find by user and the room's room_type
-    const room = await Room.findByPk(roomId, { attributes: ['room_type_id'] });
-    if (!room) return null;
-    return await Review.findOne({
-      where: {
-        user_id: userId,
-        room_type_id: room.room_type_id,
-      },
-    });
-  }
-
-  /**
    * Find existing review by booking id
    */
   async findReviewByBookingId(bookingId) {
     if (!bookingId) return null;
     return await Review.findOne({
       where: { booking_id: bookingId }
-    });
-  }
-
-  /**
-   * Check if user has completed booking for room
-   */
-  async hasCompletedBooking(userId, roomId) {
-    return await Booking.findOne({
-      where: {
-        user_id: userId,
-        room_id: roomId,
-        status: 'completed',
-      },
     });
   }
 

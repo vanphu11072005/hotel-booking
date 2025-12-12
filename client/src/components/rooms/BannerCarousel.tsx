@@ -41,10 +41,22 @@ const BannerCarousel: React.FC<BannerCarouselProps> = ({
     imgSrcResolved = '/images/default-banner.jpg';
   }
 
-  const altText = currentBanner?.title ??
-    t('banner.welcome');
-  const titleText = currentBanner?.title ??
-    t('banner.welcome');
+  // Translate banner title when possible. We keep the original
+  // title as fallback if no translation is found.
+  const translateTitleKey = currentBanner?.title
+    ? `banners_custom.${currentBanner.title}`
+    : null;
+
+  let titleText = t('banner.welcome');
+  if (currentBanner?.title) {
+    const translated = translateTitleKey ? t(translateTitleKey) : '';
+    // i18next returns the key when translation missing, so
+    // compare and fallback to original title when needed.
+    titleText = translated && translated !== translateTitleKey
+      ? translated
+      : currentBanner.title;
+  }
+  const altText = titleText;
   const showNav = hasBanners && displayBanners.length > 1;
   const showDots = hasBanners && displayBanners.length > 1;
 

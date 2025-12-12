@@ -624,7 +624,7 @@ const MyBookingsPage: React.FC = () => {
                           {/* Review Now */}
                           {booking.status === 'checked_out' && !(booking as any).has_review && (
                             <Link
-                              to={`/rooms/${(booking.room && booking.room.id) || booking.room_id}`}
+                              to={`/room-types/${booking.room?.room_type_id || roomType?.id}`}
                               className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium text-sm"
                             >
                               <DoorClosed className="w-4 h-4" />

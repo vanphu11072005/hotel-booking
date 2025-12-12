@@ -341,7 +341,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
                   : ''
               }
               onChange={handleInputChange}
-              placeholder="0"
+              placeholder=""
               inputMode="numeric"
               pattern="[0-9.]*"
               className="w-full px-4 py-2 border 
@@ -368,7 +368,7 @@ const RoomFilter: React.FC<RoomFilterProps> = ({ onFilterChange }) => {
                   : ''
               }
               onChange={handleInputChange}
-              placeholder="10.000.000"
+              placeholder=""
               inputMode="numeric"
               pattern="[0-9.]*"
               className="w-full px-4 py-2 border 

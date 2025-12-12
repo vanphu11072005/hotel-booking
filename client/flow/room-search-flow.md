@@ -6,7 +6,7 @@ giá, quy tắc đóng phòng).
 
 1) Client gửi yêu cầu tìm phòng
 - User nhập checkIn, checkOut, Loại phòng, guests.
-- Validate ngày và số khách.
+- Validate ngày.
 - Gửi request /api/rooms/availability.
 
 2) Server xử lý và tìm phòng trống
@@ -14,3 +14,4 @@ giá, quy tắc đóng phòng).
 - Lấy danh sách phòng/phòng loại.
 - Loại bỏ phòng có booking trùng ngày.
 
+---

@@ -9,9 +9,8 @@ gửi email xác thực bằng token, người dùng xác nhận qua link.
 - Gửi POST `/api/auth/register`.
 
 2) Server tạo tài khoản & token
-- Nhận dữ liệu, validate server-side (same validation).
+- Nhận dữ liệu, validate server-side.
 - Kiểm tra email trùng, hash password.
-- Tạo user với `isVerified = false`.
 - Tạo token xác thực và lưu DB.
 
 3) Gửi email xác thực

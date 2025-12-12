@@ -4,6 +4,8 @@
     "reset": "Reset",
     "search": "Search",
     "loading": "Loading...",
+    "viewDetails": "View details",
+    "select": "Select",
     "backToHome": "Back to Home",
     "noResults": "No rooms found",
     "noResultsDesc": "Please try adjusting filters or search again",
@@ -16,6 +18,8 @@
   "rooms": {
     "title": "Room List",
     "filter": "Room Filter",
+    "priceFrom": "Price from",
+    "perNight": "/ night",
     "roomType": "Room Type",
     "allRooms": "All Rooms",
     "checkIn": "Check-in",
@@ -90,6 +94,13 @@
     "previousBanner": "Previous banner",
     "nextBanner": "Next banner",
     "goToSlide": "Go to banner"
+  },
+  "banners_custom": {
+    "Chào mừng đến với khách sạn Paradise": "Welcome to Paradise Hotel",
+    "Nằm gần trung tâm thành phố": "Located near the city center",
+    "Khuyến mãi mùa hè - Giảm giá tới 30%": "Summer Promo - Up to 30% Off",
+    "Phòng tổng thống": "Presidential Suite",
+    "Ưu đãi trọn gói dành cho gia đình": "Family Package Deals"
   },
   "services": {
     "badge": "Premium Services",
